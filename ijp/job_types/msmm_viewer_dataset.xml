@@ -1,0 +1,55 @@
+<jobType>
+    <name>MSMM Viewer Dataset</name>
+    <executable>/usr/local/msmm/bin/msmm_viewer_dataset</executable>
+    <multiple>false</multiple>
+    <type>interactive</type>
+    <datasetTypes>dataset</datasetTypes>
+    <jobOptions>
+        <name>View</name>
+        <groupName>View type</groupName>
+        <type>boolean</type>
+        <programParameter></programParameter>
+        <condition></condition>
+    </jobOptions>
+    <jobOptions>
+        <name>View beads</name>
+        <groupName>View type</groupName>
+        <type>boolean</type>
+        <programParameter>--beads</programParameter>
+        <condition>beadDatasetId!=null</condition>
+    </jobOptions>
+    <jobOptions>
+        <name>View whitelights</name>
+        <groupName>View type</groupName>
+        <type>boolean</type>
+        <programParameter>--whitelights</programParameter>
+        <condition>numWhitelightFiles&gt;0</condition>
+    </jobOptions>
+    <jobOptions>
+        <name>Do not load traces</name>
+        <type>boolean</type>
+        <programParameter>--no-tracks</programParameter>
+    </jobOptions>
+    <jobOptions>
+        <name>Track method</name>
+        <type>enumeration</type>
+        <programParameter>--trackmethod</programParameter>
+        <values></values>
+        <values>Simple</values>
+        <values>SLH</values>
+        <values>Biggles</values>
+        <values>Simulation</values>
+    </jobOptions>
+    <jobOptions>
+        <name>Do not clean levels/stats</name>
+        <type>integer</type>
+        <programParameter>--Levels.no-clean</programParameter>
+        <defaultValue>0</defaultValue>
+    </jobOptions>
+    <jobOptions>
+        <name>Quantum efficiency</name>
+        <type>float</type>
+        <programParameter>--EMCCD.qe</programParameter>
+        <defaultValue>0.910000026</defaultValue>
+    </jobOptions>
+</jobType>

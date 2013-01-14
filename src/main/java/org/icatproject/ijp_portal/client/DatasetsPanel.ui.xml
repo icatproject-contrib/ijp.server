@@ -1,0 +1,61 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui='urn:ui:com.google.gwt.uibinder'
+			 xmlns:g='urn:import:com.google.gwt.user.client.ui'
+			 xmlns:c='urn:import:com.google.gwt.user.cellview.client'
+			 xmlns:d='urn:import:com.google.gwt.user.datepicker.client' >
+
+	<ui:style src="portal.css" />
+	<!--ui:style>
+		.bolder { font-weight: bold; }
+		.red { color: #FF0000; }
+	</ui:style-->
+	
+	<g:VerticalPanel spacing='10'>
+		<g:HorizontalPanel>
+			<g:ListBox ui:field="datasetTypeListBox">
+			  <g:item value=''>Dataset types...</g:item>
+			</g:ListBox>
+		</g:HorizontalPanel>
+		<g:HorizontalPanel>
+			<g:FlowPanel ui:field="searchListsPanel" />
+			<g:Button ui:field="searchButton" text='Search' />
+			<g:Button ui:field="doStuffButton" text='Do stuff' />
+			<g:TextArea ui:field="debugTextArea" width="500px" />
+		</g:HorizontalPanel>
+		<g:HorizontalPanel width='100%'>
+			<g:cell width='20%' horizontalAlignment='ALIGN_LEFT'>
+				<g:Label ui:field='messageLabel' height='20px' styleName='{style.red}'></g:Label>
+			</g:cell>
+			<g:cell width='30%' horizontalAlignment='ALIGN_RIGHT'>
+				<g:ListBox ui:field="datasetActionListBox" width='300px'/>
+			</g:cell>
+			<g:cell width='30%' horizontalAlignment='ALIGN_RIGHT'>
+				<g:Button ui:field="datasetInfoButton" text='Show dataset info' />
+			</g:cell>
+		</g:HorizontalPanel>
+		<!-- g:HTMLPanel><hr /></g:HTMLPanel-->
+		<g:ScrollPanel ui:field='datasetsScrollPanel' height='300px' styleName='{style.scroll-panel}'>
+			<c:CellTable ui:field='datasetsTable' width='100%'/>
+		</g:ScrollPanel>
+	   	<!-- g:Label styleName='{style.bolder}'>Project information</g:Label-->
+		<!-- g:HTMLPanel><hr /></g:HTMLPanel-->
+	   	<!-- g:HTMLPanel>&nbsp;&nbsp;&nbsp;&nbsp;<b>Information</b></g:HTMLPanel-->
+		<g:ScrollPanel ui:field='infoScrollPanel' height='300px' styleName='{style.scroll-panel}'>
+			<c:CellTable ui:field='datasetInfoTable' width='100%' />
+		</g:ScrollPanel>
+        <g:FormPanel ui:field="rdpForm">
+            <g:VerticalPanel>
+                <g:Hidden name="accountName" ui:field="accountNameField" />
+                <g:Hidden name="hostName" ui:field="hostNameField" />
+            </g:VerticalPanel>
+        </g:FormPanel>
+        <g:FormPanel ui:field="downloadForm">
+            <g:VerticalPanel>
+                <g:Hidden name="sessionId" ui:field="sessionIdField" />
+                <g:Hidden name="datasetId" ui:field="datasetIdField" />
+                <g:Hidden name="datasetName" ui:field="datasetNameField" />
+            </g:VerticalPanel>
+        </g:FormPanel>
+		
+	</g:VerticalPanel>
+</ui:UiBinder>

@@ -1,0 +1,130 @@
+package org.icatproject.ijp_portal.server.ejb.entity;
+
+import java.io.Serializable;
+import java.util.Date;
+
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import org.icatproject.ijp_portal.shared.JobDTO;
+import org.icatproject.ijp_portal.shared.PortalUtils;
+
+@SuppressWarnings("serial")
+@Entity
+@NamedQueries({ @NamedQuery(name = "Job.FIND_BY_USERNAME", query = "SELECT j FROM Job j WHERE j.username = :username ORDER BY j.submitDate DESC") })
+public class Job implements Serializable {
+
+	public final static String FIND_BY_USERNAME = "Job.FIND_BY_USERNAME";
+
+	@Id
+	private String id;
+
+	private String status;
+
+	private String username;
+
+	@Temporal(TemporalType.TIMESTAMP)
+	private Date submitDate;
+
+	private long icatJobId;
+
+	private String batchFilename;
+
+	private String workerNode;
+
+	private String comment;
+
+	public String getBatchUsername() {
+		return batchUsername;
+	}
+
+	private String batchUsername;
+
+	public String getComment() {
+		return comment;
+	}
+
+	public Job() {
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+	public Date getSubmitDate() {
+		return submitDate;
+	}
+
+	public void setSubmitDate(Date submitDate) {
+		this.submitDate = submitDate;
+	}
+
+	public long getIcatJobId() {
+		return icatJobId;
+	}
+
+	public void setIcatJobId(long icatJobId) {
+		this.icatJobId = icatJobId;
+	}
+
+	public String getBatchFilename() {
+		return batchFilename;
+	}
+
+	public void setBatchFilename(String batchFilename) {
+		this.batchFilename = batchFilename;
+	}
+
+	public String getWorkerNode() {
+		return workerNode;
+	}
+
+	public void setWorkerNode(String workerNode) {
+		this.workerNode = workerNode;
+	}
+
+	public JobDTO getJobDTO() {
+		JobDTO jobDTO = new JobDTO();
+		jobDTO.setId(id);
+		jobDTO.setUsername(username);
+		jobDTO.setSubmitDate(submitDate);
+		jobDTO.setBatchFilename(batchFilename);
+		jobDTO.setStatus(PortalUtils.JOB_STATUS_MAPPINGS.get(status));
+		jobDTO.setWorkerNode(workerNode);
+		jobDTO.setIcatJobId(icatJobId);
+		jobDTO.setComment(comment);
+		return jobDTO;
+	}
+
+	public void setComment(String comment) {
+		this.comment = comment;
+	}
+
+	public void setBatchUsername(String batchUsername) {
+		this.batchUsername = batchUsername;
+	}
+}

@@ -1,0 +1,183 @@
+package org.icatproject.ijp_portal.server.ejb.session;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+
+import javax.annotation.PostConstruct;
+import javax.ejb.Schedule;
+import javax.ejb.Stateless;
+import javax.persistence.EntityManager;
+import javax.persistence.LockModeType;
+import javax.persistence.PersistenceContext;
+
+import org.icatproject.ijp_portal.server.Pbs;
+import org.icatproject.ijp_portal.server.ejb.entity.Account;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import uk.ac.rl.esc.catutils.CheckedProperties;
+import uk.ac.rl.esc.catutils.CheckedProperties.CheckedPropertyException;
+import uk.ac.rl.esc.catutils.ShellCommand;
+import org.icatproject.ijp_portal.shared.Constants;
+import org.icatproject.ijp_portal.shared.ServerException;
+
+@Stateless
+public class MachineEJB {
+
+	final static Logger logger = LoggerFactory.getLogger(MachineEJB.class);
+
+	private long passwordDurationMillis;
+
+	private String accountprepare;
+
+	@PostConstruct
+	private void init() {
+		CheckedProperties props = new CheckedProperties();
+		try {
+			props.loadFromFile(Constants.PROPERTIES_FILEPATH);
+			passwordDurationMillis = props.getPositiveInt("passwordDurationSeconds") * 1000L;
+			poolPrefix = props.getString("poolPrefix");
+			accountprepare = props.getString("accountprepare");
+		} catch (CheckedPropertyException e) {
+			throw new RuntimeException("CheckedPropertyException " + e.getMessage());
+		}
+		try {
+			pbs = new Pbs();
+		} catch (ServerException e) {
+			throw new RuntimeException("Server exception " + e.getMessage());
+		}
+	}
+
+	@PersistenceContext(unitName = "portal")
+	private EntityManager entityManager;
+
+	private String poolPrefix;
+
+	private Pbs pbs;
+
+	private final static Random random = new Random();
+	private final static String chars = "abcdefghijkmnpqrstuvwxyz23456789";
+
+	public Account getAccount(String lightest, String userName, String sessionId, Long dsid,
+			String command) throws ServerException {
+		logger.debug("Set up account for " + userName + " on " + lightest);
+
+		logger.debug("Need to create a new pool account");
+		Account account = new Account();
+		account.setHost(lightest);
+		entityManager.persist(account);
+		char[] pw = new char[4];
+		for (int i = 0; i < pw.length; i++) {
+			pw[i] = chars.charAt(random.nextInt(chars.length()));
+		}
+		String password = new String(pw);
+		ShellCommand sc = new ShellCommand("ssh", lightest, accountprepare, poolPrefix
+				+ account.getId(), password, userName, sessionId, Long.toString(dsid), "'"
+				+ command + "'");
+		if (sc.isError()) {
+			throw new ServerException(sc.getMessage());
+		}
+		logger.debug("Command useradd reports " + sc.getStdout());
+
+		account.setUserName(userName);
+		account.setAllocatedDate(new Date());
+
+		account.setPassword(password);
+
+		return account;
+	}
+
+	@Schedule(minute = "*/1", hour = "*")
+	private void cleanAccounts() {
+		try {
+			/* First find old accounts and remove their password */
+			Date passwordTime = new Date(System.currentTimeMillis() - passwordDurationMillis);
+			List<Account> accounts = entityManager.createNamedQuery(Account.OLD, Account.class)
+					.setParameter("date", passwordTime).getResultList();
+			for (Account account : accounts) {
+				entityManager.refresh(account, LockModeType.PESSIMISTIC_WRITE);
+				logger.debug("Delete password for account " + account.getId() + " on "
+						+ account.getHost());
+				ShellCommand sc = new ShellCommand("ssh", account.getHost(), "sudo",
+						"/usr/bin/passwd", "-d", poolPrefix + account.getId());
+				if (sc.isError()) {
+					throw new RuntimeException(sc.getMessage());
+				}
+				logger.debug("Command passwd reports " + sc.getStdout());
+				account.setAllocatedDate(null);
+			}
+
+			/* Now delete any accounts which have no processes running */
+			accounts = entityManager.createNamedQuery(Account.TODELETE, Account.class)
+					.getResultList();
+			boolean deleted = false;
+			for (Account account : accounts) {
+				logger.debug("About to ssh " + account.getHost() + " ps -F --noheaders -U "
+						+ poolPrefix + account.getId());
+				ShellCommand sc = new ShellCommand("ssh", account.getHost(), "ps", "-F",
+						"--noheaders", "-U", poolPrefix + account.getId());
+
+				if (sc.isError() && (!sc.getStdout().isEmpty() || !sc.getStderr().isEmpty())) {
+					throw new RuntimeException(sc.getMessage());
+				}
+				if (sc.getStdout().isEmpty()) {
+					logger.debug("No processes running for " + poolPrefix + account.getId());
+					sc = new ShellCommand("ssh", account.getHost(), "sudo", "userdel", "-r",
+							poolPrefix + account.getId());
+					if (sc.isError()) {
+						throw new RuntimeException(sc.getMessage());
+					}
+					logger.debug("Command userdel for " + poolPrefix + account.getId() + " on "
+							+ account.getHost() + " reports " + sc.getStdout());
+					entityManager.remove(account);
+					deleted = true;
+				} else {
+					logger.debug(poolPrefix + account.getId() + " has "
+							+ sc.getStdout().split("\\n").length + " processes running on "
+							+ account.getHost());
+				}
+			}
+
+			/*
+			 * If an account was deleted consider putting machines back on line. This checks all
+			 * machines not only the one for which the account was deleted to help recover if the
+			 * system gets into a strange state.
+			 */
+			if (deleted) {
+				Map<String, String> avail = pbs.getStates();
+				for (Entry<String, String> pair : avail.entrySet()) {
+					boolean online = true;
+					for (String state : pair.getValue().split(",")) {
+						if (state.equals("offline")) {
+							online = false;
+							break;
+						}
+					}
+					if (!online) {
+						String hostName = pair.getKey();
+						long count = entityManager.createNamedQuery(Account.USERS, Long.class)
+								.setParameter("host", hostName).getSingleResult();
+						if (count == 0L) {
+							logger.debug("Idle machine " + hostName + " has no users");
+							pbs.setOnline(hostName);
+						} else {
+							logger.debug("Idle machine " + hostName + " has " + count
+									+ " users so cannot be put back online");
+						}
+					}
+				}
+			}
+
+		} catch (Throwable e) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			PrintStream ps = new PrintStream(baos);
+			e.printStackTrace(ps);
+			logger.error("cleanAccounts failed " + baos.toString());
+		}
+	}
+}

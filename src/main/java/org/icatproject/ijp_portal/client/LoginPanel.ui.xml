@@ -1,0 +1,35 @@
+<ui:UiBinder xmlns:ui='urn:ui:com.google.gwt.uibinder'
+	xmlns:g='urn:import:com.google.gwt.user.client.ui'>
+	<ui:style src="portal.css" />
+	<g:HTMLPanel>
+		<table>
+			<tr>
+				<td>
+					<g:Label>Username</g:Label>
+				</td>
+				<td>
+					<g:TextBox ui:field="username" width="15em" />
+				</td>
+
+			</tr>
+			<tr>
+				<td>
+					<g:Label>Password</g:Label>
+				</td>
+				<td>
+					<g:PasswordTextBox ui:field="password" width="15em" />
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2" align="center">
+					<g:Label ui:field='messageLabel' height='20px' styleName='{style.red}'></g:Label>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2" align="center">
+					<g:Button ui:field="login" text="login" />
+				</td>
+			</tr>
+		</table>
+	</g:HTMLPanel>
+</ui:UiBinder>
