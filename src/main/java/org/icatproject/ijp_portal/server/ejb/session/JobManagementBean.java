@@ -536,8 +536,10 @@ public class JobManagementBean {
 				}
 			}
 		} catch (Exception e) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			e.printStackTrace(new PrintStream(baos));
 			logger.error("Update of db jobs from qstat failed. Class " + e.getClass() + " reports "
-					+ e.getMessage());
+					+ e.getMessage() + baos.toString());
 		}
 	}
 
@@ -685,8 +687,12 @@ public class JobManagementBean {
 	}
 
 	public String delete(String sessionId, String jobId) throws SessionException,
-			ForbiddenException, InternalException {
+			ForbiddenException, InternalException, ParameterException {
 		Job job = getJob(sessionId, jobId);
+		if (!job.getStatus().equals("C")) {
+			throw new ParameterException(
+					"Only completed jobs can be deleted - try cancelling first");
+		}
 		for (String oe : new String[] { "o", "e" }) {
 			String ext = "." + oe + jobId.split("\\.")[0];
 			Path path = FileSystems.getDefault().getPath("/home/batch/jobs",
@@ -698,7 +704,7 @@ public class JobManagementBean {
 			}
 		}
 		entityManager.remove(job);
-		return null;
+		return "";
 	}
 
 	public String cancel(String sessionId, String jobId) throws SessionException,
@@ -706,8 +712,8 @@ public class JobManagementBean {
 		Job job = getJob(sessionId, jobId);
 		ShellCommand sc = new ShellCommand("qdel", job.getId());
 		if (sc.isError()) {
-			throw new InternalException("Unable to cancel job via qdel " + sc.getStderr());
+			throw new InternalException("Unable to cancel job " + sc.getStderr());
 		}
-		return null;
+		return "";
 	}
 }

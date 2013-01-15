@@ -113,6 +113,9 @@ public class JobManager {
 		} catch (InternalException e) {
 			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
 					.entity(e.getMessage() + "\n").build());
+		} catch (ParameterException e) {
+			throw new WebApplicationException(Response.status(Status.BAD_REQUEST)
+					.entity(e.getMessage() + "\n").build());
 		}
 
 	}
