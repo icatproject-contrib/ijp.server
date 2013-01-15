@@ -683,4 +683,31 @@ public class JobManagementBean {
 		}
 		return job;
 	}
+
+	public String delete(String sessionId, String jobId) throws SessionException,
+			ForbiddenException, InternalException {
+		Job job = getJob(sessionId, jobId);
+		for (String oe : new String[] { "o", "e" }) {
+			String ext = "." + oe + jobId.split("\\.")[0];
+			Path path = FileSystems.getDefault().getPath("/home/batch/jobs",
+					job.getBatchFilename() + ext);
+			try {
+				Files.deleteIfExists(path);
+			} catch (IOException e) {
+				throw new InternalException("Unable to delete " + path.toString());
+			}
+		}
+		entityManager.remove(job);
+		return null;
+	}
+
+	public String cancel(String sessionId, String jobId) throws SessionException,
+			ForbiddenException, InternalException {
+		Job job = getJob(sessionId, jobId);
+		ShellCommand sc = new ShellCommand("qdel", job.getId());
+		if (sc.isError()) {
+			throw new InternalException("Unable to cancel job via qdel " + sc.getStderr());
+		}
+		return null;
+	}
 }

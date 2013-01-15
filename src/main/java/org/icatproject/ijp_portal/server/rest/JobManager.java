@@ -59,41 +59,81 @@ public class JobManager {
 	@GET
 	@Path("output/{jobId}")
 	public String getOutput(@PathParam("jobId") String jobId,
-			@QueryParam("sessionId") String sessionId) throws SessionException, ForbiddenException,
-			InternalException {
+			@QueryParam("sessionId") String sessionId) {
 
 		checkCredentials(sessionId);
 
-		return jobManagementBean.getJobOutput(sessionId, jobId, OutputType.STANDARD_OUTPUT);
+		try {
+			return jobManagementBean.getJobOutput(sessionId, jobId, OutputType.STANDARD_OUTPUT);
+		} catch (SessionException e) {
+			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
+					.entity(e.getMessage() + "\n").build());
+		} catch (ForbiddenException e) {
+			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
+					.entity(e.getMessage() + "\n").build());
+		} catch (InternalException e) {
+			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(e.getMessage() + "\n").build());
+		}
 	}
 
 	@GET
 	@Path("error/{jobId}")
 	public String getError(@PathParam("jobId") String jobId,
-			@QueryParam("sessionId") String sessionId) throws SessionException, ForbiddenException,
-			InternalException {
+			@QueryParam("sessionId") String sessionId) {
 
 		checkCredentials(sessionId);
 
-		return jobManagementBean.getJobOutput(sessionId, jobId, OutputType.ERROR_OUTPUT);
+		try {
+			return jobManagementBean.getJobOutput(sessionId, jobId, OutputType.ERROR_OUTPUT);
+		} catch (SessionException e) {
+			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
+					.entity(e.getMessage() + "\n").build());
+		} catch (ForbiddenException e) {
+			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
+					.entity(e.getMessage() + "\n").build());
+		} catch (InternalException e) {
+			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(e.getMessage() + "\n").build());
+		}
 	}
 
 	@DELETE
 	@Path("delete/{jobId}")
 	public String delete(@PathParam("jobId") String jobId, @QueryParam("sessionId") String sessionId) {
-
 		checkCredentials(sessionId);
+		try {
+			return jobManagementBean.delete(sessionId, jobId);
+		} catch (SessionException e) {
+			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
+					.entity(e.getMessage() + "\n").build());
+		} catch (ForbiddenException e) {
+			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
+					.entity(e.getMessage() + "\n").build());
+		} catch (InternalException e) {
+			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(e.getMessage() + "\n").build());
+		}
 
-		return "delete: " + "jobId " + jobId + " and sessionId " + sessionId + "\n";
 	}
 
-	@DELETE
+	@POST
 	@Path("cancel/{jobId}")
 	public String cancel(@PathParam("jobId") String jobId, @QueryParam("sessionId") String sessionId) {
 
 		checkCredentials(sessionId);
-
-		return "cancel: " + "jobId " + jobId + " and sessionId " + sessionId + "\n";
+		try {
+			return jobManagementBean.cancel(sessionId, jobId);
+		} catch (SessionException e) {
+			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
+					.entity(e.getMessage() + "\n").build());
+		} catch (ForbiddenException e) {
+			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
+					.entity(e.getMessage() + "\n").build());
+		} catch (InternalException e) {
+			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(e.getMessage() + "\n").build());
+		}
 	}
 
 	private void checkCredentials(String sessionId) {
