@@ -34,9 +34,9 @@ import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.FormPanel;
 import com.google.gwt.user.client.ui.Hidden;
+import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.RequiresResize;
@@ -56,7 +56,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	ListBox datasetTypeListBox;
 	
 	@UiField
-	FlowPanel searchListsPanel;
+	HorizontalPanel searchListsPanel;
 
 	@UiField
 	Button searchButton;
