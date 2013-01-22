@@ -13,6 +13,7 @@ import org.icatproject.ijp_portal.client.service.DataServiceAsync;
 
 import org.icatproject.ijp_portal.shared.DatasetOverview;
 import org.icatproject.ijp_portal.shared.PortalUtils;
+import org.icatproject.ijp_portal.shared.ProjectOverview;
 import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
@@ -43,8 +44,8 @@ import com.google.gwt.user.client.ui.RequiresResize;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.Widget;
+import com.google.gwt.view.client.MultiSelectionModel;
 import com.google.gwt.view.client.SelectionChangeEvent;
-import com.google.gwt.view.client.SingleSelectionModel;
 
 public class DatasetsPanel extends Composite implements RequiresResize {
 	// Annotation can be used to change the name of the associated xml file
@@ -108,9 +109,10 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	private DataServiceAsync dataService = GWT.create(DataService.class);
 
 	private List<DatasetOverview> datasetList = new ArrayList<DatasetOverview>();
-    final SingleSelectionModel<DatasetOverview> selectionModel = new SingleSelectionModel<DatasetOverview>();
+    final MultiSelectionModel<DatasetOverview> selectionModel = new MultiSelectionModel<DatasetOverview>();
 
     private static final String OPTIONS_LIST_FIRST_OPTION = "Options ...";
+    private static final String OPTIONS_LIST_DOWNLOAD_OPTION = "Download";
     private static final String DEFAULT_MESSAGE = "Select a Dataset Type and do a Search";
     
     Portal portal;
@@ -121,7 +123,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		this.portal = portal;
 		initWidget(uiBinder.createAndBindUi(this));
 
-		datasetActionListBox.addItem(OPTIONS_LIST_FIRST_OPTION);
+		datasetActionListBox.addItem(OPTIONS_LIST_FIRST_OPTION, "");
+		datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_OPTION);
 		datasetActionListBox.setEnabled(false);
 		
 //		datasetsTable.setPageSize(5);
@@ -144,27 +147,37 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		datasetInfoButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-		        DatasetOverview selectedDataset = selectionModel.getSelectedObject();
-		        if (selectedDataset != null) {
-		        	String message = "";
-		        	message += "ID: "+ selectedDataset.getDatasetId() + "\n";
-		        	Map<String, Object> jobDatasetParameters = selectedDataset.getJobDatasetParameters();
-		        	for (String key : jobDatasetParameters.keySet() ) {
-		        		Object dsParamObject = jobDatasetParameters.get(key);
-		        		String dsParamAsString = "null";
-		        		if ( dsParamObject != null ) {
-		        			dsParamAsString = dsParamObject.toString();
-		        		}
-			        	message += "JobDsParam: " + key + ": "+ dsParamAsString + " ";
-		        		if ( dsParamObject != null ) {
-		        			message += "Class: " + jobDatasetParameters.get(key).getClass().getName();
-		        		}
-		        		message += "\n";
-		        	}
-		            Window.alert(message);
-		        } else {
-		            Window.alert("Please select a dataset");
-		        }
+				Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
+				if ( selectedDatasets.size() == 1 ) {
+			        DatasetOverview selectedDataset = selectedDatasets.iterator().next();
+			        if (selectedDataset != null) {
+			        	String message = "";
+			        	message += "ID: "+ selectedDataset.getDatasetId() + "\n";
+			        	Map<String, Object> jobDatasetParameters = selectedDataset.getJobDatasetParameters();
+			        	for (String key : jobDatasetParameters.keySet() ) {
+			        		Object dsParamObject = jobDatasetParameters.get(key);
+			        		String dsParamAsString = "null";
+			        		if ( dsParamObject != null ) {
+			        			dsParamAsString = dsParamObject.toString();
+			        		}
+				        	message += "JobDsParam: " + key + ": "+ dsParamAsString + " ";
+			        		if ( dsParamObject != null ) {
+			        			message += "Class: " + jobDatasetParameters.get(key).getClass().getName();
+			        		}
+			        		message += "\n";
+			        	}
+			            Window.alert(message);
+			        } else {
+			            Window.alert("Please select a dataset");
+			        }
+				} else {
+					String idsString = "";
+					for ( DatasetOverview selectedDataset : selectedDatasets ) {
+						idsString += selectedDataset.getDatasetId() + " ";
+					}
+					String alertMessage = "Dataset Info can only be displayed when a single dataset is selected";
+					Window.alert( alertMessage + "\n" + idsString );
+				}
 			}
 		});
 
@@ -199,11 +212,14 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	    datasetsTable.setSelectionModel(selectionModel);
 	    selectionModel.addSelectionChangeHandler(new SelectionChangeEvent.Handler() {
 	      public void onSelectionChange(SelectionChangeEvent event) {
-	        DatasetOverview selectedDataset = selectionModel.getSelectedObject();
-	        if (selectedDataset != null) {
+			Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
+			if ( selectedDatasets.size() == 1 ) {
+		        DatasetOverview selectedDataset = selectedDatasets.iterator().next();
 	        	refreshDatasetInformation(selectedDataset.getDatasetId());
-//	        	updateOptionsListBox(selectedDataset);
-	        }
+			} else {
+				// empty the dataset info table - details cannot be displayed for more than one dataset
+				clearDatasetInfoTable();
+			}
 	      }
 	    });
 
@@ -256,15 +272,15 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 //		Window.alert("Value is:'" + selectedValue + "'");
 		datasetActionListBox.clear();
 		datasetActionListBox.addItem(OPTIONS_LIST_FIRST_OPTION, "");
+		datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_OPTION);
 
 		// remove any datasets listed in the Datasets Table
 		datasetList = new ArrayList<DatasetOverview>();
 		datasetsTable.setRowData(datasetList);
 		datasetsTable.setRowCount(0);
-		// remove any data displayed in the Dataset Information area
-    	List<DatasetInfoItem> infoItemList = new ArrayList<DatasetInfoItem>();
-		datasetInfoTable.setRowData(infoItemList);
-		datasetInfoTable.setRowCount(0);
+		clearDatasetInfoTable();
+		// make sure any selections in the Datasets Table are cleared
+		selectionModel.clear();
 		// disable the dataset actions box - it will be re-enabled when a search
 		// is done and a new list of datasets appears
 		datasetActionListBox.setEnabled(false);
@@ -283,14 +299,44 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		}
 	}
 
+	private void clearDatasetInfoTable() {
+		// remove any data displayed in the Dataset Information area
+    	List<DatasetInfoItem> infoItemList = new ArrayList<DatasetInfoItem>();
+		datasetInfoTable.setRowData(infoItemList);
+		datasetInfoTable.setRowCount(0);
+	}
+
 	@UiHandler("datasetActionListBox")
 	void handleDatasetActionListBoxChange(ChangeEvent event) {
 		String jobName = datasetActionListBox.getValue(datasetActionListBox.getSelectedIndex());
 //		Window.alert("jobName is:'" + jobName + "'");
-		if ( !jobName.equals("") ) {
-			// popup a form containing the options for this job
-			// with options relevant to the selected dataset
-			portal.jobOptionsPanel.populateAndShowForm(jobName);
+
+		if ( jobName.equals("") ) {
+			// do nothing - this is the list box title that has no action
+		} else if ( jobName.equals(OPTIONS_LIST_DOWNLOAD_OPTION) ) {
+			Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
+			if ( selectedDatasets.size() > 1 ) {
+				Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
+			} else {
+				sessionIdField.setValue(portal.getSessionId());
+				DatasetOverview selectedDataset = selectionModel.getSelectedSet().iterator().next();
+				datasetIdField.setValue(selectedDataset.getDatasetId().toString());
+				datasetNameField.setValue(selectedDataset.getName());
+				downloadForm.submit();
+			}
+			datasetActionListBox.setSelectedIndex(0);
+		} else {
+			// check that the selected job type accepts multiple datasets 
+			JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
+			Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
+			if ( selectedDatasets.size() > 1 && !jobType.getMultiple()) {
+				Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
+				datasetActionListBox.setSelectedIndex(0);
+			} else {
+				// popup a form containing the options for this job
+				// with options relevant to the selected dataset
+				portal.jobOptionsPanel.populateAndShowForm(jobName);
+			}
 		}
 	}
 	
@@ -426,9 +472,11 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	    	}
 
 	    	public void onSuccess(List<DatasetOverview> result) {
-	    		if ( result == null ) {
-	    			System.out.println("Result is null");
-	    		} else {
+	    		// clear the selection model otherwise current selections will be added to
+	    		selectionModel.clear();
+//	    		if ( result == null ) {
+//	    			System.out.println("Result is null");
+//	    		} else {
 	    			int resultSize = result.size();
 	    			System.out.println("Result size: " + resultSize);
 	    			if ( resultSize == PortalUtils.MAX_RESULTS ) {
@@ -437,7 +485,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	    			} else {
     					messageLabel.setText(resultSize + " datasets found.");
 	    			}
-	    		}
+//	    		}
 	    		datasetList = result;
 	    		// set the page size to the number of datasets returned
 	    		// otherwise we only see the first 15 by default
