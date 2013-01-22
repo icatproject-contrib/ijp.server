@@ -464,6 +464,7 @@ public class JobManagementBean {
 				job.getBatchFilename() + ext);
 		boolean delete = false;
 		if (!Files.exists(path)) {
+			logger.debug("Getting intermediate output for " + jobId);
 			ShellCommand sc = new ShellCommand("sudo", "-u", "batch", "ssh", job.getWorkerNode(),
 					"sudo", "push_output", job.getBatchUsername(), path.toFile().getName());
 			if (sc.isError()) {
@@ -474,11 +475,12 @@ public class JobManagementBean {
 			delete = true;
 		}
 		if (Files.exists(path)) {
+			logger.debug("Returning final output for " + jobId);
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			try {
 				Files.copy(path, baos);
 			} catch (IOException e) {
-				throw new InternalException(e.getMessage());
+				throw new InternalException(e.getClass() + " reports " + e.getMessage());
 			}
 			if (delete) {
 				try {
@@ -511,10 +513,9 @@ public class JobManagementBean {
 			for (Qstat.Job xjob : qstat.getJobs()) {
 				String id = xjob.getJobId();
 				String status = xjob.getStatus();
-				String workerNode = xjob.getWorkerNode();
 				String wn = xjob.getWorkerNode();
-				workerNode = wn != null ? wn.split("/")[0] : "";
-				String comment = xjob.getComment();
+				String workerNode = wn != null ? wn.split("/")[0] : "";
+				String comment = xjob.getComment() == null ? "" : xjob.getComment();
 
 				Job job = entityManager.find(Job.class, id);
 				if (job != null) {/* Log updates on portal jobs */
@@ -528,9 +529,10 @@ public class JobManagementBean {
 								+ job.getWorkerNode() + "' to '" + workerNode + "'");
 						job.setWorkerNode(workerNode);
 					}
-					if (!job.getComment().equals(comment)) {
-						logger.debug("Updating comment of job '" + id + "' from '"
-								+ job.getComment() + "' to '" + comment + "'");
+					String oldComment = job.getComment() == null ? "" : job.getComment();
+					if (!oldComment.equals(comment)) {
+						logger.debug("Updating comment of job '" + id + "' from '" + oldComment
+								+ "' to '" + comment + "'");
 						job.setComment(comment);
 					}
 				}
@@ -588,7 +590,7 @@ public class JobManagementBean {
 			bw.newLine();
 			bw.write("echo $(date) - " + jobName + " starting");
 			bw.newLine();
-			bw.write(jobType.getExecutable() + " " + options);
+			bw.write(jobType.getExecutable() + " " + sessionId + " " + options);
 			bw.newLine();
 			bw.write("echo $(date) - " + jobName + " ending");
 			bw.newLine();

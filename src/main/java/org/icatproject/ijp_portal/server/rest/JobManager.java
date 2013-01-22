@@ -13,7 +13,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.icatproject.ijp_portal.server.ejb.session.JobManagementBean;
-
 import org.icatproject.ijp_portal.shared.ForbiddenException;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.ParameterException;
@@ -73,7 +72,7 @@ public class JobManager {
 					.entity(e.getMessage() + "\n").build());
 		} catch (InternalException e) {
 			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(e.getMessage() + "\n").build());
+					.entity(e.getClass() + " reports " + e.getMessage() + "\n").build());
 		}
 	}
 
