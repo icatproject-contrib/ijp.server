@@ -1,6 +1,8 @@
 package org.icatproject.ijp_portal.client;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.icatproject.ijp_portal.client.parser.ExpressionEvaluator;
@@ -20,10 +22,12 @@ import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.DoubleBox;
 import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.LongBox;
 import com.google.gwt.user.client.ui.RadioButton;
+import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.ValueBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -46,8 +50,6 @@ public class JobOptionsPanel extends VerticalPanel {
 		this.portal = portal;
 		this.dialogBox = dialogBox;
 		
-		addCloseButton();
-
 		closeButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
@@ -60,8 +62,15 @@ public class JobOptionsPanel extends VerticalPanel {
 			@Override
 			public void onClick(ClickEvent event) {
 				String commandString = executablePath;
-				DatasetOverview datasetOverview = portal.datasetsPanelNew.selectionModel.getSelectedObject();
-				commandString += " --datasetId " + datasetOverview.getDatasetId();
+				List<String> formErrors = new ArrayList<String>();
+				// create a comma separated list of dataset ids
+				StringBuilder sb = new StringBuilder();
+				for ( DatasetOverview selectedDataset : portal.datasetsPanelNew.selectionModel.getSelectedSet() ) {
+					sb.append(selectedDataset.getDatasetId());
+					sb.append(",");
+				}
+				// add the comma separated list of dataset ids (remembering to remove the trailing comma)
+				commandString += " --datasetIds " + sb.substring(0,sb.length()-1);
 				for ( JobOption jobOption : jobOptionToFormWidgetMap.keySet() ) {
 					// firstly check that this is a program parameter we can set
 					// the standard "View" option for MSMM Viewer appears on the form but no parameters
@@ -69,29 +78,67 @@ public class JobOptionsPanel extends VerticalPanel {
 					if ( jobOption.getProgramParameter() != null && !jobOption.getProgramParameter().equals("") ) {
 						Widget formWidget = jobOptionToFormWidgetMap.get(jobOption);
 						if (formWidget.getClass() == RadioButton.class || formWidget.getClass() == CheckBox.class) {
-	//						formString += jobOption.programParameter + ":" + ((RadioButton)formWidget).getValue() + "\n";
-	//						formString += jobOption.programParameter + ":" + ((CheckBox)formWidget).getValue() + "\n";
 							// we can do this because RadioButton extends CheckBox
 							if ( ((CheckBox)formWidget).getValue() == true ) {
 								commandString += " " + jobOption.getProgramParameter();
 							}
 						} else if (formWidget.getClass() == ListBox.class) {
-	//						formString += jobOption.programParameter + ":" + ((ListBox)formWidget).getValue(((ListBox)formWidget).getSelectedIndex()) + "\n";
 							String selectedListBoxValue = ((ListBox)formWidget).getValue(((ListBox)formWidget).getSelectedIndex());
 							if ( selectedListBoxValue != null && !selectedListBoxValue.equals("") ) {
 								commandString += " " + jobOption.getProgramParameter() + " " + selectedListBoxValue;
 							}
+						} else if (formWidget.getClass() == TextBox.class) {
+							String textBoxValue = ((TextBox)formWidget).getValue();
+							if ( !textBoxValue.equals("") ) {
+								commandString += " " + jobOption.getProgramParameter() + " " + textBoxValue;
+							}
 						} else if (formWidget.getClass() == LongBox.class || formWidget.getClass() == DoubleBox.class) {
-//							formString += jobOption.programParameter + ":" + ((LongBox)formWidget).getValue() + "\n";
-//							formString += jobOption.programParameter + ":" + ((DoubleBox)formWidget).getValue() + "\n";
-							Object numericBoxValueObject = ((ValueBox)formWidget).getValue();
-							if ( numericBoxValueObject != null ) {
-								commandString += " " + jobOption.getProgramParameter() + " " + numericBoxValueObject.toString();
+							Number numericBoxValueNumber = (Number) ((ValueBox)formWidget).getValue();
+							if ( numericBoxValueNumber != null ) {
+								double numericBoxValueDouble = numericBoxValueNumber.doubleValue();
+								String minValueString = jobOption.getMinValue();
+								if ( minValueString != null && !minValueString.equals("") ) {
+									// TODO - should these parse checks have already been done when reading the XML for example?
+									try {
+										double minValueDouble = Double.parseDouble(minValueString);
+										if ( numericBoxValueDouble < minValueDouble ) {
+											formErrors.add("Submitted value '" + numericBoxValueDouble + "' for job option '" + jobOption.getName() + "' must be greater than '" + minValueString + "'");
+										}
+									} catch (NumberFormatException e) {
+										formErrors.add("minValue '" + minValueString + "' of job option '" + jobOption.getName() + "' is not a valid number");
+									}
+								}
+								String maxValueString = jobOption.getMaxValue();
+								if ( maxValueString != null && !maxValueString.equals("") ) {
+									// TODO - should these parse checks have already been done when reading the XML for example?
+									try {
+										double maxValueDouble = Double.parseDouble(maxValueString);
+										if ( numericBoxValueDouble > maxValueDouble ) {
+											formErrors.add("Submitted value '" + numericBoxValueDouble + "' for job option '" + jobOption.getName() + "' must be less than '" + maxValueString + "'");
+										}
+									} catch (NumberFormatException e) {
+										formErrors.add("maxValue '" + maxValueString + "' of job option '" + jobOption.getName() + "' is not a valid number");
+									}
+								}
+								commandString += " " + jobOption.getProgramParameter() + " " + numericBoxValueDouble;
 							}
 						}
 					}
 				}
-				Window.alert(commandString);
+				if ( formErrors.size() > 0 ) {
+					// show all the errors in one alert message
+					StringBuilder formErrorsMessage = new StringBuilder("Job cannot be submitted due to the following errors:\n");
+					for ( String formError : formErrors ) {
+						formErrorsMessage.append(" - ");
+						formErrorsMessage.append(formError);
+						formErrorsMessage.append("\n");
+					}
+					Window.alert(formErrorsMessage.toString());
+				} else {
+					// just display the command string in an alert for now
+					// TODO - send this off to the server to get a job executed
+					Window.alert(commandString);
+				}
 			}
 		});
 	}
@@ -110,24 +157,36 @@ public class JobOptionsPanel extends VerticalPanel {
 			String condition = jobOption.getCondition();
 			if ( condition == null || condition.equals("") ) {
 				// options with an empty condition are offered for all datasets of this type
-//						datasetActionListBox.addItem( jobType.name + " -> " + jobOption.name );
 				makeOptionAvailable = true;
 			} else {
 				// options with a non-empty condition are only offered if the condition is met
-				boolean conditionMatch = false;
-				try {
-					conditionMatch = ExpressionEvaluator.isTrue(condition, portal.datasetsPanelNew.selectionModel.getSelectedObject().getJobDatasetParameters());
-				} catch (ParserException e) {
-					Window.alert("ParserException: " + e.getMessage());
-				}
-				if ( conditionMatch ) {
-//							datasetActionListBox.addItem( jobType.name + " -> " + jobOption.name );
-					makeOptionAvailable = true;
+				// and the condition has to be met for all of the selected datasets
+				for ( DatasetOverview selectedDataset : portal.datasetsPanelNew.selectionModel.getSelectedSet() ) {
+					boolean conditionMatch = false;
+					try {
+						conditionMatch = ExpressionEvaluator.isTrue(condition, selectedDataset.getJobDatasetParameters());
+					} catch (ParserException e) {
+						Window.alert("ParserException: " + e.getMessage());
+					}
+					if ( conditionMatch ) {
+						makeOptionAvailable = true;
+					} else {
+						makeOptionAvailable = false;
+//						Window.alert("Condition '" + condition
+//								+ "' for Job Option '" + jobOption.getName()
+//								+ "' not met for Dataset "
+//								+ selectedDataset.getDatasetId());
+						// no need to check any more datasets so stop looping now
+						break;
+					}
 				}
 			}
 			
 			if (makeOptionAvailable) {
 				HorizontalPanel hp = new HorizontalPanel();
+				boolean optionLabelRequired = true;
+				String optionName = jobOption.getName();
+				Widget formWidget = null;
 				if ( jobOption.getType().equals("boolean") ) {
 					if ( jobOption.getGroupName() != null && !jobOption.getGroupName().equals("") ) {
 						RadioButton radioButton = new RadioButton(jobOption.getGroupName(), jobOption.getName());
@@ -135,50 +194,56 @@ public class JobOptionsPanel extends VerticalPanel {
 						if ( existingPanel != null ) {
 							// set this as the panel we are going to add to - it already has a label
 							hp = existingPanel;
+							// the panel we are adding to will already have a label 
+							// so set a flag so that another one is not added
+							optionLabelRequired = false;
 						} else {
-							// this is a new panel and needs a label
-							hp.add(new HTML("<b><i>" + jobOption.getGroupName() + "</i></b>&nbsp;") );
 							// this is the first of a group of buttons so check this one
 							radioButton.setValue(true);
-							// also add it to the map so it can be added to later
-							nameToPanelMap.put(jobOption.getGroupName(), hp);
 						}
-						hp.add(radioButton);
-						jobOptionToFormWidgetMap.put(jobOption, radioButton);
+						// for radio buttons use the group name for the name of the option
+						optionName = jobOption.getGroupName();
+						formWidget = radioButton;
 					} else {
-						CheckBox checkBox = new CheckBox();
-						hp.add(new HTML("<b><i>" + jobOption.getName() + "</i></b>&nbsp;") );
-						hp.add(checkBox);
-						nameToPanelMap.put(jobOption.getName(), hp);
-						jobOptionToFormWidgetMap.put(jobOption, checkBox);
+						formWidget = new CheckBox();
 					}
 				} else if (jobOption.getType().equals("enumeration") ) {
 					ListBox listBox = new ListBox();
 					for (String value : jobOption.getValues() ) {
 						listBox.addItem(value);
 					}
-					hp.add(new HTML("<b><i>" + jobOption.getName() + "</i></b>&nbsp;") );
-					hp.add(listBox);
-					nameToPanelMap.put(jobOption.getName(), hp);
-					jobOptionToFormWidgetMap.put(jobOption, listBox);
+					formWidget = listBox;
+				} else if (jobOption.getType().equals("string") ) {
+					formWidget = new TextBox();
 				} else if (jobOption.getType().equals("integer") ) {
-					LongBox longBox = new LongBox();
-					hp.add(new HTML("<b><i>" + jobOption.getName() + "</i></b>&nbsp;") );
-					hp.add(longBox);
-					if ( jobOption.getDefaultValue() != null && !jobOption.getDefaultValue().equals("") ) {
-						hp.add(new HTML("&nbsp;<i>(default=" + jobOption.getDefaultValue() + ")</i>"));
-					}
-					nameToPanelMap.put(jobOption.getName(), hp);
-					jobOptionToFormWidgetMap.put(jobOption, longBox);
+					formWidget = new LongBox();
 				} else if (jobOption.getType().equals("float") ) {
-					DoubleBox doubleBox = new DoubleBox();
-					hp.add(new HTML("<b><i>" + jobOption.getName() + "</i></b>&nbsp;") );
-					hp.add(doubleBox);
-					if ( jobOption.getDefaultValue() != null && !jobOption.getDefaultValue().equals("") ) {
-						hp.add(new HTML("&nbsp;<i>(default=" + jobOption.getDefaultValue() + ")</i>"));
+					formWidget = new DoubleBox();
+				}
+
+				// add an option label and a tool tip if needed
+				if ( optionLabelRequired ) {
+					HTML optionNameHTML = new HTML("<b>" + optionName + "</b>&nbsp;"); 
+					hp.add(optionNameHTML);
+					if ( jobOption.getTip() != null && !jobOption.getTip().equals("") ) {
+						optionNameHTML.setTitle( jobOption.getTip() );
 					}
-					nameToPanelMap.put(jobOption.getName(), hp);
-					jobOptionToFormWidgetMap.put(jobOption, doubleBox);
+				}
+				
+				// add the form element itself
+				hp.add(formWidget);
+				nameToPanelMap.put(optionName, hp);
+				jobOptionToFormWidgetMap.put(jobOption, formWidget);
+				
+				// add any extra info - default, min, max values etc
+				if ( jobOption.getDefaultValue() != null && !jobOption.getDefaultValue().equals("") ) {
+					hp.add(new HTML("&nbsp;<i>(default=" + jobOption.getDefaultValue() + ")</i>"));
+				}
+				if ( jobOption.getMinValue() != null && !jobOption.getMinValue().equals("") ) {
+					hp.add(new HTML("&nbsp;<i>(min=" + jobOption.getMinValue() + ")</i>"));
+				}
+				if ( jobOption.getMaxValue() != null && !jobOption.getMaxValue().equals("") ) {
+					hp.add(new HTML("&nbsp;<i>(max=" + jobOption.getMaxValue() + ")</i>"));
 				}
 			}
 		}
@@ -189,21 +254,15 @@ public class JobOptionsPanel extends VerticalPanel {
 			add(new HTML("<hr></hr>"));
 		}
 		
-		addCloseButton();
-		addSubmitButton();
-
+		HorizontalPanel footerPanel = new HorizontalPanel();
+		footerPanel.setWidth("100%");
+		footerPanel.add(submitButton);
+		footerPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
+		footerPanel.add(closeButton);
+		add(footerPanel);
+		
 		portal.jobOptionsDialog.setText(jobName + " Options");
 		portal.jobOptionsDialog.show();
 	}
-	
-	void addCloseButton() {
-		this.add(closeButton);
-	}
-
-	void addSubmitButton() {
-		this.add(submitButton);
-	}
-
-	
 	
 }
