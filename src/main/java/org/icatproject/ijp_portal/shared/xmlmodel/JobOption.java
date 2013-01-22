@@ -16,7 +16,10 @@ public class JobOption implements IsSerializable {
 	@XmlElement
 	private List<String> values = new ArrayList<String>();
 	private String defaultValue;
+	private String minValue;
+	private String maxValue;
 	private String condition;
+	private String tip;
 	
 	public JobOption() {
 		
@@ -39,7 +42,10 @@ public class JobOption implements IsSerializable {
 			   "programParameter='" + programParameter + "', " +
 			   "values='" + valuesAsString + "', " +
 			   "defaultValue='" + defaultValue + "', " +
-			   "condition='" + condition + "'";
+			   "minValue='" + minValue + "', " +
+			   "maxValue='" + maxValue + "', " +
+			   "condition='" + condition + "', " +
+			   "tip='" + tip + "'";
 	}
 
 	public String getName() {
@@ -86,12 +92,36 @@ public class JobOption implements IsSerializable {
 		this.defaultValue = defaultValue;
 	}
 
+	public String getMinValue() {
+		return minValue;
+	}
+
+	public void setMinValue(String minValue) {
+		this.minValue = minValue;
+	}
+
+	public String getMaxValue() {
+		return maxValue;
+	}
+
+	public void setMaxValue(String maxValue) {
+		this.maxValue = maxValue;
+	}
+
 	public String getCondition() {
 		return condition;
 	}
 
 	public void setCondition(String condition) {
 		this.condition = condition;
+	}
+
+	public String getTip() {
+		return tip;
+	}
+
+	public void setTip(String tip) {
+		this.tip = tip;
 	}
 
 }
