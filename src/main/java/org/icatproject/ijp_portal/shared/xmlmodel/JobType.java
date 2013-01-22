@@ -13,7 +13,7 @@ public class JobType implements IsSerializable {
 
 	private String name;
 	private String executable;
-	private String multiple;
+	private boolean multiple;
 	private String type;
 	@XmlElement
 	private List<String> datasetTypes = new ArrayList<String>();
@@ -57,11 +57,11 @@ public class JobType implements IsSerializable {
 		this.executable = executable;
 	}
 
-	public String getMultiple() {
+	public boolean getMultiple() {
 		return multiple;
 	}
 
-	public void setMultiple(String multiple) {
+	public void setMultiple(boolean multiple) {
 		this.multiple = multiple;
 	}
 
