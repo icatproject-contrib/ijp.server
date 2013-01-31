@@ -1,10 +1,12 @@
 package org.icatproject.ijp_portal.client;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.icatproject.ijp_portal.client.service.DataService;
 import org.icatproject.ijp_portal.client.service.DataServiceAsync;
+import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 
 
 import com.google.gwt.core.client.GWT;
@@ -14,6 +16,7 @@ import com.google.gwt.event.dom.client.KeyPressEvent;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
@@ -67,6 +70,7 @@ public class LoginPanel extends Composite {
 	    		portal.loginDialog.hide();
 	    		portal.datasetsPanelNew.populateDatasetTypeListBox();
 	    		portal.datasetsPanelNew.getJobTypesFromServer();
+	    		getMergedDatasetParameterTypeMappings();
 //	    		portal.projectsPanel.refreshProjectsList();
 //	    		portal.datasetsPanel.refreshProjectsList();
 //	    		portal.jobStatusPanel.refreshJobList();
@@ -90,6 +94,21 @@ public class LoginPanel extends Composite {
 		credentials.put("username", username.getText());
 		credentials.put("password", password.getText());
 		dataService.login("db", credentials, callback);
+	}
+
+	protected void getMergedDatasetParameterTypeMappings() {
+		dataService.getDatasetParameterTypesMap(portal.getSessionId(), new AsyncCallback<LinkedHashMap<String, ParameterValueType>>() {
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert("Server error: " + caught.getMessage());
+			}
+	
+			@Override
+			public void onSuccess(LinkedHashMap<String, ParameterValueType> datasetParameterTypesMap) {
+				portal.setMergedDatasetParameterTypeMappings(datasetParameterTypesMap);
+			}
+		});
+		
 	}
 
 	@UiHandler("password")

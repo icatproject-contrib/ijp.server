@@ -10,6 +10,7 @@ import org.icatproject.ijp_portal.shared.GenericSearchSelections;
 import org.icatproject.ijp_portal.shared.JobDTO;
 import org.icatproject.ijp_portal.shared.PortalUtils.DatasetType;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
+import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 import org.icatproject.ijp_portal.shared.ProjectOverview;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobTypeMappings;
 import org.icatproject.ijp_portal.shared.xmlmodel.SearchItems;
@@ -24,6 +25,7 @@ public interface DataServiceAsync {
 
 	void getDatasetList(String sessionId, String datasetType,
 			Map<String, List<String>> selectedSearchParamsMap,
+			List<GenericSearchSelections> genericSearchSelectionsList,
 			AsyncCallback<List<DatasetOverview>> callback);
 
 	void getProjectParameters(String sessionId, Long datasetId,
@@ -51,6 +53,8 @@ public interface DataServiceAsync {
 	void getAccountFor(String username, String sessionId, Long dsid, String command,
 			AsyncCallback<AccountDTO> callback);
 
+	void getDatasetParameterTypesMap(String sessionId, AsyncCallback<LinkedHashMap<String, ParameterValueType>> callback);
+	
 	void addDoubleToSerializationPolicy(Double aDouble, AsyncCallback<Double> callback);
 
 }

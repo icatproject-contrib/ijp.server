@@ -18,9 +18,15 @@
 		</g:HorizontalPanel>
 		<g:HorizontalPanel>
 			<g:HorizontalPanel ui:field="searchListsPanel" />
-			<g:Button ui:field="searchButton" text='Search' />
+			<g:VerticalPanel>
+				<g:Button ui:field="searchButton" text='Search' />
+				<g:Button ui:field="addGenericSearchButton" text='+' title='Add another search'/>
+			</g:VerticalPanel>
 			<g:Button ui:field="doStuffButton" text='Do stuff' />
 			<g:TextArea ui:field="debugTextArea" width="500px" />
+		</g:HorizontalPanel>
+		<g:HorizontalPanel>
+			<g:VerticalPanel ui:field="genericSearchesVerticalPanel" />
 		</g:HorizontalPanel>
 		<g:HorizontalPanel width='100%'>
 			<g:cell width='20%' horizontalAlignment='ALIGN_LEFT'>

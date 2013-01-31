@@ -12,6 +12,7 @@ import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.JobDTO;
 import org.icatproject.ijp_portal.shared.PortalUtils.DatasetType;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
+import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 import org.icatproject.ijp_portal.shared.ProjectOverview;
 import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
@@ -29,8 +30,9 @@ public interface DataService extends RemoteService {
 			throws SessionException, ServerException;
 
 	List<DatasetOverview> getDatasetList(String sessionId, String datasetType,
-			Map<String, List<String>> selectedSearchParamsMap) throws SessionException,
-			ServerException;
+			Map<String, List<String>> selectedSearchParamsMap,
+			List<GenericSearchSelections> genericSearchSelectionsList)
+			throws SessionException, ServerException;
 
 	LinkedHashMap<String, String> getProjectParameters(String sessionId, Long datasetId)
 			throws SessionException, ServerException;
@@ -55,6 +57,9 @@ public interface DataService extends RemoteService {
 
 	AccountDTO getAccountFor(String username, String sessionId, Long dsid, String command)
 			throws ServerException;
+	
+	LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(String sessionId)
+			throws SessionException, ServerException;
 
 	// dummy methods to get other objects we want to use added to the GWT SerializationPolicy
 	Double addDoubleToSerializationPolicy(Double aDouble);

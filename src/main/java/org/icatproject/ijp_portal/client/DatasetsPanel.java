@@ -12,8 +12,9 @@ import org.icatproject.ijp_portal.client.service.DataService;
 import org.icatproject.ijp_portal.client.service.DataServiceAsync;
 
 import org.icatproject.ijp_portal.shared.DatasetOverview;
+import org.icatproject.ijp_portal.shared.GenericSearchSelections;
 import org.icatproject.ijp_portal.shared.PortalUtils;
-import org.icatproject.ijp_portal.shared.ProjectOverview;
+import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
@@ -43,6 +44,7 @@ import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.RequiresResize;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.TextArea;
+import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.gwt.view.client.MultiSelectionModel;
 import com.google.gwt.view.client.SelectionChangeEvent;
@@ -67,6 +69,12 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 
 	@UiField
 	TextArea debugTextArea;
+	
+	@UiField
+	VerticalPanel genericSearchesVerticalPanel;
+	
+	@UiField
+	Button addGenericSearchButton;
 	
 	@UiField
 	Label messageLabel;
@@ -113,18 +121,20 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 
     private static final String OPTIONS_LIST_FIRST_OPTION = "Options ...";
     private static final String OPTIONS_LIST_DOWNLOAD_OPTION = "Download";
+    private static final String OPTIONS_LIST_DOWNLOAD_URL_OPTION = "Show Download URL";
     private static final String DEFAULT_MESSAGE = "Select a Dataset Type and do a Search";
     
     Portal portal;
     Map<String, ListBox> searchItemsListBoxMap = new HashMap<String, ListBox>();
     JobTypeMappings jobTypeMappings;
     
-	public DatasetsPanel(Portal portal) {
+	public DatasetsPanel(final Portal portal) {
 		this.portal = portal;
 		initWidget(uiBinder.createAndBindUi(this));
 
 		datasetActionListBox.addItem(OPTIONS_LIST_FIRST_OPTION, "");
-		datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_OPTION);
+//		datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_OPTION);
+//		datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_URL_OPTION);
 		datasetActionListBox.setEnabled(false);
 		
 //		datasetsTable.setPageSize(5);
@@ -137,10 +147,18 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			}
 		});
 
+		addGenericSearchButton.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				genericSearchesVerticalPanel.add(new GenericSearchPanel(portal));
+			}
+		});
+		
 		doStuffButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				displayJobTypesInTextArea();
+//				displayJobTypesInTextArea();
+				displayDatasetParameterTypesMapInTextArea();
 			}
 		});
 
@@ -262,8 +280,6 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		// TODO - remove these later - just for development purposes
     	doStuffButton.setVisible(false);
 		debugTextArea.setVisible(false);
-    	
-		System.out.println("DatasetsPanel: constructor complete");
 	}
 	
 	@UiHandler("datasetTypeListBox")
@@ -273,6 +289,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		datasetActionListBox.clear();
 		datasetActionListBox.addItem(OPTIONS_LIST_FIRST_OPTION, "");
 		datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_OPTION);
+		datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_URL_OPTION);
 
 		// remove any datasets listed in the Datasets Table
 		datasetList = new ArrayList<DatasetOverview>();
@@ -323,6 +340,19 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				datasetIdField.setValue(selectedDataset.getDatasetId().toString());
 				datasetNameField.setValue(selectedDataset.getName());
 				downloadForm.submit();
+			}
+			datasetActionListBox.setSelectedIndex(0);
+		} else if ( jobName.equals(OPTIONS_LIST_DOWNLOAD_URL_OPTION) ) {
+			Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
+			if ( selectedDatasets.size() > 1 ) {
+				Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
+			} else {
+				DatasetOverview selectedDataset = selectionModel.getSelectedSet().iterator().next();
+				StringBuilder urlSB = new StringBuilder( GWT.getHostPageBaseURL() + "download" );
+				urlSB.append( "?sessionId=" + portal.getSessionId() );
+				urlSB.append( "&datasetId=" + selectedDataset.getDatasetId().toString() );
+				urlSB.append( "&datasetName=" + selectedDataset.getName() );
+				Window.alert( urlSB.toString() );
 			}
 			datasetActionListBox.setSelectedIndex(0);
 		} else {
@@ -378,6 +408,27 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		} else {
 			debugTextArea.setText(jobTypeMappings.toString());
 		}
+	}
+	
+	protected void displayDatasetParameterTypesMapInTextArea() {
+		dataService.getDatasetParameterTypesMap(portal.getSessionId(), new AsyncCallback<LinkedHashMap<String, ParameterValueType>>() {
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert("Server error: " + caught.getMessage());
+			}
+	
+			@Override
+			public void onSuccess(LinkedHashMap<String, ParameterValueType> datasetParameterTypesMap) {
+				StringBuffer sb = new StringBuffer();
+				for (String paramName : datasetParameterTypesMap.keySet() ) {
+					sb.append(paramName);
+					sb.append(" : ");
+					sb.append(datasetParameterTypesMap.get(paramName).name());
+					sb.append("\n");
+				}
+				debugTextArea.setText(sb.toString());
+			}
+		});
 	}
 	
 	private void setJobTypeMappings(JobTypeMappings jobTypeMappings) {
@@ -511,9 +562,34 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	    	}
 		};
 
+		List<GenericSearchSelections> genSearchSelectionsList = getGenericSearchSelectionsList();
+		if ( genSearchSelectionsList != null ) {
+			StringBuilder sb = new StringBuilder("genSearchSelectionsList:\n");
+			for (GenericSearchSelections genericSearchSelections : genSearchSelectionsList) {
+				sb.append(genericSearchSelections.toString());
+				sb.append("\n");
+			}
+			debugTextArea.setText(sb.toString());
+//			Window.alert(sb.toString());
+		}
+		
 		// make the call to the server
 		System.out.println("DatasetsPanel: making call to DataService");
-		dataService.getDatasetList(portal.getSessionId(), selectedDatasetType, getSearchParamsMap(), callback);
+		dataService.getDatasetList(portal.getSessionId(), selectedDatasetType, getSearchParamsMap(), genSearchSelectionsList, callback);
+	}
+
+	private List<GenericSearchSelections> getGenericSearchSelectionsList() {
+		List<GenericSearchSelections> genSearchSelectionsList = new ArrayList<GenericSearchSelections>();
+		for (int i=0; i<genericSearchesVerticalPanel.getWidgetCount(); i++) {
+			try {
+				GenericSearchPanel genSearchPanel = (GenericSearchPanel)genericSearchesVerticalPanel.getWidget(i);
+				genSearchSelectionsList.add(genSearchPanel.validateAndGetGenericSearchSelections());
+			} catch (Exception e) {
+				Window.alert(e.getMessage());
+				return null;
+			}
+		}
+		return genSearchSelectionsList;
 	}
 
 	private Map<String, List<String>> getSearchParamsMap() {

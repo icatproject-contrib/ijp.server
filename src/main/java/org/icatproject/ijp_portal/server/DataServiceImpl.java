@@ -27,6 +27,7 @@ import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.JobDTO;
 import org.icatproject.ijp_portal.shared.PortalUtils.DatasetType;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
+import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 import org.icatproject.ijp_portal.shared.ProjectOverview;
 import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
@@ -79,11 +80,14 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 
 	@Override
-	public List<DatasetOverview> getDatasetList(String sessionId, String datasetType,
-			Map<String, List<String>> selectedSearchParamsMap) throws SessionException,
-			ServerException {
+	public List<DatasetOverview> getDatasetList(String sessionId,
+			String datasetType,
+			Map<String, List<String>> selectedSearchParamsMap,
+			List<GenericSearchSelections> genericSearchSelectionsList)
+			throws SessionException, ServerException {
 		logger.debug("In DataServiceImpl.getDatasetList()");
-		return dataServiceManager.getDatasetList(sessionId, datasetType, selectedSearchParamsMap);
+		return dataServiceManager.getDatasetList(sessionId, datasetType,
+				selectedSearchParamsMap, genericSearchSelectionsList);
 	}
 
 	@Override
@@ -158,6 +162,13 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 			ServerException {
 		logger.debug("In DataServiceImpl.getDatasetTypesList()");
 		return dataServiceManager.getDatasetTypesList(sessionId);
+	}
+
+	@Override
+	public LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(
+			String sessionId) throws SessionException, ServerException {
+		logger.debug("In DataServiceImpl.getDatasetParameterTypesMap()");
+		return dataServiceManager.getDatasetParameterTypesMap(sessionId);
 	}
 
 	@Override

@@ -1,7 +1,10 @@
 package org.icatproject.ijp_portal.client;
 
+import java.util.LinkedHashMap;
+
 import org.icatproject.ijp_portal.shared.PortalUtils.DatasetType;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
+import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
@@ -59,6 +62,8 @@ public class Portal implements EntryPoint {
 
 	private String username;
 	private String sessionId;
+
+	private LinkedHashMap<String, ParameterValueType> mergedDatasetParameterTypeMappings = null;
 
 	private static MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
 
@@ -183,6 +188,15 @@ public class Portal implements EntryPoint {
 
 	public void setUsername(String username) {
 		this.username = username;
+	}
+
+	public LinkedHashMap<String, ParameterValueType> getMergedDatasetParameterTypeMappings() {
+		return mergedDatasetParameterTypeMappings;
+	}
+
+	public void setMergedDatasetParameterTypeMappings(
+			LinkedHashMap<String, ParameterValueType> mergedDatasetParameterTypeMappings) {
+		this.mergedDatasetParameterTypeMappings = mergedDatasetParameterTypeMappings;
 	}
 
 }
