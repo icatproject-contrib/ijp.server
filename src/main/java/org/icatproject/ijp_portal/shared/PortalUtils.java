@@ -45,6 +45,10 @@ public class PortalUtils {
 		}
 	}
 
+	public enum MultiJobTypes {
+		MULTIPLE_DATASETS_ONE_JOB, ONE_DATASET_PER_JOB
+	}
+
 	public static final int MAX_RESULTS = 200;
 
 	// define the max and min "integer" values that a double can represent exactly
@@ -119,6 +123,18 @@ public class PortalUtils {
 		paramDescriptorMappings.put("check_dataset", new ParameterDescriptor(null,
 				ParameterValueType.STRING, ParameterLevelType.DATASET_PARAMETER));
 		return paramDescriptorMappings;
+	}
+	
+	public static synchronized String createStringFromList(List<String> stringList, String separator) {
+		if ( stringList.size() == 0 ) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		for ( String stringFromList : stringList ) {
+			sb.append(stringFromList);
+			sb.append(separator);
+		}
+		return sb.substring(0, sb.length()-separator.length());
 	}
 
 	public static void main(String[] args) {
