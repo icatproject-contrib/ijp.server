@@ -10,6 +10,8 @@ import org.icatproject.ijp_portal.client.parser.ParserException;
 import org.icatproject.ijp_portal.client.service.DataService;
 import org.icatproject.ijp_portal.client.service.DataServiceAsync;
 import org.icatproject.ijp_portal.shared.DatasetOverview;
+import org.icatproject.ijp_portal.shared.PortalUtils;
+import org.icatproject.ijp_portal.shared.PortalUtils.MultiJobTypes;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobOption;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
 
@@ -39,16 +41,23 @@ public class JobOptionsPanel extends VerticalPanel {
 	Portal portal;
 	DialogBox dialogBox;
 
+	CheckBox confirmMultipleCheckBox = new CheckBox();
+	ListBox multipleDatasetsOptionListBox = new ListBox();
+	
 	Button closeButton = new Button("Close");
 	Button submitButton = new Button("Submit");
 
-	String executablePath;
+	String jobName;
 	
 	Map<JobOption, Widget> jobOptionToFormWidgetMap;
 	
 	public JobOptionsPanel(final Portal portal, final DialogBox dialogBox) {
 		this.portal = portal;
 		this.dialogBox = dialogBox;
+		
+		multipleDatasetsOptionListBox.addItem("Please select...", "");
+		multipleDatasetsOptionListBox.addItem("Submit multiple datasets to one job", MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB.name());
+		multipleDatasetsOptionListBox.addItem("Run multiple jobs - one dataset per job", MultiJobTypes.ONE_DATASET_PER_JOB.name());
 		
 		closeButton.addClickHandler(new ClickHandler() {
 			@Override
@@ -61,16 +70,31 @@ public class JobOptionsPanel extends VerticalPanel {
 		submitButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				String commandString = executablePath;
+				List<String> optionsList = new ArrayList<String>();
 				List<String> formErrors = new ArrayList<String>();
-				// create a comma separated list of dataset ids
-				StringBuilder sb = new StringBuilder();
-				for ( DatasetOverview selectedDataset : portal.datasetsPanelNew.selectionModel.getSelectedSet() ) {
-					sb.append(selectedDataset.getDatasetId());
-					sb.append(",");
+				// most jobs are of this type - change it further down in specific cases
+				PortalUtils.MultiJobTypes multiJobType = MultiJobTypes.ONE_DATASET_PER_JOB;
+				
+				JobType jobType = portal.datasetsPanelNew.jobTypeMappings.getJobTypesMap().get(jobName);
+				int numSelectedDatasets = portal.datasetsPanelNew.selectionModel.getSelectedSet().size();
+				if ( numSelectedDatasets > 1 ) {
+					if ( jobType.getType().equalsIgnoreCase("interactive") ) {
+						multiJobType = MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB;
+					} else if ( jobType.getType().equalsIgnoreCase("batch") ) {
+						if ( jobType.getMultiple() == false ) {
+							if ( confirmMultipleCheckBox.getValue() == false ) {
+								formErrors.add("Please tick the box at the top of the form to confirm your intention to run multiple jobs");
+							}
+						} else {
+							if ( multipleDatasetsOptionListBox.getSelectedIndex() == 0 ) {
+								formErrors.add("Please select the type of job you intend to run at the top of the form");
+							} else {
+								multiJobType = MultiJobTypes.valueOf(multipleDatasetsOptionListBox.getValue(multipleDatasetsOptionListBox.getSelectedIndex()));
+							}
+						}
+					}
 				}
-				// add the comma separated list of dataset ids (remembering to remove the trailing comma)
-				commandString += " --datasetIds " + sb.substring(0,sb.length()-1);
+				
 				for ( JobOption jobOption : jobOptionToFormWidgetMap.keySet() ) {
 					// firstly check that this is a program parameter we can set
 					// the standard "View" option for MSMM Viewer appears on the form but no parameters
@@ -80,17 +104,17 @@ public class JobOptionsPanel extends VerticalPanel {
 						if (formWidget.getClass() == RadioButton.class || formWidget.getClass() == CheckBox.class) {
 							// we can do this because RadioButton extends CheckBox
 							if ( ((CheckBox)formWidget).getValue() == true ) {
-								commandString += " " + jobOption.getProgramParameter();
+								optionsList.add( jobOption.getProgramParameter() );
 							}
 						} else if (formWidget.getClass() == ListBox.class) {
 							String selectedListBoxValue = ((ListBox)formWidget).getValue(((ListBox)formWidget).getSelectedIndex());
 							if ( selectedListBoxValue != null && !selectedListBoxValue.equals("") ) {
-								commandString += " " + jobOption.getProgramParameter() + " " + selectedListBoxValue;
+								optionsList.add( jobOption.getProgramParameter() + " " + selectedListBoxValue );
 							}
 						} else if (formWidget.getClass() == TextBox.class) {
 							String textBoxValue = ((TextBox)formWidget).getValue();
 							if ( !textBoxValue.equals("") ) {
-								commandString += " " + jobOption.getProgramParameter() + " " + textBoxValue;
+								optionsList.add( jobOption.getProgramParameter() + " " + textBoxValue );
 							}
 						} else if (formWidget.getClass() == LongBox.class || formWidget.getClass() == DoubleBox.class) {
 							Number numericBoxValueNumber = (Number) ((ValueBox)formWidget).getValue();
@@ -120,7 +144,7 @@ public class JobOptionsPanel extends VerticalPanel {
 										formErrors.add("maxValue '" + maxValueString + "' of job option '" + jobOption.getName() + "' is not a valid number");
 									}
 								}
-								commandString += " " + jobOption.getProgramParameter() + " " + numericBoxValueDouble;
+								optionsList.add( jobOption.getProgramParameter() + " " + numericBoxValueDouble );
 							}
 						}
 					}
@@ -135,9 +159,19 @@ public class JobOptionsPanel extends VerticalPanel {
 					}
 					Window.alert(formErrorsMessage.toString());
 				} else {
-					// just display the command string in an alert for now
+					// just display the job name, options string and dataset ids in an alert for now
 					// TODO - send this off to the server to get a job executed
-					Window.alert(commandString);
+					List<String> datasetIdsList = new ArrayList<String>();
+					for ( DatasetOverview selectedDataset : portal.datasetsPanelNew.selectionModel.getSelectedSet() ) {
+						String datasetId = Long.toString(selectedDataset.getDatasetId());
+						datasetIdsList.add(datasetId);
+					}
+					String alertMessage = "";
+					alertMessage += "jobName = '" + jobName + "'\n";
+					alertMessage += "optionsString = '" + PortalUtils.createStringFromList(optionsList, " ") + "'\n";
+					alertMessage += "datasetIdsString = '" + PortalUtils.createStringFromList(datasetIdsList, ",") + "'\n";
+					alertMessage += "multiJobType = '" + multiJobType.name() + "'\n";
+					Window.alert(alertMessage);
 				}
 			}
 		});
@@ -146,11 +180,16 @@ public class JobOptionsPanel extends VerticalPanel {
 	void populateAndShowForm(String jobName) {
 		// firstly clear the current form
 		clear();
+		confirmMultipleCheckBox.setValue(false);
+		multipleDatasetsOptionListBox.setSelectedIndex(0);
+
+		// set the job name so that it can be picked up
+		// when the form is submitted
+		this.jobName = jobName;
+
 		jobOptionToFormWidgetMap = new LinkedHashMap<JobOption, Widget>();
 		Map<String, HorizontalPanel> nameToPanelMap = new LinkedHashMap<String, HorizontalPanel>();
 		JobType jobType = portal.datasetsPanelNew.jobTypeMappings.getJobTypesMap().get(jobName);
-		// set the executable to be used when the form is submitted
-		executablePath = jobType.getExecutable();
 		for (JobOption jobOption : jobType.getJobOptions()) {
 			// firstly work out if this option should be available for the selected dataset
 			boolean makeOptionAvailable = false;
@@ -246,6 +285,28 @@ public class JobOptionsPanel extends VerticalPanel {
 					hp.add(new HTML("&nbsp;<i>(max=" + jobOption.getMaxValue() + ")</i>"));
 				}
 			}
+		}
+		
+		int numSelectedDatasets = portal.datasetsPanelNew.selectionModel.getSelectedSet().size();
+		if ( jobType.getType().equalsIgnoreCase("batch") && numSelectedDatasets > 1  ) {
+			HorizontalPanel warningPanel = new HorizontalPanel();	
+			if ( jobType.getMultiple() == false ) {
+				// warn user that they are submitting multiple jobs
+				// get them to tick a checkbox to confirm
+				warningPanel.add(new HTML("<font color='red'><b>" +
+						"Please tick the box to confirm that you are intending to run <br> " +
+						numSelectedDatasets + " '" + jobType.getName() +
+						"' jobs - one job per selected dataset  &nbsp;</b></font>"));
+				warningPanel.add(confirmMultipleCheckBox);
+			} else {
+				// warn the user and offer the following two options 
+				// multiple datasets to one job or separate job for each dataset
+				warningPanel.add(new HTML("<font color='red'><b>" + 
+						"Please select the type of job you intend to run &nbsp;</b></font>"));
+				warningPanel.add(multipleDatasetsOptionListBox);
+			}
+			add(warningPanel);
+			add(new HTML("<hr></hr>"));
 		}
 		
 		for ( String name : nameToPanelMap.keySet() ) {
