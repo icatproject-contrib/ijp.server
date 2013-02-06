@@ -741,8 +741,6 @@ public class DataServiceManager {
 							+ "]";
 				}
 			}
-			// get the job dataset mappings queries to run on each returned dataset
-			List<JobDatasetParameter> jobDatasetParameterList = xmlFileManager.getJobDatasetMappings().getJobDatasetParametersForType(datasetType);
 			
 			// execute the final query
 			logger.debug("finalQuery=[" + finalQuery + "]");
@@ -777,28 +775,6 @@ public class DataServiceManager {
 				datasetOverview.setSampleDescription(dsParamsMap.get("sampledescription"));
 				datasetOverview.setUsers(dsParamsMap.get("users"));
 				
-				// set up the job dataset parameter map
-				if ( jobDatasetParameterList != null ) {
-					for (JobDatasetParameter jobDatasetParameter : jobDatasetParameterList) {
-						String query = jobDatasetParameter.getQuery();
-						query = query.replace("${datasetId}", datasetFromIcat.getId().toString());
-						List<Object> queryResult = icat.search(sessionId, query);
-						if ( queryResult.size() < 1 ) {
-							// this is acceptable and just means that, for example, this parameter is not set for this dataset 
-							logger.debug("queryResult for '" + query + "' returned " + queryResult.size() + " results");
-							// set this map parameter to null so that we can check for it in the client
-							datasetOverview.getJobDatasetParameters().put(jobDatasetParameter.getName(), null);
-						} else if ( queryResult.size() == 1 ) {
-							datasetOverview.getJobDatasetParameters().put(jobDatasetParameter.getName(), queryResult.get(0));
-						} else {
-							// this should not happen because currently we can only insert a single item into the map
-							// and the query has returned multiple results - the query needs changing
-							logger.error("queryResult for '" + query + "' returned " + queryResult.size() + " results");
-							// the best thing we can do is set this map parameter to null so that we can check for it in the client
-							datasetOverview.getJobDatasetParameters().put(jobDatasetParameter.getName(), null);
-						}
-					}
-				}
 				datasetOverviews.add(datasetOverview);
 			}
 		} catch (IcatException_Exception e) {
@@ -810,6 +786,58 @@ public class DataServiceManager {
 			}
 		}
 		return datasetOverviews;
+	}
+	
+	public Map<Long, Map<String, Object>> getJobDatasetParametersForDatasets(
+			String sessionId, String datasetType, List<Long> datasetIds)
+			throws ServerException, SessionException {
+		Map<Long, Map<String, Object>> datasetToJobDatasetParametersMap = new HashMap<Long, Map<String, Object>>();
+		// get the job dataset mappings queries to run on each returned dataset
+		List<JobDatasetParameter> jobDatasetParameterList = xmlFileManager.getJobDatasetMappings().getJobDatasetParametersForType(datasetType);
+		try {
+			for ( Long datasetId : datasetIds ) {
+				// set up the job dataset parameter map
+				if ( jobDatasetParameterList != null ) {
+					Map<String, Object> jobDatasetParamsMap = new HashMap<String, Object>();
+					for (JobDatasetParameter jobDatasetParameter : jobDatasetParameterList) {
+						String query = jobDatasetParameter.getQuery();
+						query = query.replace("${datasetId}", datasetId.toString());
+						List<Object> queryResult = icat.search(sessionId, query);
+						if ( queryResult.size() < 1 ) {
+							// this is acceptable and just means that, for example, this parameter is not set for this dataset 
+							logger.debug("queryResult for '" + query + "' returned " + queryResult.size() + " results");
+							// set this map parameter to null so that we can check for it in the client
+							jobDatasetParamsMap.put(jobDatasetParameter.getName(), null);
+						} else if ( queryResult.size() == 1 ) {
+							jobDatasetParamsMap.put(jobDatasetParameter.getName(), queryResult.get(0));
+						} else {
+							// this should not happen because currently we can only insert a single item into the map
+							// and the query has returned multiple results - the query needs changing
+							logger.error("queryResult for '" + query + "' returned " + queryResult.size() + " results");
+							// the best thing we can do is set this map parameter to null so that we can check for it in the client
+							jobDatasetParamsMap.put(jobDatasetParameter.getName(), null);
+						}
+					}
+//					logger.debug("Contents of jobDatasetParamsMap:");
+//					for ( String paramName : jobDatasetParamsMap.keySet() ) {
+//						String paramValue = "null";
+//						if ( jobDatasetParamsMap.get(paramName) != null ) {
+//							paramValue = jobDatasetParamsMap.get(paramName).toString();
+//						}
+//						logger.debug(paramName + " : " + paramValue);
+//					}
+					datasetToJobDatasetParametersMap.put(datasetId, jobDatasetParamsMap);
+				}
+			}
+		} catch (IcatException_Exception e) {
+			IcatExceptionType type = e.getFaultInfo().getType();
+			if (type == IcatExceptionType.SESSION) {
+				throw new SessionException(e.getMessage());
+			} else {
+				throw new ServerException("IcatException " + type + " " + e.getMessage());
+			}
+		}
+		return datasetToJobDatasetParametersMap;
 	}
 	
 	private List<String> createGenericSearchQueriesList(String datasetType, List<GenericSearchSelections> genericSearchSelectionsList) {

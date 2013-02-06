@@ -61,6 +61,10 @@ public interface DataService extends RemoteService {
 	LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(String sessionId)
 			throws SessionException, ServerException;
 
+	Map<Long, Map<String, Object>> getJobDatasetParametersForDatasets(
+			String sessionId, String datasetType, List<Long> datasetIds)
+			throws ServerException, SessionException;
+	
 	// dummy methods to get other objects we want to use added to the GWT SerializationPolicy
 	Double addDoubleToSerializationPolicy(Double aDouble);
 

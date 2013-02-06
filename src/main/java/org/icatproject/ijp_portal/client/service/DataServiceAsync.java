@@ -53,8 +53,13 @@ public interface DataServiceAsync {
 	void getAccountFor(String username, String sessionId, Long dsid, String command,
 			AsyncCallback<AccountDTO> callback);
 
-	void getDatasetParameterTypesMap(String sessionId, AsyncCallback<LinkedHashMap<String, ParameterValueType>> callback);
-	
+	void getDatasetParameterTypesMap(String sessionId,
+			AsyncCallback<LinkedHashMap<String, ParameterValueType>> callback);
+
+	void getJobDatasetParametersForDatasets(String sessionId,
+			String datasetType, List<Long> datasetIds,
+			AsyncCallback<Map<Long, Map<String, Object>>> callback);
+
 	void addDoubleToSerializationPolicy(Double aDouble, AsyncCallback<Double> callback);
 
 }

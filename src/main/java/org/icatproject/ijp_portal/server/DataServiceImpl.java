@@ -178,6 +178,14 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 
 	@Override
+	public Map<Long, Map<String, Object>> getJobDatasetParametersForDatasets(
+			String sessionId, String datasetType, List<Long> datasetIds)
+			throws ServerException, SessionException {
+		logger.debug("In DataServiceImpl.getJobDatasetParametersForDatasets()");
+		return dataServiceManager.getJobDatasetParametersForDatasets(sessionId, datasetType, datasetIds);
+	}
+			
+	@Override
 	public Double addDoubleToSerializationPolicy(Double aDouble) {
 		return null;
 	}

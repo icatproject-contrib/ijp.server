@@ -1,8 +1,6 @@
 package org.icatproject.ijp_portal.shared;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
 
 public class DatasetOverview implements Serializable {
 
@@ -21,7 +19,6 @@ public class DatasetOverview implements Serializable {
 	private boolean hasWhitelight = false;
 	private boolean hasEvidenceMaps = false;
 	private boolean hasRegErrorMaps = false;
-	private Map<String, Object> jobDatasetParameters = new HashMap<String, Object>();
 	
 	public DatasetOverview() {
 		
@@ -131,8 +128,4 @@ public class DatasetOverview implements Serializable {
 		this.hasRegErrorMaps = hasRegErrorMaps;
 	}
 
-	public Map<String, Object> getJobDatasetParameters() {
-		return jobDatasetParameters;
-	}
-	
 }

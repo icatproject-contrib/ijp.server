@@ -19,6 +19,7 @@ import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.DialogBox;
@@ -47,9 +48,8 @@ public class JobOptionsPanel extends VerticalPanel {
 	Button closeButton = new Button("Close");
 	Button submitButton = new Button("Submit");
 
-	String jobName;
-	
 	Map<JobOption, Widget> jobOptionToFormWidgetMap;
+
 	
 	public JobOptionsPanel(final Portal portal, final DialogBox dialogBox) {
 		this.portal = portal;
@@ -75,6 +75,7 @@ public class JobOptionsPanel extends VerticalPanel {
 				// most jobs are of this type - change it further down in specific cases
 				PortalUtils.MultiJobTypes multiJobType = MultiJobTypes.ONE_DATASET_PER_JOB;
 				
+				String jobName = portal.datasetsPanelNew.datasetActionListBox.getValue(portal.datasetsPanelNew.datasetActionListBox.getSelectedIndex());
 				JobType jobType = portal.datasetsPanelNew.jobTypeMappings.getJobTypesMap().get(jobName);
 				int numSelectedDatasets = portal.datasetsPanelNew.selectionModel.getSelectedSet().size();
 				if ( numSelectedDatasets > 1 ) {
@@ -177,153 +178,173 @@ public class JobOptionsPanel extends VerticalPanel {
 		});
 	}
 
-	void populateAndShowForm(String jobName) {
-		// firstly clear the current form
+	void populateAndShowForm() {
+		// clear the current form
 		clear();
 		confirmMultipleCheckBox.setValue(false);
 		multipleDatasetsOptionListBox.setSelectedIndex(0);
 
-		// set the job name so that it can be picked up
-		// when the form is submitted
-		this.jobName = jobName;
+		// get a list of selected dataset ids
+		List<Long> selectedDatasetIds = new ArrayList<Long>();
+		for ( DatasetOverview selectedDataset : portal.datasetsPanelNew.selectionModel.getSelectedSet() ) {
+			selectedDatasetIds.add(selectedDataset.getDatasetId());
+		}
+		String datasetType = portal.datasetsPanelNew.datasetTypeListBox.getValue(portal.datasetsPanelNew.datasetTypeListBox.getSelectedIndex());
 
-		jobOptionToFormWidgetMap = new LinkedHashMap<JobOption, Widget>();
-		Map<String, HorizontalPanel> nameToPanelMap = new LinkedHashMap<String, HorizontalPanel>();
-		JobType jobType = portal.datasetsPanelNew.jobTypeMappings.getJobTypesMap().get(jobName);
-		for (JobOption jobOption : jobType.getJobOptions()) {
-			// firstly work out if this option should be available for the selected dataset
-			boolean makeOptionAvailable = false;
-			String condition = jobOption.getCondition();
-			if ( condition == null || condition.equals("") ) {
-				// options with an empty condition are offered for all datasets of this type
-				makeOptionAvailable = true;
-			} else {
-				// options with a non-empty condition are only offered if the condition is met
-				// and the condition has to be met for all of the selected datasets
-				for ( DatasetOverview selectedDataset : portal.datasetsPanelNew.selectionModel.getSelectedSet() ) {
-					boolean conditionMatch = false;
-					try {
-						conditionMatch = ExpressionEvaluator.isTrue(condition, selectedDataset.getJobDatasetParameters());
-					} catch (ParserException e) {
-						Window.alert("ParserException: " + e.getMessage());
-					}
-					if ( conditionMatch ) {
+		dataService.getJobDatasetParametersForDatasets(portal.getSessionId(), datasetType, selectedDatasetIds, new AsyncCallback<Map<Long, Map<String, Object>>>() {  
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert("Server error: " + caught.getMessage());
+			}
+	
+			@Override
+			public void onSuccess(Map<Long, Map<String, Object>> jobDatasetParametersForDatasets) {
+				String jobName = portal.datasetsPanelNew.datasetActionListBox.getValue(portal.datasetsPanelNew.datasetActionListBox.getSelectedIndex());
+				jobOptionToFormWidgetMap = new LinkedHashMap<JobOption, Widget>();
+				Map<String, HorizontalPanel> nameToPanelMap = new LinkedHashMap<String, HorizontalPanel>();
+				JobType jobType = portal.datasetsPanelNew.jobTypeMappings.getJobTypesMap().get(jobName);
+
+				for (JobOption jobOption : jobType.getJobOptions()) {
+					// firstly work out if this option should be available for the selected dataset
+					boolean makeOptionAvailable = false;
+					String condition = jobOption.getCondition();
+					if ( condition == null || condition.equals("") ) {
+						// options with an empty condition are offered for all datasets of this type
 						makeOptionAvailable = true;
 					} else {
-						makeOptionAvailable = false;
-//						Window.alert("Condition '" + condition
-//								+ "' for Job Option '" + jobOption.getName()
-//								+ "' not met for Dataset "
-//								+ selectedDataset.getDatasetId());
-						// no need to check any more datasets so stop looping now
-						break;
-					}
-				}
-			}
-			
-			if (makeOptionAvailable) {
-				HorizontalPanel hp = new HorizontalPanel();
-				boolean optionLabelRequired = true;
-				String optionName = jobOption.getName();
-				Widget formWidget = null;
-				if ( jobOption.getType().equals("boolean") ) {
-					if ( jobOption.getGroupName() != null && !jobOption.getGroupName().equals("") ) {
-						RadioButton radioButton = new RadioButton(jobOption.getGroupName(), jobOption.getName());
-						HorizontalPanel existingPanel = nameToPanelMap.get(jobOption.getGroupName());
-						if ( existingPanel != null ) {
-							// set this as the panel we are going to add to - it already has a label
-							hp = existingPanel;
-							// the panel we are adding to will already have a label 
-							// so set a flag so that another one is not added
-							optionLabelRequired = false;
-						} else {
-							// this is the first of a group of buttons so check this one
-							radioButton.setValue(true);
+						// first check that the call to the server was successful
+						if ( jobDatasetParametersForDatasets != null ) {
+							// options with a non-empty condition are only offered if the condition is met
+							// and the condition has to be met for all of the selected datasets
+//							for ( DatasetOverview selectedDataset : portal.datasetsPanelNew.selectionModel.getSelectedSet() ) {
+								for ( Long selectedDatasetId : jobDatasetParametersForDatasets.keySet() ) {
+								boolean conditionMatch = false;
+								try {
+									conditionMatch = ExpressionEvaluator.isTrue(condition, jobDatasetParametersForDatasets.get(selectedDatasetId));
+								} catch (ParserException e) {
+									Window.alert("ParserException: " + e.getMessage());
+								}
+								if ( conditionMatch ) {
+									makeOptionAvailable = true;
+								} else {
+									makeOptionAvailable = false;
+//									Window.alert("Condition '" + condition
+//											+ "' for Job Option '" + jobOption.getName()
+//											+ "' not met for Dataset "
+//											+ selectedDataset.getDatasetId());
+									// no need to check any more datasets so stop looping now
+									break;
+								}
+							}
 						}
-						// for radio buttons use the group name for the name of the option
-						optionName = jobOption.getGroupName();
-						formWidget = radioButton;
-					} else {
-						formWidget = new CheckBox();
 					}
-				} else if (jobOption.getType().equals("enumeration") ) {
-					ListBox listBox = new ListBox();
-					for (String value : jobOption.getValues() ) {
-						listBox.addItem(value);
-					}
-					formWidget = listBox;
-				} else if (jobOption.getType().equals("string") ) {
-					formWidget = new TextBox();
-				} else if (jobOption.getType().equals("integer") ) {
-					formWidget = new LongBox();
-				} else if (jobOption.getType().equals("float") ) {
-					formWidget = new DoubleBox();
-				}
+					
+					if (makeOptionAvailable) {
+						HorizontalPanel hp = new HorizontalPanel();
+						boolean optionLabelRequired = true;
+						String optionName = jobOption.getName();
+						Widget formWidget = null;
+						if ( jobOption.getType().equals("boolean") ) {
+							if ( jobOption.getGroupName() != null && !jobOption.getGroupName().equals("") ) {
+								RadioButton radioButton = new RadioButton(jobOption.getGroupName(), jobOption.getName());
+								HorizontalPanel existingPanel = nameToPanelMap.get(jobOption.getGroupName());
+								if ( existingPanel != null ) {
+									// set this as the panel we are going to add to - it already has a label
+									hp = existingPanel;
+									// the panel we are adding to will already have a label 
+									// so set a flag so that another one is not added
+									optionLabelRequired = false;
+								} else {
+									// this is the first of a group of buttons so check this one
+									radioButton.setValue(true);
+								}
+								// for radio buttons use the group name for the name of the option
+								optionName = jobOption.getGroupName();
+								formWidget = radioButton;
+							} else {
+								formWidget = new CheckBox();
+							}
+						} else if (jobOption.getType().equals("enumeration") ) {
+							ListBox listBox = new ListBox();
+							for (String value : jobOption.getValues() ) {
+								listBox.addItem(value);
+							}
+							formWidget = listBox;
+						} else if (jobOption.getType().equals("string") ) {
+							formWidget = new TextBox();
+						} else if (jobOption.getType().equals("integer") ) {
+							formWidget = new LongBox();
+						} else if (jobOption.getType().equals("float") ) {
+							formWidget = new DoubleBox();
+						}
 
-				// add an option label and a tool tip if needed
-				if ( optionLabelRequired ) {
-					HTML optionNameHTML = new HTML("<b>" + optionName + "</b>&nbsp;"); 
-					hp.add(optionNameHTML);
-					if ( jobOption.getTip() != null && !jobOption.getTip().equals("") ) {
-						optionNameHTML.setTitle( jobOption.getTip() );
+						// add an option label and a tool tip if needed
+						if ( optionLabelRequired ) {
+							HTML optionNameHTML = new HTML("<b>" + optionName + "</b>&nbsp;"); 
+							hp.add(optionNameHTML);
+							if ( jobOption.getTip() != null && !jobOption.getTip().equals("") ) {
+								optionNameHTML.setTitle( jobOption.getTip() );
+							}
+						}
+						
+						// add the form element itself
+						hp.add(formWidget);
+						nameToPanelMap.put(optionName, hp);
+						jobOptionToFormWidgetMap.put(jobOption, formWidget);
+						
+						// add any extra info - default, min, max values etc
+						if ( jobOption.getDefaultValue() != null && !jobOption.getDefaultValue().equals("") ) {
+							hp.add(new HTML("&nbsp;<i>(default=" + jobOption.getDefaultValue() + ")</i>"));
+						}
+						if ( jobOption.getMinValue() != null && !jobOption.getMinValue().equals("") ) {
+							hp.add(new HTML("&nbsp;<i>(min=" + jobOption.getMinValue() + ")</i>"));
+						}
+						if ( jobOption.getMaxValue() != null && !jobOption.getMaxValue().equals("") ) {
+							hp.add(new HTML("&nbsp;<i>(max=" + jobOption.getMaxValue() + ")</i>"));
+						}
 					}
 				}
 				
-				// add the form element itself
-				hp.add(formWidget);
-				nameToPanelMap.put(optionName, hp);
-				jobOptionToFormWidgetMap.put(jobOption, formWidget);
+				int numSelectedDatasets = portal.datasetsPanelNew.selectionModel.getSelectedSet().size();
+				if ( jobType.getType().equalsIgnoreCase("batch") && numSelectedDatasets > 1  ) {
+					HorizontalPanel warningPanel = new HorizontalPanel();	
+					if ( jobType.getMultiple() == false ) {
+						// warn user that they are submitting multiple jobs
+						// get them to tick a checkbox to confirm
+						warningPanel.add(new HTML("<font color='red'><b>" +
+								"Please tick the box to confirm that you are intending to run <br> " +
+								numSelectedDatasets + " '" + jobType.getName() +
+								"' jobs - one job per selected dataset  &nbsp;</b></font>"));
+						warningPanel.add(confirmMultipleCheckBox);
+					} else {
+						// warn the user and offer the following two options 
+						// multiple datasets to one job or separate job for each dataset
+						warningPanel.add(new HTML("<font color='red'><b>" + 
+								"Please select the type of job you intend to run &nbsp;</b></font>"));
+						warningPanel.add(multipleDatasetsOptionListBox);
+					}
+					add(warningPanel);
+					add(new HTML("<hr></hr>"));
+				}
 				
-				// add any extra info - default, min, max values etc
-				if ( jobOption.getDefaultValue() != null && !jobOption.getDefaultValue().equals("") ) {
-					hp.add(new HTML("&nbsp;<i>(default=" + jobOption.getDefaultValue() + ")</i>"));
+				for ( String name : nameToPanelMap.keySet() ) {
+					HorizontalPanel hp = nameToPanelMap.get(name);
+					add(hp);
+					add(new HTML("<hr></hr>"));
 				}
-				if ( jobOption.getMinValue() != null && !jobOption.getMinValue().equals("") ) {
-					hp.add(new HTML("&nbsp;<i>(min=" + jobOption.getMinValue() + ")</i>"));
-				}
-				if ( jobOption.getMaxValue() != null && !jobOption.getMaxValue().equals("") ) {
-					hp.add(new HTML("&nbsp;<i>(max=" + jobOption.getMaxValue() + ")</i>"));
-				}
+				
+				HorizontalPanel footerPanel = new HorizontalPanel();
+				footerPanel.setWidth("100%");
+				footerPanel.add(submitButton);
+				footerPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
+				footerPanel.add(closeButton);
+				add(footerPanel);
+				
+				portal.jobOptionsDialog.setText(jobName + " Options");
+				portal.jobOptionsDialog.show();
 			}
-		}
-		
-		int numSelectedDatasets = portal.datasetsPanelNew.selectionModel.getSelectedSet().size();
-		if ( jobType.getType().equalsIgnoreCase("batch") && numSelectedDatasets > 1  ) {
-			HorizontalPanel warningPanel = new HorizontalPanel();	
-			if ( jobType.getMultiple() == false ) {
-				// warn user that they are submitting multiple jobs
-				// get them to tick a checkbox to confirm
-				warningPanel.add(new HTML("<font color='red'><b>" +
-						"Please tick the box to confirm that you are intending to run <br> " +
-						numSelectedDatasets + " '" + jobType.getName() +
-						"' jobs - one job per selected dataset  &nbsp;</b></font>"));
-				warningPanel.add(confirmMultipleCheckBox);
-			} else {
-				// warn the user and offer the following two options 
-				// multiple datasets to one job or separate job for each dataset
-				warningPanel.add(new HTML("<font color='red'><b>" + 
-						"Please select the type of job you intend to run &nbsp;</b></font>"));
-				warningPanel.add(multipleDatasetsOptionListBox);
-			}
-			add(warningPanel);
-			add(new HTML("<hr></hr>"));
-		}
-		
-		for ( String name : nameToPanelMap.keySet() ) {
-			HorizontalPanel hp = nameToPanelMap.get(name);
-			add(hp);
-			add(new HTML("<hr></hr>"));
-		}
-		
-		HorizontalPanel footerPanel = new HorizontalPanel();
-		footerPanel.setWidth("100%");
-		footerPanel.add(submitButton);
-		footerPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
-		footerPanel.add(closeButton);
-		add(footerPanel);
-		
-		portal.jobOptionsDialog.setText(jobName + " Options");
-		portal.jobOptionsDialog.show();
+		});
+
 	}
 	
 }

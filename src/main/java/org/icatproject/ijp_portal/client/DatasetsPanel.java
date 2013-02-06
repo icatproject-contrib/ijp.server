@@ -166,25 +166,44 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			@Override
 			public void onClick(ClickEvent event) {
 				Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
+				
 				if ( selectedDatasets.size() == 1 ) {
 			        DatasetOverview selectedDataset = selectedDatasets.iterator().next();
 			        if (selectedDataset != null) {
-			        	String message = "";
-			        	message += "ID: "+ selectedDataset.getDatasetId() + "\n";
-			        	Map<String, Object> jobDatasetParameters = selectedDataset.getJobDatasetParameters();
-			        	for (String key : jobDatasetParameters.keySet() ) {
-			        		Object dsParamObject = jobDatasetParameters.get(key);
-			        		String dsParamAsString = "null";
-			        		if ( dsParamObject != null ) {
-			        			dsParamAsString = dsParamObject.toString();
-			        		}
-				        	message += "JobDsParam: " + key + ": "+ dsParamAsString + " ";
-			        		if ( dsParamObject != null ) {
-			        			message += "Class: " + jobDatasetParameters.get(key).getClass().getName();
-			        		}
-			        		message += "\n";
-			        	}
-			            Window.alert(message);
+			        	
+						// get a list of selected dataset ids
+						List<Long> selectedDatasetIds = new ArrayList<Long>();
+						selectedDatasetIds.add(selectedDataset.getDatasetId());
+						String datasetType = datasetTypeListBox.getValue(datasetTypeListBox.getSelectedIndex());
+						// make a call to the server to get the job dataset parameters for the selected dataset(s)
+						dataService.getJobDatasetParametersForDatasets(portal.getSessionId(), datasetType, selectedDatasetIds, new AsyncCallback<Map<Long, Map<String, Object>>>() {  
+							@Override
+							public void onFailure(Throwable caught) {
+								Window.alert("Server error: " + caught.getMessage());
+							}
+					
+							@Override
+							public void onSuccess(Map<Long, Map<String, Object>> jobDatasetParametersForDatasets) {
+								// the map will contain one entry for the dataset we have selected
+								Long selectedDatasetId = jobDatasetParametersForDatasets.keySet().iterator().next();
+					        	String message = "";
+					        	message += "ID: "+ selectedDatasetId + "\n";
+					        	Map<String, Object> jobDatasetParameters = jobDatasetParametersForDatasets.get(selectedDatasetId);
+					        	for (String key : jobDatasetParameters.keySet() ) {
+					        		Object dsParamObject = jobDatasetParameters.get(key);
+					        		String dsParamAsString = "null";
+					        		if ( dsParamObject != null ) {
+					        			dsParamAsString = dsParamObject.toString();
+					        		}
+						        	message += "JobDsParam: " + key + ": "+ dsParamAsString + " ";
+					        		if ( dsParamObject != null ) {
+					        			message += "Class: " + jobDatasetParameters.get(key).getClass().getName();
+					        		}
+					        		message += "\n";
+					        	}
+					            Window.alert(message);
+							}
+						});
 			        } else {
 			            Window.alert("Please select a dataset");
 			        }
@@ -365,7 +384,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			} else {
 				// popup a form containing the options for this job
 				// with options relevant to the selected dataset
-				portal.jobOptionsPanel.populateAndShowForm(jobName);
+				portal.jobOptionsPanel.populateAndShowForm();
 			}
 		}
 	}
