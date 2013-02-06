@@ -166,54 +166,63 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			@Override
 			public void onClick(ClickEvent event) {
 				Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
-				
-				if ( selectedDatasets.size() == 1 ) {
-			        DatasetOverview selectedDataset = selectedDatasets.iterator().next();
-			        if (selectedDataset != null) {
-			        	
-						// get a list of selected dataset ids
-						List<Long> selectedDatasetIds = new ArrayList<Long>();
-						selectedDatasetIds.add(selectedDataset.getDatasetId());
-						String datasetType = datasetTypeListBox.getValue(datasetTypeListBox.getSelectedIndex());
-						// make a call to the server to get the job dataset parameters for the selected dataset(s)
-						dataService.getJobDatasetParametersForDatasets(portal.getSessionId(), datasetType, selectedDatasetIds, new AsyncCallback<Map<Long, Map<String, Object>>>() {  
-							@Override
-							public void onFailure(Throwable caught) {
-								Window.alert("Server error: " + caught.getMessage());
-							}
-					
-							@Override
-							public void onSuccess(Map<Long, Map<String, Object>> jobDatasetParametersForDatasets) {
-								// the map will contain one entry for the dataset we have selected
-								Long selectedDatasetId = jobDatasetParametersForDatasets.keySet().iterator().next();
-					        	String message = "";
-					        	message += "ID: "+ selectedDatasetId + "\n";
-					        	Map<String, Object> jobDatasetParameters = jobDatasetParametersForDatasets.get(selectedDatasetId);
-					        	for (String key : jobDatasetParameters.keySet() ) {
-					        		Object dsParamObject = jobDatasetParameters.get(key);
-					        		String dsParamAsString = "null";
-					        		if ( dsParamObject != null ) {
-					        			dsParamAsString = dsParamObject.toString();
-					        		}
-						        	message += "JobDsParam: " + key + ": "+ dsParamAsString + " ";
-					        		if ( dsParamObject != null ) {
-					        			message += "Class: " + jobDatasetParameters.get(key).getClass().getName();
-					        		}
-					        		message += "\n";
-					        	}
-					            Window.alert(message);
-							}
-						});
-			        } else {
-			            Window.alert("Please select a dataset");
-			        }
-				} else {
-					String idsString = "";
+				if ( selectedDatasets.size() == 0 ) {
+		            Window.alert("No datasets selected");
+				} else { 
+					// get a list of selected dataset ids
+					List<Long> selectedDatasetIds = new ArrayList<Long>();
 					for ( DatasetOverview selectedDataset : selectedDatasets ) {
-						idsString += selectedDataset.getDatasetId() + " ";
+						selectedDatasetIds.add(selectedDataset.getDatasetId());
 					}
-					String alertMessage = "Dataset Info can only be displayed when a single dataset is selected";
-					Window.alert( alertMessage + "\n" + idsString );
+					String datasetType = datasetTypeListBox.getValue(datasetTypeListBox.getSelectedIndex());
+					// make a call to the server to get the job dataset parameters for the selected dataset(s)
+					dataService.getJobDatasetParametersForDatasets(portal.getSessionId(), datasetType, selectedDatasetIds, new AsyncCallback<Map<Long, Map<String, Object>>>() {  
+						@Override
+						public void onFailure(Throwable caught) {
+							Window.alert("Server error: " + caught.getMessage());
+						}
+				
+						@Override
+						public void onSuccess(Map<Long, Map<String, Object>> jobDatasetParametersForDatasets) {
+				        	String message = "";
+				        	if ( jobDatasetParametersForDatasets == null ) {
+				        		message += "jobDatasetParametersForDatasets is null";
+				        	} else if ( jobDatasetParametersForDatasets.isEmpty() ) {
+				        		message += "jobDatasetParametersForDatasets is empty";
+				        	} else {
+				        		message += "Contents of jobDatasetParametersForDatasets" + "\n\n";
+				        		Set<Long> datasetIds = jobDatasetParametersForDatasets.keySet();
+				        		for (Long datasetId : datasetIds) {
+						        	message += "datasetId: "+ datasetId + "\n";
+						        	Map<String, Object> jobDatasetParameters = jobDatasetParametersForDatasets.get(datasetId);
+						        	if ( jobDatasetParameters == null ) {
+						        		message += "jobDatasetParameters is null" + "\n";
+						        	} else if ( jobDatasetParameters.isEmpty() ) {
+						        		message += "jobDatasetParameters is empty" + "\n";
+						        	} else {
+							        	for (String key : jobDatasetParameters.keySet() ) {
+							        		Object dsParamObject = jobDatasetParameters.get(key);
+							        		String dsParamAsString = "null";
+							        		if ( dsParamObject != null ) {
+							        			dsParamAsString = dsParamObject.toString();
+							        		}
+								        	message += "JobDsParam: " + key + ": "+ dsParamAsString + " ";
+							        		if ( dsParamObject != null ) {
+							        			// need to reduce the length of this string to prevent line wrapping in the alert box
+							        			// cannot use Class getSimpleName() - not implemented in GWT I think
+							        			String classFullName = jobDatasetParameters.get(key).getClass().getName();
+							        			String classSimpleName = classFullName.substring(classFullName.lastIndexOf(".")+1);
+							        			message += " (" + classSimpleName + ")";
+							        		}
+							        		message += "\n";
+							        	}
+						        	}
+					        		message += "\n";
+				        		}
+				        	}
+				            Window.alert(message);
+						}
+					});
 				}
 			}
 		});
