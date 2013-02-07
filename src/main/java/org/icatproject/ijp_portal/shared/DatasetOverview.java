@@ -9,16 +9,7 @@ public class DatasetOverview implements Serializable {
 	private Long datasetId;
 	private String name;
 	private String sampleDescription;
-	private int numChannels;
 	private String users;
-	private boolean hasBeads = false;
-	private boolean hasDark = false;
-	private boolean hasBias = false;
-	private boolean hasCheck = false;
-	private boolean hasFlatfield = false;
-	private boolean hasWhitelight = false;
-	private boolean hasEvidenceMaps = false;
-	private boolean hasRegErrorMaps = false;
 	
 	public DatasetOverview() {
 		
@@ -40,14 +31,6 @@ public class DatasetOverview implements Serializable {
 		this.sampleDescription = sampleDescription;
 	}
 
-	public int getNumChannels() {
-		return numChannels;
-	}
-
-	public void setNumChannels(int numChannels) {
-		this.numChannels = numChannels;
-	}
-
 	public String getUsers() {
 		return users;
 	}
@@ -62,70 +45,6 @@ public class DatasetOverview implements Serializable {
 
 	public void setDatasetId(Long datasetId) {
 		this.datasetId = datasetId;
-	}
-
-	public boolean hasBeads() {
-		return hasBeads;
-	}
-
-	public void setHasBeads(boolean hasBeads) {
-		this.hasBeads = hasBeads;
-	}
-
-	public boolean hasDark() {
-		return hasDark;
-	}
-
-	public void setHasDark(boolean hasDark) {
-		this.hasDark = hasDark;
-	}
-
-	public boolean hasBias() {
-		return hasBias;
-	}
-
-	public void setHasBias(boolean hasBias) {
-		this.hasBias = hasBias;
-	}
-
-	public boolean hasCheck() {
-		return hasCheck;
-	}
-
-	public void setHasCheck(boolean hasCheck) {
-		this.hasCheck = hasCheck;
-	}
-
-	public boolean hasFlatfield() {
-		return hasFlatfield;
-	}
-
-	public void setHasFlatfield(boolean hasFlatfield) {
-		this.hasFlatfield = hasFlatfield;
-	}
-
-	public boolean hasWhitelight() {
-		return hasWhitelight;
-	}
-
-	public void setHasWhitelight(boolean hasWhitelight) {
-		this.hasWhitelight = hasWhitelight;
-	}
-
-	public boolean hasEvidenceMaps() {
-		return hasEvidenceMaps;
-	}
-
-	public void setHasEvidenceMaps(boolean hasEvidenceMaps) {
-		this.hasEvidenceMaps = hasEvidenceMaps;
-	}
-
-	public boolean hasRegErrorMaps() {
-		return hasRegErrorMaps;
-	}
-
-	public void setHasRegErrorMaps(boolean hasRegErrorMaps) {
-		this.hasRegErrorMaps = hasRegErrorMaps;
 	}
 
 }

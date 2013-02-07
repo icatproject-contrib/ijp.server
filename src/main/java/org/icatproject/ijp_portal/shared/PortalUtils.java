@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 public class PortalUtils {
@@ -15,21 +14,6 @@ public class PortalUtils {
 
 	public enum ParameterLevelType {
 		DATASET, DATASET_PARAMETER
-	}
-
-	public enum DatasetType {
-		LSF_PROJECT("project"), LSF_DATASET("dataset"), LSF_BEAD_DATASET("bead"), LSF_BIAS_DATASET(
-				"bias"), LSF_DARK_DATASET("dark"), LSF_FLATFIELD_DATASET("flatfield"), LSF_CHECK_DATASET(
-				"check"), LSF_USER_DATASET("user");
-		private final String name;
-
-		private DatasetType(String name) {
-			this.name = name;
-		}
-
-		public String toString() {
-			return name;
-		}
 	}
 
 	public enum OutputType {
@@ -56,8 +40,6 @@ public class PortalUtils {
 	public static final Double TWO_TO_POWER_53_DOUBLE = 9007199254740992D;
 	public static final Double MINUS_TWO_TO_POWER_53_DOUBLE = -9007199254740992D;
 
-	// use LinkedHashMap to preserve ordering of parameter names
-	public static LinkedHashMap<String, ParameterDescriptor> PARAM_DESCRIPTOR_MAPPINGS = initialiseParamDescriptorMappings();
 	public static HashMap<ParameterValueType, List<String>> PARAM_OPERATOR_MAPPINGS = initialiseParamOperatorMappings();
 	public static HashMap<String, String> JOB_STATUS_MAPPINGS = initialiseJobStatusMappings();
 
@@ -88,43 +70,6 @@ public class PortalUtils {
 		return jobStatusMappings;
 	}
 
-	private static LinkedHashMap<String, ParameterDescriptor> initialiseParamDescriptorMappings() {
-		LinkedHashMap<String, ParameterDescriptor> paramDescriptorMappings = new LinkedHashMap<String, ParameterDescriptor>();
-		paramDescriptorMappings.put("ProjectName", new ParameterDescriptor("name",
-				ParameterValueType.STRING, ParameterLevelType.DATASET));
-		paramDescriptorMappings.put("comments", new ParameterDescriptor(null,
-				ParameterValueType.STRING, ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("experiment_type", new ParameterDescriptor(null,
-				ParameterValueType.STRING, ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("id", new ParameterDescriptor(null, ParameterValueType.STRING,
-				ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("instrument", new ParameterDescriptor(null,
-				ParameterValueType.STRING, ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("nchannels", new ParameterDescriptor(null,
-				ParameterValueType.NUMERIC, ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("nframes", new ParameterDescriptor(null,
-				ParameterValueType.NUMERIC, ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("sampledescription", new ParameterDescriptor(null,
-				ParameterValueType.STRING, ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("users", new ParameterDescriptor(null,
-				ParameterValueType.STRING, ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("Created", new ParameterDescriptor("startDate",
-				ParameterValueType.DATE_AND_TIME, ParameterLevelType.DATASET));
-		paramDescriptorMappings.put("Done", new ParameterDescriptor("endDate",
-				ParameterValueType.DATE_AND_TIME, ParameterLevelType.DATASET));
-		paramDescriptorMappings.put("bead_dataset", new ParameterDescriptor(null,
-				ParameterValueType.STRING, ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("bias_dataset", new ParameterDescriptor(null,
-				ParameterValueType.STRING, ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("dark_dataset", new ParameterDescriptor(null,
-				ParameterValueType.STRING, ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("flatfield_dataset", new ParameterDescriptor(null,
-				ParameterValueType.STRING, ParameterLevelType.DATASET_PARAMETER));
-		paramDescriptorMappings.put("check_dataset", new ParameterDescriptor(null,
-				ParameterValueType.STRING, ParameterLevelType.DATASET_PARAMETER));
-		return paramDescriptorMappings;
-	}
-	
 	public static synchronized String createStringFromList(List<String> stringList, String separator) {
 		if ( stringList.size() == 0 ) {
 			return "";

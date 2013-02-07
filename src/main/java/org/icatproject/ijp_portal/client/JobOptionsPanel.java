@@ -63,7 +63,7 @@ public class JobOptionsPanel extends VerticalPanel {
 			@Override
 			public void onClick(ClickEvent event) {
 				dialogBox.hide();
-				portal.datasetsPanelNew.datasetActionListBox.setSelectedIndex(0);
+				portal.datasetsPanel.datasetActionListBox.setSelectedIndex(0);
 			}
 		});
 	
@@ -75,9 +75,9 @@ public class JobOptionsPanel extends VerticalPanel {
 				// most jobs are of this type - change it further down in specific cases
 				PortalUtils.MultiJobTypes multiJobType = MultiJobTypes.ONE_DATASET_PER_JOB;
 				
-				String jobName = portal.datasetsPanelNew.datasetActionListBox.getValue(portal.datasetsPanelNew.datasetActionListBox.getSelectedIndex());
-				JobType jobType = portal.datasetsPanelNew.jobTypeMappings.getJobTypesMap().get(jobName);
-				int numSelectedDatasets = portal.datasetsPanelNew.selectionModel.getSelectedSet().size();
+				String jobName = portal.datasetsPanel.datasetActionListBox.getValue(portal.datasetsPanel.datasetActionListBox.getSelectedIndex());
+				JobType jobType = portal.datasetsPanel.jobTypeMappings.getJobTypesMap().get(jobName);
+				int numSelectedDatasets = portal.datasetsPanel.selectionModel.getSelectedSet().size();
 				if ( numSelectedDatasets > 1 ) {
 					if ( jobType.getType().equalsIgnoreCase("interactive") ) {
 						multiJobType = MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB;
@@ -163,7 +163,7 @@ public class JobOptionsPanel extends VerticalPanel {
 					// just display the job name, options string and dataset ids in an alert for now
 					// TODO - send this off to the server to get a job executed
 					List<String> datasetIdsList = new ArrayList<String>();
-					for ( DatasetOverview selectedDataset : portal.datasetsPanelNew.selectionModel.getSelectedSet() ) {
+					for ( DatasetOverview selectedDataset : portal.datasetsPanel.selectionModel.getSelectedSet() ) {
 						String datasetId = Long.toString(selectedDataset.getDatasetId());
 						datasetIdsList.add(datasetId);
 					}
@@ -186,10 +186,10 @@ public class JobOptionsPanel extends VerticalPanel {
 
 		// get a list of selected dataset ids
 		List<Long> selectedDatasetIds = new ArrayList<Long>();
-		for ( DatasetOverview selectedDataset : portal.datasetsPanelNew.selectionModel.getSelectedSet() ) {
+		for ( DatasetOverview selectedDataset : portal.datasetsPanel.selectionModel.getSelectedSet() ) {
 			selectedDatasetIds.add(selectedDataset.getDatasetId());
 		}
-		String datasetType = portal.datasetsPanelNew.datasetTypeListBox.getValue(portal.datasetsPanelNew.datasetTypeListBox.getSelectedIndex());
+		String datasetType = portal.datasetsPanel.datasetTypeListBox.getValue(portal.datasetsPanel.datasetTypeListBox.getSelectedIndex());
 
 		dataService.getJobDatasetParametersForDatasets(portal.getSessionId(), datasetType, selectedDatasetIds, new AsyncCallback<Map<Long, Map<String, Object>>>() {  
 			@Override
@@ -199,10 +199,10 @@ public class JobOptionsPanel extends VerticalPanel {
 	
 			@Override
 			public void onSuccess(Map<Long, Map<String, Object>> jobDatasetParametersForDatasets) {
-				String jobName = portal.datasetsPanelNew.datasetActionListBox.getValue(portal.datasetsPanelNew.datasetActionListBox.getSelectedIndex());
+				String jobName = portal.datasetsPanel.datasetActionListBox.getValue(portal.datasetsPanel.datasetActionListBox.getSelectedIndex());
 				jobOptionToFormWidgetMap = new LinkedHashMap<JobOption, Widget>();
 				Map<String, HorizontalPanel> nameToPanelMap = new LinkedHashMap<String, HorizontalPanel>();
-				JobType jobType = portal.datasetsPanelNew.jobTypeMappings.getJobTypesMap().get(jobName);
+				JobType jobType = portal.datasetsPanel.jobTypeMappings.getJobTypesMap().get(jobName);
 
 				for (JobOption jobOption : jobType.getJobOptions()) {
 					// firstly work out if this option should be available for the selected dataset
@@ -305,7 +305,7 @@ public class JobOptionsPanel extends VerticalPanel {
 					}
 				}
 				
-				int numSelectedDatasets = portal.datasetsPanelNew.selectionModel.getSelectedSet().size();
+				int numSelectedDatasets = portal.datasetsPanel.selectionModel.getSelectedSet().size();
 				if ( jobType.getType().equalsIgnoreCase("batch") && numSelectedDatasets > 1  ) {
 					HorizontalPanel warningPanel = new HorizontalPanel();	
 					if ( jobType.getMultiple() == false ) {

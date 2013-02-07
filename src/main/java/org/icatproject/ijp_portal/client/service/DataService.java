@@ -10,10 +10,8 @@ import org.icatproject.ijp_portal.shared.ForbiddenException;
 import org.icatproject.ijp_portal.shared.GenericSearchSelections;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.JobDTO;
-import org.icatproject.ijp_portal.shared.PortalUtils.DatasetType;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
-import org.icatproject.ijp_portal.shared.ProjectOverview;
 import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobTypeMappings;
@@ -24,17 +22,9 @@ import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 
 @RemoteServiceRelativePath("DataService")
 public interface DataService extends RemoteService {
-	List<ProjectOverview> getProjectList(String sessionId, DatasetType datasetType,
-			List<String> users, List<String> instruments, List<String> exptTypes,
-			List<String> numChannels, GenericSearchSelections genSearchSelections)
-			throws SessionException, ServerException;
-
 	List<DatasetOverview> getDatasetList(String sessionId, String datasetType,
 			Map<String, List<String>> selectedSearchParamsMap,
 			List<GenericSearchSelections> genericSearchSelectionsList)
-			throws SessionException, ServerException;
-
-	LinkedHashMap<String, String> getProjectParameters(String sessionId, Long datasetId)
 			throws SessionException, ServerException;
 
 	LinkedHashMap<String, String> getDatasetParameters(String sessionId, Long datasetId)

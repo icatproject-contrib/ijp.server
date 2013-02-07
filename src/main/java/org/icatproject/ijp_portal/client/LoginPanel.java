@@ -57,33 +57,19 @@ public class LoginPanel extends Composite {
 	@UiHandler("login")
 	void handleClick(ClickEvent e) {
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
-	    	public void onFailure(Throwable caught) {
-	    		// TODO - do something with errors
-	    		System.err.println("LoginPanel.handleClick(): " + caught.getMessage());
-	    		messageLabel.setText("Error: " + caught.getMessage());
-	    	}
+			public void onFailure(Throwable caught) {
+				Window.alert("Server error: " + caught.getMessage());
+			}
 
 	    	public void onSuccess(String result) {
 	    		portal.setSessionId(result);
 	    		portal.setUsername(username.getText());
-//	    		Window.alert("sessionId: " + portal.getSessionId() );
 	    		portal.loginDialog.hide();
-	    		portal.datasetsPanelNew.populateDatasetTypeListBox();
-	    		portal.datasetsPanelNew.getJobTypesFromServer();
+	    		portal.datasetsPanel.populateDatasetTypeListBox();
+	    		portal.datasetsPanel.getJobTypesFromServer();
 	    		getMergedDatasetParameterTypeMappings();
-//	    		portal.projectsPanel.refreshProjectsList();
-//	    		portal.datasetsPanel.refreshProjectsList();
-//	    		portal.jobStatusPanel.refreshJobList();
 	    		// force the panels to resize
-	    		portal.datasetsPanelNew.onResize();
-	    		portal.projectsPanel.onResize();
 	    		portal.datasetsPanel.onResize();
-	    		portal.beadDatasetsPanel.onResize();
-	    		portal.biasDatasetsPanel.onResize();
-	    		portal.darkDatasetsPanel.onResize();
-	    		portal.flatfieldDatasetsPanel.onResize();
-	    		portal.checkDatasetsPanel.onResize();
-	    		portal.userDatasetsPanel.onResize();
 	    		portal.jobStatusPanel.onResize();
 	    	}
 		};

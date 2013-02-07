@@ -78,13 +78,11 @@ public class JobOutputPanel extends Composite {
 		currentJobId = jobId;
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 			public void onFailure(Throwable caught) {
-				// TODO - do something with errors
-				Window.alert("Problem getting output: " + caught.getMessage());
+				Window.alert("Server error: " + caught.getMessage());
 			}
 
 			public void onSuccess(String result) {
 				dialogBox.setText(outputType.toString() + " from Job " + jobId);
-				// portal.jobOutputDialog.setText("Output from Job " + jobId);
 				jobOutputLabel.setText(result);
 				// only quincy output panels need their content refreshing
 				// if (outputType == OutputType.QUINCY_OUTPUT) {

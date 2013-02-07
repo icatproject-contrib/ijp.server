@@ -8,28 +8,18 @@ import org.icatproject.ijp_portal.shared.AccountDTO;
 import org.icatproject.ijp_portal.shared.DatasetOverview;
 import org.icatproject.ijp_portal.shared.GenericSearchSelections;
 import org.icatproject.ijp_portal.shared.JobDTO;
-import org.icatproject.ijp_portal.shared.PortalUtils.DatasetType;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
-import org.icatproject.ijp_portal.shared.ProjectOverview;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobTypeMappings;
 import org.icatproject.ijp_portal.shared.xmlmodel.SearchItems;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
 public interface DataServiceAsync {
-	void getProjectList(String sessionId, DatasetType datasetType, List<String> users,
-			List<String> instruments, List<String> exptTypes, List<String> numChannels,
-			GenericSearchSelections genSearchSelections,
-			AsyncCallback<List<ProjectOverview>> callback);
-
 	void getDatasetList(String sessionId, String datasetType,
 			Map<String, List<String>> selectedSearchParamsMap,
 			List<GenericSearchSelections> genericSearchSelectionsList,
 			AsyncCallback<List<DatasetOverview>> callback);
-
-	void getProjectParameters(String sessionId, Long datasetId,
-			AsyncCallback<LinkedHashMap<String, String>> callback);
 
 	void getDatasetParameters(String sessionId, Long datasetId,
 			AsyncCallback<LinkedHashMap<String, String>> callback);

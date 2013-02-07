@@ -6,7 +6,6 @@
     <g:VerticalPanel spacing='10'>
         <g:HorizontalPanel>
             <g:Button ui:field="refreshButton" text='Refresh Job Status' />
-            <g:Button ui:field="quincyOutputButton" text='Display Quincy Output' />
             <g:Button ui:field="jobOutputButton" text='Display Job Output' />
             <g:Button ui:field="jobErrorButton" text='Display Job Error' />
         </g:HorizontalPanel>

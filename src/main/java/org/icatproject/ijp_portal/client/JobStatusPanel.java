@@ -49,9 +49,6 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 	Button refreshButton;
 
 	@UiField
-	Button quincyOutputButton;
-
-	@UiField
 	Button jobOutputButton;
 
 	@UiField
@@ -127,15 +124,6 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 			@Override
 			public void onClick(ClickEvent event) {
 				refreshJobList();
-			}
-		});
-
-		quincyOutputButton.addClickHandler(new ClickHandler() {
-			@Override
-			public void onClick(ClickEvent event) {
-				JobDTO selectedJob = selectionModel.getSelectedObject();
-				portal.quincyOutputDialog.show();
-				portal.quincyOutputPanel.getOutputForJob(selectedJob.getId());
 			}
 		});
 
