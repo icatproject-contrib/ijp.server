@@ -3,8 +3,10 @@ package org.icatproject.ijp_portal.server.ejb.session;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.Random;
 
@@ -15,6 +17,10 @@ import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
 import javax.persistence.PersistenceContext;
 
+import org.icatproject.ICAT;
+import org.icatproject.IcatException_Exception;
+import org.icatproject.ijp_portal.server.Icat;
+import org.icatproject.ijp_portal.server.LoadFinder;
 import org.icatproject.ijp_portal.server.Pbs;
 import org.icatproject.ijp_portal.server.ejb.entity.Account;
 import org.slf4j.Logger;
@@ -24,6 +30,7 @@ import uk.ac.rl.esc.catutils.CheckedProperties;
 import uk.ac.rl.esc.catutils.CheckedProperties.CheckedPropertyException;
 import uk.ac.rl.esc.catutils.ShellCommand;
 import org.icatproject.ijp_portal.shared.Constants;
+import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.ServerException;
 
 @Stateless
@@ -33,7 +40,11 @@ public class MachineEJB {
 
 	private long passwordDurationMillis;
 
-	private String accountprepare;
+	private String prepareaccount;
+
+	private LoadFinder loadFinder;
+
+	private ICAT icat;
 
 	@PostConstruct
 	private void init() {
@@ -42,14 +53,23 @@ public class MachineEJB {
 			props.loadFromFile(Constants.PROPERTIES_FILEPATH);
 			passwordDurationMillis = props.getPositiveInt("passwordDurationSeconds") * 1000L;
 			poolPrefix = props.getString("poolPrefix");
-			accountprepare = props.getString("accountprepare");
+			prepareaccount = props.getString("prepareaccount");
+
+			logger.debug("Machine Manager Initialised");
 		} catch (CheckedPropertyException e) {
 			throw new RuntimeException("CheckedPropertyException " + e.getMessage());
 		}
 		try {
 			pbs = new Pbs();
+			loadFinder = new LoadFinder();
+			pbs = new Pbs();
 		} catch (ServerException e) {
-			throw new RuntimeException("Server exception " + e.getMessage());
+			throw new RuntimeException("ServerException " + e.getMessage());
+		}
+		try {
+			icat = Icat.getIcat();
+		} catch (InternalException e) {
+			throw new RuntimeException("InternalException " + e.getMessage());
 		}
 	}
 
@@ -63,8 +83,14 @@ public class MachineEJB {
 	private final static Random random = new Random();
 	private final static String chars = "abcdefghijkmnpqrstuvwxyz23456789";
 
-	public Account getAccount(String lightest, String userName, String sessionId, Long dsid,
-			String command) throws ServerException {
+	private Account getAccount(String lightest, String sessionId, String jobName, String options)
+			throws ServerException {
+		String userName;
+		try {
+			userName = icat.getUserName(sessionId);
+		} catch (IcatException_Exception e) {
+			throw new ServerException(e.getMessage());
+		}
 		logger.debug("Set up account for " + userName + " on " + lightest);
 
 		logger.debug("Need to create a new pool account");
@@ -76,9 +102,8 @@ public class MachineEJB {
 			pw[i] = chars.charAt(random.nextInt(chars.length()));
 		}
 		String password = new String(pw);
-		ShellCommand sc = new ShellCommand("ssh", lightest, accountprepare, poolPrefix
-				+ account.getId(), password, userName, sessionId, Long.toString(dsid), "'"
-				+ command + "'");
+		ShellCommand sc = new ShellCommand("ssh", lightest, prepareaccount, poolPrefix
+				+ account.getId(), password, sessionId, jobName, "'" + options + "'");
 		if (sc.isError()) {
 			throw new ServerException(sc.getMessage());
 		}
@@ -179,5 +204,46 @@ public class MachineEJB {
 			e.printStackTrace(ps);
 			logger.error("cleanAccounts failed " + baos.toString());
 		}
+	}
+
+	public Account prepareMachine(String sessionId, String jobName, String options)
+			throws ServerException {
+		Set<String> machines = new HashSet<String>();
+		Map<String, Float> loads = loadFinder.getLoads();
+		Map<String, String> avail = pbs.getStates();
+		for (Entry<String, String> pair : avail.entrySet()) {
+			boolean online = true;
+			for (String state : pair.getValue().split(",")) {
+				if (state.equals("offline")) {
+					online = false;
+					break;
+				}
+			}
+			if (online) {
+				logger.debug(pair.getKey() + " is currently online");
+				machines.add(pair.getKey());
+			}
+		}
+		if (machines.isEmpty()) {
+			machines = avail.keySet();
+			if (machines.isEmpty()) {
+				throw new ServerException("No machines available");
+			}
+		}
+
+		String lightest = null;
+		for (String machine : machines) {
+			if (lightest == null || loads.get(machine) < loads.get(lightest)) {
+				lightest = machine;
+			}
+		}
+
+		pbs.setOffline(lightest);
+		return getAccount(lightest, sessionId, jobName, options);
+
+	}
+
+	public String getPoolPrefix() {
+		return poolPrefix;
 	}
 }

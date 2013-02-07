@@ -1,5 +1,9 @@
 package org.icatproject.ijp_portal.server.rest;
 
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ws.rs.DELETE;
@@ -12,16 +16,51 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.icatproject.ijp_portal.server.ejb.entity.Account;
 import org.icatproject.ijp_portal.server.ejb.session.JobManagementBean;
+import org.icatproject.ijp_portal.server.ejb.session.MachineEJB;
+import org.icatproject.ijp_portal.server.manager.XmlFileManager;
 import org.icatproject.ijp_portal.shared.ForbiddenException;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.ParameterException;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
+import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
+import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
+import org.icatproject.ijp_portal.shared.xmlmodel.JobTypeMappings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Stateless
 @Path("jm")
 public class JobManager {
+
+	final static Logger logger = LoggerFactory.getLogger(JobManager.class);
+
+	private Map<String, JobType> jobTypes;
+
+	private WebApplicationException constructException;
+
+	@PostConstruct
+	void init() {
+		XmlFileManager xmlFileManager = new XmlFileManager();
+		JobTypeMappings jobTypeMappings;
+		try {
+			jobTypeMappings = xmlFileManager.getJobTypeMappings();
+			jobTypes = jobTypeMappings.getJobTypesMap();
+			for (Entry<String, JobType> jobType : jobTypes.entrySet()) {
+				logger.info("Job type " + jobType.getKey() + " is of type "
+						+ jobType.getValue().getType());
+			}
+		} catch (ServerException e) {
+			constructException = new WebApplicationException(Response
+					.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage() + "\n").build());
+		}
+
+	}
+
+	@EJB
+	private MachineEJB machineEJB;
 
 	@EJB
 	private JobManagementBean jobManagementBean;
@@ -139,6 +178,9 @@ public class JobManager {
 	}
 
 	private void checkCredentials(String sessionId) {
+		if (constructException != null) {
+			throw constructException;
+		}
 		if (sessionId == null) {
 			throw new WebApplicationException(Response.status(Status.BAD_REQUEST)
 					.entity("No sessionsId was specified\n").build());
@@ -155,17 +197,43 @@ public class JobManager {
 					.entity("No jobName was specified\n").build());
 		}
 		checkCredentials(sessionId);
-		try {
-			return jobManagementBean.submit(sessionId, jobName, options, family);
-		} catch (InternalException e) {
-			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(e.getMessage() + "\n").build());
-		} catch (SessionException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (ParameterException e) {
+		JobType jobType = jobTypes.get(jobName);
+		if (jobType == null) {
 			throw new WebApplicationException(Response.status(Status.BAD_REQUEST)
-					.entity(e.getMessage() + "\n").build());
+					.entity("jobName " + jobName + " not recognised\n").build());
+		}
+		String type = jobType.getType();
+		if (type == null) {
+			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity("XML describing job type does not include the type field\n").build());
+		}
+		if (type.equals("interactive")) {
+			Account account;
+			try {
+				account = machineEJB.prepareMachine(sessionId, jobName, options);
+			} catch (ServerException e) {
+				throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+						.entity(e.getMessage() + "\n").build());
+			}
+			return "rdesktop -u " + machineEJB.getPoolPrefix() + account.getId() + " -p "
+					+ account.getPassword() + " " + account.getHost();
+		} else if (type.equals("batch")) {
+			try {
+				return jobManagementBean.submit(sessionId, jobName, options, family);
+			} catch (InternalException e) {
+				throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+						.entity(e.getMessage() + "\n").build());
+			} catch (SessionException e) {
+				throw new WebApplicationException(Response.status(Status.FORBIDDEN)
+						.entity(e.getMessage() + "\n").build());
+			} catch (ParameterException e) {
+				throw new WebApplicationException(Response.status(Status.BAD_REQUEST)
+						.entity(e.getMessage() + "\n").build());
+			}
+		} else {
+			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity("XML describing job type has a type field with an invalid value\n")
+					.build());
 		}
 	}
 

@@ -45,8 +45,6 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	@EJB
 	private JobManagementBean jobManagementBean;
 
-	private MachineManager machineManager;
-
 	@EJB
 	private MachineEJB machineEJB;
 
@@ -58,7 +56,6 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 		try {
 			portalProps.loadFromFile(Constants.PROPERTIES_FILEPATH);
 			poolPrefix = portalProps.getString("poolPrefix");
-			machineManager = new MachineManager(machineEJB);
 			dataServiceManager = new DataServiceManager();
 			xmlFileManager = new XmlFileManager();
 		} catch (Exception e) {
@@ -68,14 +65,13 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 
 	@Override
-	public List<DatasetOverview> getDatasetList(String sessionId,
-			String datasetType,
+	public List<DatasetOverview> getDatasetList(String sessionId, String datasetType,
 			Map<String, List<String>> selectedSearchParamsMap,
-			List<GenericSearchSelections> genericSearchSelectionsList)
-			throws SessionException, ServerException {
+			List<GenericSearchSelections> genericSearchSelectionsList) throws SessionException,
+			ServerException {
 		logger.debug("In DataServiceImpl.getDatasetList()");
-		return dataServiceManager.getDatasetList(sessionId, datasetType,
-				selectedSearchParamsMap, genericSearchSelectionsList);
+		return dataServiceManager.getDatasetList(sessionId, datasetType, selectedSearchParamsMap,
+				genericSearchSelectionsList);
 	}
 
 	@Override
@@ -132,10 +128,12 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 
 	@Override
-	public AccountDTO getAccountFor(String username, String sessionId, Long dsid, String command)
+	// TODO this will need changing to match prepareMachine
+	public AccountDTO getAccountFor(String username, String sessionId, Long dsid, String jobName)
 			throws ServerException {
 		logger.debug("In DataServiceImpl.getAccountFor()");
-		return machineManager.prepareMachine(username, sessionId, dsid, command).getDTO(poolPrefix);
+		return machineEJB.prepareMachine(sessionId, jobName, Long.toString(dsid))
+				.getDTO(poolPrefix);
 	}
 
 	@Override
@@ -146,8 +144,8 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 
 	@Override
-	public LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(
-			String sessionId) throws SessionException, ServerException {
+	public LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(String sessionId)
+			throws SessionException, ServerException {
 		logger.debug("In DataServiceImpl.getDatasetParameterTypesMap()");
 		return dataServiceManager.getDatasetParameterTypesMap(sessionId);
 	}
