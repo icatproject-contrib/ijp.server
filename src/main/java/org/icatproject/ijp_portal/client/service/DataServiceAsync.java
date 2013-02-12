@@ -26,9 +26,6 @@ public interface DataServiceAsync {
 
 	void login(String plugin, Map<String, String> credentials, AsyncCallback<String> callback);
 
-	void submitDataset(String sessionId, String username, Long datasetId,
-			AsyncCallback<String> callback);
-
 	void getJobsForUser(String sessionId, AsyncCallback<List<JobDTO>> callback);
 
 	void getJobOutput(String sessionId, String jobId, OutputType outputType,
@@ -40,7 +37,7 @@ public interface DataServiceAsync {
 
 	void getDatasetTypesList(String sessionId, AsyncCallback<List<String>> callback);
 
-	void getAccountFor(String username, String sessionId, Long dsid, String command,
+	void getAccountFor(String sessionId, String command, String parameters,
 			AsyncCallback<AccountDTO> callback);
 
 	void getDatasetParameterTypesMap(String sessionId,

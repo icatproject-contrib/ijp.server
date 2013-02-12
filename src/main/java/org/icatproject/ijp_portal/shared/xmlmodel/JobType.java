@@ -3,6 +3,7 @@ package org.icatproject.ijp_portal.shared.xmlmodel;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -15,22 +16,26 @@ public class JobType implements IsSerializable {
 	private String executable;
 	private boolean multiple;
 	private String type;
+
+	@XmlAttribute
+	protected String family;
 	@XmlElement
 	private List<String> datasetTypes = new ArrayList<String>();
 	@XmlElement
 	private List<JobOption> jobOptions = new ArrayList<JobOption>();
-	
+
 	public JobType() {
-		
+
 	}
-	
+
 	public String toString() {
 		String lineSep = "\n";
-		String objectAsString = "name='" + name + "', executable='" + executable + "', multiple='" + multiple + "', type='" + type + "'" + lineSep;
+		String objectAsString = "name='" + name + "', executable='" + executable + "', multiple='"
+				+ multiple + "', type='" + type + "'" + lineSep;
 		objectAsString += "datasetTypes=";
-		for (int i=0; i<datasetTypes.size(); i++) {
+		for (int i = 0; i < datasetTypes.size(); i++) {
 			objectAsString += "'" + datasetTypes.get(i) + "'";
-			if ( i != datasetTypes.size()-1 ) {
+			if (i != datasetTypes.size() - 1) {
 				objectAsString += ",";
 			}
 		}
@@ -79,6 +84,10 @@ public class JobType implements IsSerializable {
 
 	public List<JobOption> getJobOptions() {
 		return jobOptions;
+	}
+
+	public String getFamily() {
+		return family;
 	}
 
 }

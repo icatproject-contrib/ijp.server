@@ -103,12 +103,13 @@ public class MachineEJB {
 		}
 		String password = new String(pw);
 		ShellCommand sc = new ShellCommand("ssh", lightest, prepareaccount, poolPrefix
-				+ account.getId(), password, sessionId, jobName, "'" + options + "'");
+				+ account.getId(), password, sessionId, jobName, options);
 		if (sc.isError()) {
 			throw new ServerException(sc.getMessage());
 		}
-		logger.debug("Command useradd reports " + sc.getStdout());
-
+		if (!sc.getStdout().isEmpty()) {
+			logger.debug("Prepare account reports " + sc.getStdout());
+		}
 		account.setUserName(userName);
 		account.setAllocatedDate(new Date());
 

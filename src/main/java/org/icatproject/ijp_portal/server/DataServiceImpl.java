@@ -88,18 +88,6 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 
 	@Override
-	public String submitDataset(String sessionId, String username, Long datasetId)
-			throws SessionException {
-		logger.debug("In DataServiceImpl.submitDataset()");
-		Job job = jobManagementBean.submitDataset(sessionId, username, datasetId);
-		// create a thread to continuously check qstat until the job is reported as completed
-		// or a particular timeout is reached (TBD)
-		// new Thread(new JobMonitor(job,jobManagementBean)).start();
-		// return the jobId to the client
-		return job.getId();
-	}
-
-	@Override
 	public List<JobDTO> getJobsForUser(String sessionId) throws SessionException {
 		logger.debug("In DataServiceImpl.getJobsForUser()");
 		List<Job> jobList = jobManagementBean.getJobsForUser(sessionId);
@@ -128,11 +116,10 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 
 	@Override
-	// TODO this will need changing to match prepareMachine
-	public AccountDTO getAccountFor(String username, String sessionId, Long dsid, String jobName)
-			throws ServerException {
+	public AccountDTO getAccountFor(String sessionId, String jobName, String parameters) throws ServerException
+			 {
 		logger.debug("In DataServiceImpl.getAccountFor()");
-		return machineEJB.prepareMachine(sessionId, jobName, Long.toString(dsid))
+		return machineEJB.prepareMachine(sessionId, jobName, parameters)
 				.getDTO(poolPrefix);
 	}
 

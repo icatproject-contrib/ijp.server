@@ -169,7 +169,7 @@ public class Pbs {
 				resumeJobs(words[0]);
 			}
 		}
-		sc = new ShellCommand(qsub, "-o", "/dev/null", "-e", "/dev/null", "wakeup.sh");
+		sc = new ShellCommand(qsub, "-o", "/dev/null", "-e", "/dev/null", "/home/dmf/bin/wakeup");
 		if (sc.isError()) {
 			throw new ServerException(sc.getMessage());
 		}

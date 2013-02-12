@@ -32,8 +32,6 @@ public interface DataService extends RemoteService {
 
 	String login(String plugin, Map<String, String> credentials) throws SessionException;
 
-	String submitDataset(String sessionId, String username, Long datasetId) throws SessionException;
-
 	List<JobDTO> getJobsForUser(String sessionId) throws SessionException;
 
 	String getJobOutput(String sessionId, String jobId, OutputType outputType)
@@ -45,7 +43,7 @@ public interface DataService extends RemoteService {
 
 	JobTypeMappings getJobTypeMappings() throws ServerException;
 
-	AccountDTO getAccountFor(String username, String sessionId, Long dsid, String command)
+	AccountDTO getAccountFor(String sessionId, String command, String parameters)
 			throws ServerException;
 	
 	LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(String sessionId)

@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.file.FileSystems;
@@ -16,15 +15,19 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
-import java.util.Scanner;
 import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
+import javax.ejb.EJB;
 import javax.ejb.Schedule;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
@@ -34,20 +37,23 @@ import org.icatproject.IcatException_Exception;
 import org.icatproject.ijp_portal.server.Families;
 import org.icatproject.ijp_portal.server.Icat;
 import org.icatproject.ijp_portal.server.Qstat;
+import org.icatproject.ijp_portal.server.ejb.entity.Account;
 import org.icatproject.ijp_portal.server.ejb.entity.Job;
 import org.icatproject.ijp_portal.server.manager.XmlFileManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import uk.ac.rl.esc.catutils.ShellCommand;
 import org.icatproject.ijp_portal.shared.Constants;
 import org.icatproject.ijp_portal.shared.ForbiddenException;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.ParameterException;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
+import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
-import org.icatproject.ijp_portal.shared.xmlmodel.JobTypeMappings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import uk.ac.rl.esc.catutils.CheckedProperties;
+import uk.ac.rl.esc.catutils.ShellCommand;
+import uk.ac.rl.esc.catutils.CheckedProperties.CheckedPropertyException;
 
 /**
  * Session Bean implementation to manage job status
@@ -69,10 +75,16 @@ public class JobManagementBean {
 
 	}
 
+	@EJB
+	private MachineEJB machineEJB;
+
 	private String defaultFamily;
 	private Map<String, LocalFamily> families = new HashMap<String, LocalFamily>();
 	private Unmarshaller qstatUnmarshaller;
-	JobTypeMappings jobTypeMappings;
+
+	private Map<String, JobType> jobTypes;
+
+	private String ijpbrun;
 
 	@PostConstruct
 	void init() {
@@ -94,7 +106,15 @@ public class JobManagementBean {
 			qstatUnmarshaller = JAXBContext.newInstance(Qstat.class).createUnmarshaller();
 
 			XmlFileManager xmlFileManager = new XmlFileManager();
-			jobTypeMappings = xmlFileManager.getJobTypeMappings();
+			jobTypes = xmlFileManager.getJobTypeMappings().getJobTypesMap();
+
+			CheckedProperties props = new CheckedProperties();
+			try {
+				props.loadFromFile(Constants.PROPERTIES_FILEPATH);
+				ijpbrun = props.getString("ijpbrun");
+			} catch (CheckedPropertyException e) {
+				throw new RuntimeException("CheckedPropertyException " + e.getMessage());
+			}
 
 			logger.debug("Initialised JobManagementBean");
 		} catch (Exception e) {
@@ -110,344 +130,6 @@ public class JobManagementBean {
 
 	@PersistenceContext(unitName = "portal")
 	private EntityManager entityManager;
-
-	// TODO - these need moving into the properties file
-	private final String INGESTER_DIR = "/usr/local/escience/ingester";
-	private final String IDS2_URL = "http://rclsfserv009.rc-harwell.ac.uk:8080";
-
-	@Deprecated
-	public Job submitDataset(String sessionId, String username, Long datasetId) {
-		System.out.println("Received submit dataset request for dataset: " + datasetId);
-		String currentDirName = System.getProperty("user.dir");
-		String batchScriptName = System.currentTimeMillis() + ".sh";
-		// the batch script needs to be written to disk by the dmf user (running glassfish)
-		// before it can be submitted via the qsub command
-		File batchScriptFile = new File(Constants.DMF_WORKING_DIR_NAME + "/" + batchScriptName);
-		String quincyStdOutFilenameStem = Constants.BATCH_WORKING_DIR_NAME + "/" + batchScriptName
-				+ ".quincy_stdout";
-		// String triggerInputDir = "/home/dmf/ingester/triggers";
-		String wgetUrlStem = IDS2_URL + "/ids2/Data/";
-		String wgetUrlMiddleBit = "getDataset?sessionid=" + sessionId + "&datasetId=";
-		String wgetUrlEnding = wgetUrlMiddleBit + datasetId;
-		String unzippedDatasetDir = "unzipped_dataset";
-		try {
-			BufferedWriter br = new BufferedWriter(new FileWriter(batchScriptFile));
-			br.write("#!/bin/bash");
-			br.newLine();
-			br.write("# Script to process dataset " + datasetId + " for sessionId " + sessionId);
-			br.newLine();
-			br.write("# Current working directory is " + currentDirName);
-			br.newLine();
-			br.write("echo `date` - THE START");
-			br.newLine();
-			// not needed now that java is installed in /usr/bin
-			// br.write(". /home/dmf/.setup_java_env");
-			// br.newLine();
-			br.write(". /usr/local/msmm/setup/setup.sh");
-			br.newLine();
-			// br.write("export LD_LIBRARY_PATH=\"/usr/local/msmm/lib:${LD_LIBRARY_PATH}\"");
-			// br.newLine();
-			// br.write("export MSMM_PROJECTS=\"/home/dmf/MSMM_ANALYSED\"");
-			// br.newLine();
-			br.write("env");
-			br.newLine();
-			br.write("jobNum=${PBS_JOBID%%.*}");
-			br.newLine();
-			br.write("quincyOutputFilename=" + quincyStdOutFilenameStem + ".q${jobNum}");
-			br.newLine();
-			br.write("jobIdDir=" + Constants.BATCH_WORKING_DIR_NAME + "/$PBS_JOBID");
-			br.newLine();
-			br.write("mkdir -p $jobIdDir");
-			br.newLine();
-			br.write("cd $jobIdDir");
-			br.newLine();
-			br.write("echo `date` - Before wget");
-			br.newLine();
-			// wget output goes to standard error so combine it with standard output and tee it to
-			// the quincy output file
-			// so that progress can be seen in the portal during wget and unzipping even before
-			// quincy starts
-			br.write("wget --no-proxy \"" + wgetUrlStem + wgetUrlEnding
-					+ "\" 2>&1 | tee ${quincyOutputFilename}");
-			br.newLine();
-			br.write("echo `date` - After wget and before unzip");
-			br.newLine();
-			br.write("mkdir " + unzippedDatasetDir);
-			br.newLine();
-			br.write("unzip \"" + wgetUrlEnding + "\" -d " + unzippedDatasetDir
-					+ " | tee -a ${quincyOutputFilename}");
-			br.newLine();
-			// remove the downloaded file
-			br.write("rm \"" + wgetUrlEnding + "\"");
-			br.newLine();
-			br.write("echo `date` - After unzip");
-			br.newLine();
-			br.write("# firstRunCfg will be for example ./" + unzippedDatasetDir + "/run.cfg");
-			br.newLine();
-			// find the first run.cfg file in the unzipped directory
-			br.write("firstRunCfg=`find . -name run.cfg | head -1`");
-			br.newLine();
-			// find the line specifying the RunDir parameter
-			br.write("runDirLine=`cat $firstRunCfg | grep RunDir`");
-			br.newLine();
-			br.write("echo runDirLine=[${runDirLine}]");
-			br.newLine();
-			// double escaping of the backslash is required here!
-			// the 4 backslashes translate to 2 backslashes in the shell script
-			// which is one escaped backslash really
-			br.write("datasetMainDir=${runDirLine#*[/|\\\\]}");
-			br.newLine();
-			br.write("echo datasetMainDir=[${datasetMainDir}]");
-			br.newLine();
-			// remove any new line characters from this variable
-			br.write("datasetMainDir=$(echo ${datasetMainDir} | tr -d '\n')");
-			br.newLine();
-			br.write("datasetMainDir=$(echo ${datasetMainDir} | tr -d '\r')");
-			br.newLine();
-			// change any backslashes to forward slashes
-			// more escaping - what we need is "s|\\|/|g"
-			br.write("datasetMainDir=$(echo ${datasetMainDir} | sed 's|\\\\|/|g')");
-			br.newLine();
-			br.write("echo datasetMainDir=[${datasetMainDir}]");
-			br.newLine();
-			// recreate the directory structure from the RunDir parameter in the run.cfg
-			br.write("mkdir -p ${datasetMainDir}");
-			br.newLine();
-			// unzip the dataset into the created directory structure
-			br.write("mv " + unzippedDatasetDir + "/* ${datasetMainDir}");
-			br.newLine();
-			// remove the now empty unzipped dataset directory
-			br.write("rmdir " + unzippedDatasetDir);
-			br.newLine();
-			// put the "dataset root marker" required by quincy in the top level directory
-			br.write("touch msmm_dataset_root_marker.nodelete");
-			br.newLine();
-			// re-find the first run.cfg file in the re-created directory structure
-			// br.write("newFirstRunCfg=`echo $firstRunCfg | sed \"s/" + unzippedDatasetDir +
-			// "/${datasetMainDir}/\"`");
-			br.write("newFirstRunCfg=`find ${datasetMainDir} -name run.cfg | head -1`");
-			br.newLine();
-			br.write("echo newFirstRunCfg=[${newFirstRunCfg}]");
-			br.newLine();
-
-			// download and unpack any dependency datasets into the correct subfolder
-			br.write("echo `date` - Before dependencies");
-			br.newLine();
-			br.write("currentDir=${PWD}");
-			br.newLine();
-			br.write("INGESTER_DIR=" + INGESTER_DIR);
-			br.newLine();
-			br.write("dependencyTypes=( Bead Bias Dark FlatField Check )");
-			br.newLine();
-			br.write("for dependencyType in ${dependencyTypes[@]}");
-			br.newLine();
-			br.write("do");
-			br.newLine();
-			br.write("  cd \"$INGESTER_DIR\"");
-			br.newLine();
-			br.write("  depDatasetId=$( ./dependency_dataset_finder.sh " + datasetId
-					+ " $dependencyType )");
-			br.newLine();
-			br.write("  cd \"$currentDir\"");
-			br.newLine();
-			br.write("  if [ -n \"$depDatasetId\" ]; then");
-			br.newLine();
-			br.write("    depDirLine=$( cat $newFirstRunCfg | grep ${dependencyType}Image | head -1 )");
-			br.newLine();
-			// remove up to the first slash
-			br.write("    depDir=${depDirLine#*[/|\\\\]}");
-			br.newLine();
-			// remove after the last slash
-			br.write("    depDir=${depDir%[/|\\\\]*}");
-			br.newLine();
-			// remove any new line characters from this variable
-			br.write("    depDir=$(echo ${depDir} | tr -d '\n')");
-			br.newLine();
-			br.write("    depDir=$(echo ${depDir} | tr -d '\r')");
-			br.newLine();
-			// change any backslashes to forward slashes
-			// more escaping - what we need is "s|\\|/|g"
-			br.write("    depDir=$(echo ${depDir} | sed 's|\\\\|/|g')");
-			br.newLine();
-			br.write("    mkdir -p \"${depDir}\"");
-			br.newLine();
-			br.write("    wgetUrlEnding=\"" + wgetUrlMiddleBit + "${depDatasetId}\"");
-			br.newLine();
-			br.write("    wget --no-proxy \"" + wgetUrlStem
-					+ "${wgetUrlEnding}\" 2>&1 | tee -a ${quincyOutputFilename}");
-			br.newLine();
-			br.write("    unzip \"${wgetUrlEnding}\" -d \"${depDir}\" | tee -a ${quincyOutputFilename}");
-			br.newLine();
-			br.write("    rm \"${wgetUrlEnding}\"");
-			br.newLine();
-			br.write("  fi");
-			br.newLine();
-			br.write("done");
-			br.newLine();
-			br.write("echo `date` - After dependencies");
-			br.newLine();
-
-			br.write("echo `date` - Before quincy");
-			br.newLine();
-			// br.write("/usr/local/msmm/bin/quincy \"$jobIdDir/$newFirstRunCfg\"");
-			// TODO - remove the --boojum option - this is required for now to allow multi channel
-			// datasets to run without RegistrationFailureErrors until something gets fixed by LSF
-			br.write("run_quincy --boojum registration.ignore_registration_residuals_error=true \"$jobIdDir/$newFirstRunCfg\" | tee -a ${quincyOutputFilename}");
-			br.newLine();
-			br.write("echo `date` - After quincy");
-			br.newLine();
-			// check if run_quincy ran successfully
-			br.write("exitStatusLine=$( grep \"Finished with exit status=0\" ${quincyOutputFilename} )");
-			br.newLine();
-			// if the grep returns no results (zero length output)
-			br.write("if [ -z \"$exitStatusLine\" ]; then");
-			br.newLine();
-			br.write("  echo \"Problem running quincy. See ${quincyOutputFilename} for more details\"");
-			br.newLine();
-			// otherwise ingest the created dataset (project) into ICAT
-			br.write("else");
-			br.newLine();
-			// grep the run_quincy output for the line specifying the "ProjectDir"
-			// br.write("  projectDirLine=`cat " + quincyStdOutFilename + " | grep ProjectDir=`");
-			br.write("  projectDirLine=$( grep ProjectDir= ${quincyOutputFilename} )");
-			br.newLine();
-			br.write("  echo projectDirLine=[${projectDirLine}]");
-			br.newLine();
-			// remove everything up to and including the first double quote
-			// some double escaping is used here as well with the 3(!) backslashes
-			br.write("  lineFromFirstQuote=${projectDirLine#*\\\"}");
-			br.newLine();
-			br.write("  echo lineFromFirstQuote=[${lineFromFirstQuote}]");
-			br.newLine();
-			// remove everything from (and including) the last double quote
-			br.write("  projectDir=${lineFromFirstQuote%%\\\"*}");
-			br.newLine();
-			br.write("  echo projectDir=[${projectDir}]");
-			br.newLine();
-			// make a copy of quincy.log so that when the projectDir is removed we don't lose it
-			br.write("  cp -p \"${projectDir}/quincy.log\" " + Constants.BATCH_WORKING_DIR_NAME
-					+ "/" + batchScriptName + ".quincy.log");
-			br.newLine();
-			br.write("  cd " + INGESTER_DIR);
-			br.newLine();
-			br.write("  echo `date` - Before dataset ingest");
-			br.newLine();
-			// set the Internal Field Separator variable to just newlines
-			// so that an array of output lines can be captured
-			br.write("  savedIFS=${IFS}");
-			br.newLine();
-			br.write("  IFS=$'\n'");
-			br.newLine();
-			// capture the direct_dataset_ingester.sh output in an array (include stderr)
-			br.write("  outputArray=($(./direct_dataset_ingester.sh \"${projectDir}\" 2>&1))");
-			br.newLine();
-			br.write("  ingesterExitCode=$?");
-			br.newLine();
-			br.write("  IFS=${savedIFS}");
-			br.newLine();
-			br.write("  echo `date` - After dataset ingest");
-			br.newLine();
-			br.write("  if [ $ingesterExitCode -eq 0 ]; then");
-			br.newLine();
-			// get the ID of the newly ingested dataset from the last line of the output
-			br.write("    outputArraySize=${#outputArray[*]}");
-			br.newLine();
-			br.write("    outputDatasetId=${outputArray[$(( ${outputArraySize}-1 ))]}");
-			br.newLine();
-			br.write("    echo `date` - Before job creator");
-			br.newLine();
-			// use the new dataset ID to create a job object linking the input and output datasets
-			// with run_quincy
-			br.write("    ./job_creator.sh run_quincy 1.0 inputDatasetIds " + datasetId
-					+ " outputDatasetIds ${outputDatasetId}");
-			br.newLine();
-			br.write("    echo `date` - After job creator");
-			br.newLine();
-			br.write("  else");
-			br.newLine();
-			br.write("    echo \"Direct Dataset Ingester failed with exit code $ingesterExitCode\". Output was:");
-			br.newLine();
-			br.write("    for outputLine in \"${outputArray[@]}\"; do");
-			br.newLine();
-			br.write("      echo $outputLine");
-			br.newLine();
-			br.write("    done");
-			br.newLine();
-			br.write("  fi");
-			br.newLine();
-			// clean up the project created in the MSMM_analysed directory
-			br.write("  echo `date` - Before projectDir cleanup");
-			br.newLine();
-			br.write("  rm -rf \"${projectDir}\"");
-			br.newLine();
-			br.write("fi");
-			br.newLine();
-			// clean up the downloaded dataset in the directory named with the job id
-			br.write("echo `date` - Before jobIdDir cleanup");
-			br.newLine();
-			br.write("rm -rf \"${jobIdDir}\"");
-			br.newLine();
-			br.write("echo `date` - THE END");
-			br.newLine();
-
-			br.close();
-			batchScriptFile.setExecutable(true);
-		} catch (IOException e) {
-			System.err.println("Exception creating batch script: " + e.getMessage());
-		}
-
-		try {
-			// submit the job as the user batch instead of dmf
-			// this user has less privileges so this is safer
-			ProcessBuilder pb = new ProcessBuilder("sudo", "-u", "batch", "qsub", "-w",
-					Constants.BATCH_WORKING_DIR_NAME, batchScriptFile.getAbsolutePath());
-			pb.redirectErrorStream(true);
-			Process qsubProcess = pb.start();
-			InputStream combinedOutput = qsubProcess.getInputStream();
-			int returnValue = qsubProcess.waitFor();
-			String outputString = "";
-			try {
-				outputString = new Scanner(combinedOutput).useDelimiter("\\A").next();
-			} catch (java.util.NoSuchElementException e) {
-				// Do nothing
-			}
-			combinedOutput.close();
-			if (returnValue == 0) {
-				System.out.println("qsub command executed successfully:");
-				String jobId = outputString.trim();
-				System.out.println("jobId=[" + outputString + "]");
-				// record the job in the Derby DB
-				// Job job = new Job(jobId, "Q", username, new Date());
-				// set the variable "workerNode" to an empty string so
-				// that it is not null and String.equals can be used later
-				// without having to check for null first
-				Job job = new Job();
-				job.setId(jobId);
-				job.setStatus("Q");
-				job.setUsername(username);
-				job.setSubmitDate(new Date());
-				job.setBatchFilename(batchScriptName);
-				job.setWorkerNode("");
-				entityManager.persist(job);
-				// call updateJobsInDatabaseFromQstat to populate the worker node field
-				// in the database from the info in qstat
-				// updateJobsInDatabaseFromQstat();
-				// the output from a successful submission is a job ID string
-				return job;
-			} else {
-				System.err.println("Error executing qsub command:");
-				System.out.println(outputString);
-			}
-		} catch (IOException e) {
-			System.err.println("Exception executing qsub commmand: " + e.getMessage());
-		} catch (InterruptedException e) {
-			System.err.println("Exception waiting for qsub commmand: " + e.getMessage());
-		}
-
-		// there has been an error submitting the job - return null
-		// return "Error submitting dataset " + datasetId + " for processing";
-		return null;
-	}
 
 	public List<Job> getJobsForUser(String sessionId) throws SessionException {
 		String username = getUserName(sessionId);
@@ -545,12 +227,37 @@ public class JobManagementBean {
 		}
 	}
 
-	public String submit(String sessionId, String jobName, String options, String reqFamily)
+	public String submit(String sessionId, String jobName, String options)
 			throws InternalException, SessionException, ParameterException {
 
 		logger.debug("submit: " + jobName + " with options " + options + " under sessionId "
-				+ sessionId + " as " + reqFamily);
+				+ sessionId);
 
+		if (jobName == null) {
+			throw new ParameterException("No jobName was specified");
+		}
+
+		JobType jobType = jobTypes.get(jobName);
+		if (jobType == null) {
+			throw new ParameterException("jobName " + jobName + " not recognised");
+		}
+		String type = jobType.getType();
+		if (type == null) {
+			throw new InternalException("XML describing job type does not include the type field");
+		}
+		if (type.equals("interactive")) {
+			return submitInteractive(sessionId, jobType, options);
+
+		} else if (type.equals("batch")) {
+			return submitBatch(sessionId, jobType, options, jobType.getFamily());
+		} else {
+			throw new InternalException(
+					"XML describing job type has a type field with an invalid value");
+		}
+	}
+
+	private String submitBatch(String sessionId, JobType jobType, String options, String reqFamily)
+			throws ParameterException, SessionException, InternalException {
 		String family = reqFamily == null ? defaultFamily : reqFamily;
 		LocalFamily lf = families.get(family);
 		if (lf == null) {
@@ -562,11 +269,6 @@ public class JobManagementBean {
 			throw new ParameterException(username + " is not allowed to use family " + family);
 		}
 		String owner = family + random.nextInt(lf.count);
-
-		JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
-		if (jobType == null) {
-			throw new ParameterException("Requested jobname " + jobName + " not known");
-		}
 
 		/*
 		 * The batch script needs to be written to disk by the dmf user (running glassfish) before
@@ -588,11 +290,10 @@ public class JobManagementBean {
 			bw = new BufferedWriter(new FileWriter(batchScriptFile));
 			bw.write("#!/bin/sh");
 			bw.newLine();
-			bw.write("echo $(date) - " + jobName + " starting");
+			bw.write("echo $(date) - " + jobType.getName() + " starting");
 			bw.newLine();
-			bw.write(jobType.getExecutable() + " " + sessionId + " " + options);
+			bw.write(ijpbrun + " " + jobType.getExecutable() + " " + sessionId + " " + options);
 			bw.newLine();
-			bw.write("echo $(date) - " + jobName + " ending");
 			bw.newLine();
 		} catch (IOException e) {
 			throw new InternalException("Exception creating batch script: " + e.getMessage());
@@ -644,6 +345,18 @@ public class JobManagementBean {
 			}
 		}
 		return jobId;
+	}
+
+	private String submitInteractive(String sessionId, JobType jobType, String options) {
+		Account account;
+		try {
+			account = machineEJB.prepareMachine(sessionId, jobType.getExecutable(), options);
+		} catch (ServerException e) {
+			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(e.getMessage() + "\n").build());
+		}
+		return "rdesktop -u " + machineEJB.getPoolPrefix() + account.getId() + " -p "
+				+ account.getPassword() + " " + account.getHost();
 	}
 
 	private String getUserName(String sessionId) throws SessionException {
@@ -717,5 +430,29 @@ public class JobManagementBean {
 			throw new InternalException("Unable to cancel job " + sc.getStderr());
 		}
 		return "";
+	}
+
+	public String getHelp() {
+		StringBuilder sb = new StringBuilder();
+		for (Entry<String, JobType> entry : jobTypes.entrySet()) {
+			if (sb.length() == 0) {
+				sb.append("Available job types are:\n");
+			} else {
+				sb.append("\n");
+			}
+			JobType jt = entry.getValue();
+			sb.append(jt.getName() + " is " + jt.getType());
+		}
+		return sb.toString();
+	}
+
+	public String getHelp(String jobType) throws ParameterException {
+		JobType jt = jobTypes.get(jobType);
+		if (jt == null) {
+			throw new ParameterException("Job type " + jobType + " is not recognised.");
+		}
+		// TODO this is or the toString method need improvement - probably a special method such as
+		// getHelp()
+		return jt.toString();
 	}
 }
