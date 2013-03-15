@@ -33,12 +33,22 @@ public class RDPServlet extends HttpServlet {
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException,
 			IOException {
 
-		// The same file name 'temp.rdp' is reused so try hard to avoid caching
-		resp.setHeader("Cache-control", "no-cache, no-store");
-		resp.setHeader("Pragma", "no-cache");
-		resp.setHeader("Expires", "0");
+		// the same file name is reused so try hard to avoid caching
+		// NOTE: previously the following were being set
+//		resp.setHeader("Cache-control", "no-cache, no-store");
+//		resp.setHeader("Pragma", "no-cache");
+//		resp.setHeader("Expires", "0");
+		// but on IE8 I was getting an error saying
+		// "Unable to download <filename> from <server>"
+		// "Internet Explorer was unable to open this site. The requested site is"
+		// "either unavailable or cannot be found. Please try again later."
+		// I found the suggestion of Cache-Control: private at the following URL
+		// http://biostall.com/how-to-fix-ie8-error-unable-to-download-x-php-from-yoursite-com
+		resp.setHeader("Cache-Control", "private");
 
 		resp.setHeader("Content-disposition", "attachment;filename=LSF_remote_session.rdp");
+		// I couldn't find a definitive answer to whether the mime type should be rdp or x-rdp
+		// both seem to work but x-rdp seems to be mentioned more in the searches I did
 		resp.setContentType("application/x-rdp");
 
 		String hostName = req.getParameter("hostName");

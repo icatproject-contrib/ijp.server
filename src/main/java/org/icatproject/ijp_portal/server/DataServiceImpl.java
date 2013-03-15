@@ -25,6 +25,8 @@ import org.icatproject.ijp_portal.shared.ForbiddenException;
 import org.icatproject.ijp_portal.shared.GenericSearchSelections;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.JobDTO;
+import org.icatproject.ijp_portal.shared.ParameterException;
+import org.icatproject.ijp_portal.shared.PortalUtils.MultiJobTypes;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 import org.icatproject.ijp_portal.shared.ServerException;
@@ -45,17 +47,19 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	@EJB
 	private JobManagementBean jobManagementBean;
 
-	@EJB
-	private MachineEJB machineEJB;
-
-	private String poolPrefix;
+	// TODO - the two declarations below plus some of the init method appear to be redundant now
+	// remove them once this is confirmed to be the case and tidy up the imports
+//	@EJB
+//	private MachineEJB machineEJB;
+//
+//	private String poolPrefix;
 
 	@Override
 	public void init() throws UnavailableException {
-		CheckedProperties portalProps = new CheckedProperties();
+//		CheckedProperties portalProps = new CheckedProperties();
 		try {
-			portalProps.loadFromFile(Constants.PROPERTIES_FILEPATH);
-			poolPrefix = portalProps.getString("poolPrefix");
+//			portalProps.loadFromFile(Constants.PROPERTIES_FILEPATH);
+//			poolPrefix = portalProps.getString("poolPrefix");
 			dataServiceManager = new DataServiceManager();
 			xmlFileManager = new XmlFileManager();
 		} catch (Exception e) {
@@ -115,13 +119,13 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 		return xmlFileManager.getSearchItems();
 	}
 
-	@Override
-	public AccountDTO getAccountFor(String sessionId, String jobName, String parameters) throws ServerException
-			 {
-		logger.debug("In DataServiceImpl.getAccountFor()");
-		return machineEJB.prepareMachine(sessionId, jobName, parameters)
-				.getDTO(poolPrefix);
-	}
+//	@Override
+//	public AccountDTO getAccountFor(String sessionId, String jobName, String parameters) throws ServerException
+//			 {
+//		logger.debug("In DataServiceImpl.getAccountFor()");
+//		return machineEJB.prepareMachine(sessionId, jobName, parameters)
+//				.getDTO(poolPrefix);
+//	}
 
 	@Override
 	public List<String> getDatasetTypesList(String sessionId) throws SessionException,
@@ -151,6 +155,27 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 		return dataServiceManager.getJobDatasetParametersForDatasets(sessionId, datasetType, datasetIds);
 	}
 			
+	@Override
+	public String submitBatchFromPortal(String sessionId, String jobName, String options,
+			String datasetIds, MultiJobTypes multiJobType)
+			throws ServerException, SessionException {
+		logger.debug("In DataServiceImpl.submitBatchFromPortal()");
+		try {
+			return jobManagementBean.submitBatchFromPortal(sessionId, jobName, options, datasetIds, multiJobType);
+		} catch (ParameterException e) {
+			throw new ServerException(e.getClass().getSimpleName() + ": " + e.getMessage());
+		} catch (InternalException e) {
+			throw new ServerException(e.getClass().getSimpleName() + ": " + e.getMessage());
+		}
+	}
+
+	@Override
+	public AccountDTO submitInteractiveFromPortal(String sessionId, String jobName,
+			String options, String datasetIds) throws ServerException {
+		logger.debug("In DataServiceImpl.submitInteractiveFromPortal()");
+		return jobManagementBean.submitInteractiveFromPortal(sessionId, jobName, options, datasetIds);
+	}
+
 	@Override
 	public Double addDoubleToSerializationPolicy(Double aDouble) {
 		return null;

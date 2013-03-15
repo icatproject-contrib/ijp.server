@@ -9,6 +9,7 @@ import org.icatproject.ijp_portal.client.parser.ExpressionEvaluator;
 import org.icatproject.ijp_portal.client.parser.ParserException;
 import org.icatproject.ijp_portal.client.service.DataService;
 import org.icatproject.ijp_portal.client.service.DataServiceAsync;
+import org.icatproject.ijp_portal.shared.AccountDTO;
 import org.icatproject.ijp_portal.shared.DatasetOverview;
 import org.icatproject.ijp_portal.shared.PortalUtils;
 import org.icatproject.ijp_portal.shared.PortalUtils.MultiJobTypes;
@@ -167,12 +168,64 @@ public class JobOptionsPanel extends VerticalPanel {
 						String datasetId = Long.toString(selectedDataset.getDatasetId());
 						datasetIdsList.add(datasetId);
 					}
-					String alertMessage = "";
-					alertMessage += "jobName = '" + jobName + "'\n";
-					alertMessage += "optionsString = '" + PortalUtils.createStringFromList(optionsList, " ") + "'\n";
-					alertMessage += "datasetIdsString = '" + PortalUtils.createStringFromList(datasetIdsList, ",") + "'\n";
-					alertMessage += "multiJobType = '" + multiJobType.name() + "'\n";
-					Window.alert(alertMessage);
+//					String alertMessage = "";
+//					alertMessage += "sessionId = '" + portal.getSessionId() + "'\n";
+//					alertMessage += "jobName = '" + jobName + "'\n";
+//					alertMessage += "optionsString = '" + PortalUtils.createStringFromList(optionsList, " ") + "'\n";
+//					alertMessage += "datasetIdsString = '" + PortalUtils.createStringFromList(datasetIdsList, ",") + "'\n";
+//					alertMessage += "multiJobType = '" + multiJobType.name() + "'\n";
+//					Window.alert(alertMessage);
+
+					if ( jobType.getType().equalsIgnoreCase("interactive") ) {
+						dataService.submitInteractiveFromPortal(portal.getSessionId(), jobName, 
+								PortalUtils.createStringFromList(optionsList, " "), 
+								PortalUtils.createStringFromList(datasetIdsList, ","),
+								new AsyncCallback<AccountDTO>() {
+	
+							@Override
+							public void onFailure(Throwable caught) {
+								Window.alert("Server error: " + caught.getMessage());
+							}
+	
+							@Override
+							public void onSuccess(AccountDTO accountDTO) {
+								// Windows appears as Win32 on my Firefox and Win64 on IE8
+								if (Window.Navigator.getPlatform().startsWith("Win")) {
+									// use the rdpForm set up in the datasetsPanel - I tried putting the form
+									// into the JobOptionsPanel directly but couldn't get it to work
+//									portal.datasetsPanel.messageLabel.setText(accountDTO.getPassword());
+									portal.datasetsPanel.hostNameField.setValue(accountDTO.getHostName());
+									portal.datasetsPanel.accountNameField.setValue(accountDTO.getAccountName());
+									portal.datasetsPanel.rdpForm.submit();
+									Window.alert("Execute the downloaded file and specify '"
+											+ accountDTO.getPassword()
+											+ "' as the password. The password has a short lifetime!");
+								} else {
+									Window.alert("Please paste into a terminal:     rdesktop -u "
+											+ accountDTO.getAccountName() + " -p " + accountDTO.getPassword()
+											+ " " + accountDTO.getHostName());
+								}
+							}
+						});
+					} else if ( jobType.getType().equalsIgnoreCase("batch") ) {
+						dataService.submitBatchFromPortal(portal.getSessionId(), jobName, 
+								PortalUtils.createStringFromList(optionsList, " "), 
+								PortalUtils.createStringFromList(datasetIdsList, ","),
+								multiJobType, new AsyncCallback<String>() {
+	
+							@Override
+							public void onFailure(Throwable caught) {
+								Window.alert("Server error: " + caught.getMessage());
+							}
+	
+							@Override
+							public void onSuccess(String message) {
+								Window.alert(message);
+							}
+						});
+					} else {
+						Window.alert("Error: job '" + jobName + "' is of an unrecognised type - '" + jobType.getType() + "'");
+					}
 				}
 			}
 		});

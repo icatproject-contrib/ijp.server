@@ -17,6 +17,7 @@ import org.icatproject.ijp_portal.shared.ForbiddenException;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.ParameterException;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
+import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -173,7 +174,10 @@ public class JobManager {
 
 		checkCredentials(sessionId);
 		try {
-			return jobManagementBean.submit(sessionId, jobName, options);
+			return jobManagementBean.submitFromJobManager(sessionId, jobName, options);
+		} catch (ServerException e) {
+			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(e.getMessage() + "\n").build());
 		} catch (InternalException e) {
 			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
 					.entity(e.getMessage() + "\n").build());

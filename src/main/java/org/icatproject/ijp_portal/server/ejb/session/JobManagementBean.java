@@ -25,9 +25,6 @@ import javax.ejb.Schedule;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
@@ -40,10 +37,12 @@ import org.icatproject.ijp_portal.server.Qstat;
 import org.icatproject.ijp_portal.server.ejb.entity.Account;
 import org.icatproject.ijp_portal.server.ejb.entity.Job;
 import org.icatproject.ijp_portal.server.manager.XmlFileManager;
+import org.icatproject.ijp_portal.shared.AccountDTO;
 import org.icatproject.ijp_portal.shared.Constants;
 import org.icatproject.ijp_portal.shared.ForbiddenException;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.ParameterException;
+import org.icatproject.ijp_portal.shared.PortalUtils.MultiJobTypes;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
@@ -227,8 +226,61 @@ public class JobManagementBean {
 		}
 	}
 
-	public String submit(String sessionId, String jobName, String options)
-			throws InternalException, SessionException, ParameterException {
+	public AccountDTO submitInteractiveFromPortal(String sessionId,
+			String jobName, String options, String datasetIds)
+			throws ServerException {
+
+		JobType jobType = jobTypes.get(jobName);
+
+		String datasetIdsPlusOptions = datasetIds;
+		if (options != null && options.length() > 0) {
+			datasetIdsPlusOptions += " " + options;
+		}
+		if ( jobType.getType().equalsIgnoreCase("interactive") ) {
+			return submitInteractive(sessionId, jobType, datasetIdsPlusOptions);
+		} else {
+			throw new ServerException("XML describing job '" + jobName
+					+ "' has a type field with an invalid value '"
+					+ jobType.getType() + "'");
+		}
+	}
+	
+	public String submitBatchFromPortal(String sessionId, String jobName,
+			String options, String datasetIds, MultiJobTypes multiJobType)
+			throws SessionException, ServerException, ParameterException, InternalException {
+
+		JobType jobType = jobTypes.get(jobName);
+		
+		String datasetIdsPlusOptions = datasetIds;
+		if ( options != null && options.length()>0 ) {
+			datasetIdsPlusOptions += " " + options;
+		}
+		if ( jobType.getType().equalsIgnoreCase("batch") ) {
+			String[] datasetIdsArray = datasetIds.split(",");
+			if ( datasetIdsArray.length > 1 && multiJobType == MultiJobTypes.ONE_DATASET_PER_JOB ) {
+				// loop through the dataset IDs array and submit a job for each dataset
+				String jobIdsMessage = "";
+				for ( String datasetId : datasetIdsArray ) {
+					String datasetIdPlusOptions = datasetId;
+					if ( options != null && options.length()>0 ) {
+						datasetIdPlusOptions += " " + options;
+					}
+					String jobId = submitBatch(sessionId, jobType, datasetIdPlusOptions, jobType.getFamily());
+					jobIdsMessage += jobId + "\n";
+				}
+				return jobIdsMessage;
+			} else {
+				return submitBatch(sessionId, jobType, datasetIdsPlusOptions, jobType.getFamily());
+			}
+		} else {
+			throw new ServerException("XML describing job '" + jobName
+					+ "' has a type field with an invalid value '"
+					+ jobType.getType() + "'");
+		}
+	}
+	
+	public String submitFromJobManager(String sessionId, String jobName, String options)
+			throws InternalException, SessionException, ParameterException, ServerException {
 
 		logger.debug("submit: " + jobName + " with options " + options + " under sessionId "
 				+ sessionId);
@@ -246,13 +298,16 @@ public class JobManagementBean {
 			throw new InternalException("XML describing job type does not include the type field");
 		}
 		if (type.equals("interactive")) {
-			return submitInteractive(sessionId, jobType, options);
-
+			AccountDTO accountDTO = submitInteractive(sessionId, jobType, options);
+			return "rdesktop -u " + accountDTO.getAccountName() 
+					+ " -p " + accountDTO.getPassword() 
+					+ " " + accountDTO.getHostName();
 		} else if (type.equals("batch")) {
 			return submitBatch(sessionId, jobType, options, jobType.getFamily());
 		} else {
-			throw new InternalException(
-					"XML describing job type has a type field with an invalid value");
+			throw new InternalException("XML describing job '" + jobName
+					+ "' has a type field with an invalid value '"
+					+ jobType.getType() + "'");
 		}
 	}
 
@@ -347,16 +402,9 @@ public class JobManagementBean {
 		return jobId;
 	}
 
-	private String submitInteractive(String sessionId, JobType jobType, String options) {
-		Account account;
-		try {
-			account = machineEJB.prepareMachine(sessionId, jobType.getExecutable(), options);
-		} catch (ServerException e) {
-			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(e.getMessage() + "\n").build());
-		}
-		return "rdesktop -u " + machineEJB.getPoolPrefix() + account.getId() + " -p "
-				+ account.getPassword() + " " + account.getHost();
+	private AccountDTO submitInteractive(String sessionId, JobType jobType, String options) throws ServerException {
+		Account account = machineEJB.prepareMachine(sessionId, jobType.getExecutable(), options);
+		return account.getDTO(machineEJB.getPoolPrefix());
 	}
 
 	private String getUserName(String sessionId) throws SessionException {

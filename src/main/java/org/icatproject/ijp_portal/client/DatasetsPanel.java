@@ -158,7 +158,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			@Override
 			public void onClick(ClickEvent event) {
 //				displayJobTypesInTextArea();
-				displayDatasetParameterTypesMapInTextArea();
+//				displayDatasetParameterTypesMapInTextArea();
+				Window.alert("Window.Navigator.getPlatform() = '" + Window.Navigator.getPlatform() + "'");
 			}
 		});
 
@@ -306,7 +307,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		addSearchBoxesAndPopulateTextArea();
 
 		// TODO - remove these later - just for development purposes
-    	doStuffButton.setVisible(false);
+//    	doStuffButton.setVisible(false);
 		debugTextArea.setVisible(false);
 	}
 	
