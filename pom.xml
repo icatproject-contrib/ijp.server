@@ -94,7 +94,7 @@
         <dependency>
             <groupId>uk.ac.rl.esc</groupId>
             <artifactId>cat-utils</artifactId>
-            <version>1.1.0-SNAPSHOT</version>
+            <version>1.5.0</version>
         </dependency>
 
     </dependencies>

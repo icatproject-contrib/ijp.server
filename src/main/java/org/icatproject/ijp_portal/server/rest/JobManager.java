@@ -1,5 +1,7 @@
 package org.icatproject.ijp_portal.server.rest;
 
+import java.util.List;
+
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ws.rs.DELETE;
@@ -170,24 +172,24 @@ public class JobManager {
 	@POST
 	@Path("submit")
 	public String submit(@QueryParam("jobName") String jobName,
-			@QueryParam("options") String options, @QueryParam("sessionId") String sessionId) {
+			@QueryParam("parameter") List<String> parameters, @QueryParam("sessionId") String sessionId) {
 
-		checkCredentials(sessionId);
-		try {
-			return jobManagementBean.submitFromJobManager(sessionId, jobName, options);
-		} catch (ServerException e) {
-			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(e.getMessage() + "\n").build());
-		} catch (InternalException e) {
-			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(e.getMessage() + "\n").build());
-		} catch (SessionException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (ParameterException e) {
-			throw new WebApplicationException(Response.status(Status.BAD_REQUEST)
-					.entity(e.getMessage() + "\n").build());
-		}
+		 checkCredentials(sessionId);
+		 try {
+		 return jobManagementBean.submitFromJobManager(sessionId, jobName, parameters);
+		 } catch (ServerException e) {
+		 throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+		 .entity(e.getMessage() + "\n").build());
+		 } catch (InternalException e) {
+		 throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
+		 .entity(e.getMessage() + "\n").build());
+		 } catch (SessionException e) {
+		 throw new WebApplicationException(Response.status(Status.FORBIDDEN)
+		 .entity(e.getMessage() + "\n").build());
+		 } catch (ParameterException e) {
+		 throw new WebApplicationException(Response.status(Status.BAD_REQUEST)
+		 .entity(e.getMessage() + "\n").build());
+		 }
 
 	}
 

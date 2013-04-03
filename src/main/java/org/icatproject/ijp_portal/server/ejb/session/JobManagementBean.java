@@ -11,6 +11,7 @@ import java.io.StringReader;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -50,9 +51,7 @@ import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.rl.esc.catutils.CheckedProperties;
 import uk.ac.rl.esc.catutils.ShellCommand;
-import uk.ac.rl.esc.catutils.CheckedProperties.CheckedPropertyException;
 
 /**
  * Session Bean implementation to manage job status
@@ -83,8 +82,6 @@ public class JobManagementBean {
 
 	private Map<String, JobType> jobTypes;
 
-	private String ijpbrun;
-
 	@PostConstruct
 	void init() {
 		try {
@@ -106,14 +103,6 @@ public class JobManagementBean {
 
 			XmlFileManager xmlFileManager = new XmlFileManager();
 			jobTypes = xmlFileManager.getJobTypeMappings().getJobTypesMap();
-
-			CheckedProperties props = new CheckedProperties();
-			try {
-				props.loadFromFile(Constants.PROPERTIES_FILEPATH);
-				ijpbrun = props.getString("ijpbrun");
-			} catch (CheckedPropertyException e) {
-				throw new RuntimeException("CheckedPropertyException " + e.getMessage());
-			}
 
 			logger.debug("Initialised JobManagementBean");
 		} catch (Exception e) {
@@ -226,63 +215,65 @@ public class JobManagementBean {
 		}
 	}
 
-	public AccountDTO submitInteractiveFromPortal(String sessionId,
-			String jobName, String options, String datasetIds)
-			throws ServerException {
+	public AccountDTO submitInteractiveFromPortal(String sessionId, String jobName, String options,
+			String datasetIds) throws ServerException {
 
-		JobType jobType = jobTypes.get(jobName);
-
-		String datasetIdsPlusOptions = datasetIds;
-		if (options != null && options.length() > 0) {
-			datasetIdsPlusOptions += " " + options;
-		}
-		if ( jobType.getType().equalsIgnoreCase("interactive") ) {
-			return submitInteractive(sessionId, jobType, datasetIdsPlusOptions);
-		} else {
-			throw new ServerException("XML describing job '" + jobName
-					+ "' has a type field with an invalid value '"
-					+ jobType.getType() + "'");
-		}
+		// JobType jobType = jobTypes.get(jobName);
+		//
+		// String datasetIdsPlusOptions = datasetIds;
+		// if (options != null && options.length() > 0) {
+		// datasetIdsPlusOptions += " " + options;
+		// }
+		// if ( jobType.getType().equalsIgnoreCase("interactive") ) {
+		// return submitInteractive(sessionId, jobType, datasetIdsPlusOptions);
+		// } else {
+		// throw new ServerException("XML describing job '" + jobName
+		// + "' has a type field with an invalid value '"
+		// + jobType.getType() + "'");
+		// }
+		return null;
 	}
-	
-	public String submitBatchFromPortal(String sessionId, String jobName,
-			String options, String datasetIds, MultiJobTypes multiJobType)
-			throws SessionException, ServerException, ParameterException, InternalException {
 
-		JobType jobType = jobTypes.get(jobName);
-		
-		String datasetIdsPlusOptions = datasetIds;
-		if ( options != null && options.length()>0 ) {
-			datasetIdsPlusOptions += " " + options;
-		}
-		if ( jobType.getType().equalsIgnoreCase("batch") ) {
-			String[] datasetIdsArray = datasetIds.split(",");
-			if ( datasetIdsArray.length > 1 && multiJobType == MultiJobTypes.ONE_DATASET_PER_JOB ) {
-				// loop through the dataset IDs array and submit a job for each dataset
-				String jobIdsMessage = "";
-				for ( String datasetId : datasetIdsArray ) {
-					String datasetIdPlusOptions = datasetId;
-					if ( options != null && options.length()>0 ) {
-						datasetIdPlusOptions += " " + options;
-					}
-					String jobId = submitBatch(sessionId, jobType, datasetIdPlusOptions, jobType.getFamily());
-					jobIdsMessage += jobId + "\n";
-				}
-				return jobIdsMessage;
-			} else {
-				return submitBatch(sessionId, jobType, datasetIdsPlusOptions, jobType.getFamily());
-			}
-		} else {
-			throw new ServerException("XML describing job '" + jobName
-					+ "' has a type field with an invalid value '"
-					+ jobType.getType() + "'");
-		}
+	public String submitBatchFromPortal(String sessionId, String jobName, String options,
+			String datasetIds, MultiJobTypes multiJobType) throws SessionException,
+			ServerException, ParameterException, InternalException {
+
+		// JobType jobType = jobTypes.get(jobName);
+		//
+		// String datasetIdsPlusOptions = datasetIds;
+		// if ( options != null && options.length()>0 ) {
+		// datasetIdsPlusOptions += " " + options;
+		// }
+		// if ( jobType.getType().equalsIgnoreCase("batch") ) {
+		// String[] datasetIdsArray = datasetIds.split(",");
+		// if ( datasetIdsArray.length > 1 && multiJobType == MultiJobTypes.ONE_DATASET_PER_JOB ) {
+		// // loop through the dataset IDs array and submit a job for each dataset
+		// String jobIdsMessage = "";
+		// for ( String datasetId : datasetIdsArray ) {
+		// String datasetIdPlusOptions = datasetId;
+		// if ( options != null && options.length()>0 ) {
+		// datasetIdPlusOptions += " " + options;
+		// }
+		// String jobId = submitBatch(sessionId, jobType, datasetIdPlusOptions,
+		// jobType.getFamily());
+		// jobIdsMessage += jobId + "\n";
+		// }
+		// return jobIdsMessage;
+		// } else {
+		// return submitBatch(sessionId, jobType, datasetIdsPlusOptions, jobType.getFamily());
+		// }
+		// } else {
+		// throw new ServerException("XML describing job '" + jobName
+		// + "' has a type field with an invalid value '"
+		// + jobType.getType() + "'");
+		// }
+		return "";
 	}
-	
-	public String submitFromJobManager(String sessionId, String jobName, String options)
+
+	public String submitFromJobManager(String sessionId, String jobName, List<String> parameters)
 			throws InternalException, SessionException, ParameterException, ServerException {
 
-		logger.debug("submit: " + jobName + " with options " + options + " under sessionId "
+		logger.debug("submit: " + jobName + " with parameters " + parameters + " under sessionId "
 				+ sessionId);
 
 		if (jobName == null) {
@@ -298,21 +289,20 @@ public class JobManagementBean {
 			throw new InternalException("XML describing job type does not include the type field");
 		}
 		if (type.equals("interactive")) {
-			AccountDTO accountDTO = submitInteractive(sessionId, jobType, options);
-			return "rdesktop -u " + accountDTO.getAccountName() 
-					+ " -p " + accountDTO.getPassword() 
+			AccountDTO accountDTO = submitInteractive(sessionId, jobType, parameters);
+			return "rdesktop -u " + accountDTO.getAccountName() + " -p " + accountDTO.getPassword()
 					+ " " + accountDTO.getHostName();
 		} else if (type.equals("batch")) {
-			return submitBatch(sessionId, jobType, options, jobType.getFamily());
+			return submitBatch(sessionId, jobType, parameters);
 		} else {
 			throw new InternalException("XML describing job '" + jobName
-					+ "' has a type field with an invalid value '"
-					+ jobType.getType() + "'");
+					+ "' has a type field with an invalid value '" + jobType.getType() + "'");
 		}
 	}
 
-	private String submitBatch(String sessionId, JobType jobType, String options, String reqFamily)
+	private String submitBatch(String sessionId, JobType jobType, List<String> parameters)
 			throws ParameterException, SessionException, InternalException {
+		String reqFamily = jobType.getFamily();
 		String family = reqFamily == null ? defaultFamily : reqFamily;
 		LocalFamily lf = families.get(family);
 		if (lf == null) {
@@ -340,28 +330,7 @@ public class JobManagementBean {
 			batchScriptFile = new File(Constants.DMF_WORKING_DIR_NAME, batchScriptName);
 		} while (batchScriptFile.exists());
 
-		BufferedWriter bw = null;
-		try {
-			bw = new BufferedWriter(new FileWriter(batchScriptFile));
-			bw.write("#!/bin/sh");
-			bw.newLine();
-			bw.write("echo $(date) - " + jobType.getName() + " starting");
-			bw.newLine();
-			bw.write(ijpbrun + " " + jobType.getExecutable() + " " + sessionId + " " + options);
-			bw.newLine();
-			bw.newLine();
-		} catch (IOException e) {
-			throw new InternalException("Exception creating batch script: " + e.getMessage());
-		} finally {
-			if (bw != null) {
-				try {
-					bw.close();
-				} catch (IOException e) {
-					// Ignore it
-				}
-			}
-		}
-		batchScriptFile.setExecutable(true);
+		createScript(batchScriptFile, parameters, jobType, sessionId);
 
 		ShellCommand sc = new ShellCommand("sudo", "-u", owner, "qsub", "-k", "eo",
 				batchScriptFile.getAbsolutePath());
@@ -402,8 +371,79 @@ public class JobManagementBean {
 		return jobId;
 	}
 
-	private AccountDTO submitInteractive(String sessionId, JobType jobType, String options) throws ServerException {
-		Account account = machineEJB.prepareMachine(sessionId, jobType.getExecutable(), options);
+	private void createScript(File batchScriptFile, List<String> parameters, JobType jobType,
+			String sessionId) throws InternalException {
+
+		List<String> finalParameters = new ArrayList<String>();
+		if (jobType.isSessionId()) {
+			finalParameters.add(sessionId);
+		}
+		finalParameters.addAll(parameters);
+
+		BufferedWriter bw = null;
+		try {
+			bw = new BufferedWriter(new FileWriter(batchScriptFile));
+			bw.write("#!/bin/sh");
+			bw.newLine();
+			bw.write("echo $(date) - " + jobType.getName() + " starting");
+			bw.newLine();
+			bw.write(jobType.getExecutable() + " " + JobManagementBean.escaped(finalParameters));
+			bw.newLine();
+			bw.newLine();
+		} catch (IOException e) {
+			throw new InternalException("Exception creating batch script: " + e.getMessage());
+		} finally {
+			if (bw != null) {
+				try {
+					bw.close();
+				} catch (IOException e) {
+					// Ignore it
+				}
+			}
+		}
+		batchScriptFile.setExecutable(true);
+
+	}
+
+	private static String sq = "\"'\"";
+
+	static String escaped(List<String> parameters) {
+		StringBuilder sb = new StringBuilder();
+		for (String parameter : parameters) {
+			if (sb.length() != 0) {
+				sb.append(" ");
+			}
+			int offset = 0;
+			while (true) {
+				int quote = parameter.indexOf('\'', offset);
+				if (quote == offset) {
+					sb.append(sq);
+				} else if (quote > offset) {
+					sb.append("'" + parameter.substring(offset, quote) + "'" + sq);
+				} else if (offset != parameter.length()) {
+					sb.append("'" + parameter.substring(offset) + "'");
+					break;
+				} else {
+					break;
+				}
+				offset = quote + 1;
+			}
+		}
+		return sb.toString();
+	}
+
+	private AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
+			throws ServerException, InternalException {
+		Path p = null;
+		try {
+			p = Files.createTempFile(null, null);
+		} catch (IOException e) {
+			throw new InternalException("Unable to create a temporary file: " + e.getMessage());
+		}
+		File interactiveScriptFile = p.toFile();
+		createScript(interactiveScriptFile, parameters, jobType, sessionId);
+		Account account = machineEJB.prepareMachine(sessionId, jobType.getExecutable(), parameters,
+				interactiveScriptFile);
 		return account.getDTO(machineEJB.getPoolPrefix());
 	}
 

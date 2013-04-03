@@ -1,7 +1,9 @@
 package org.icatproject.ijp_portal.server.ejb.session;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -83,8 +85,8 @@ public class MachineEJB {
 	private final static Random random = new Random();
 	private final static String chars = "abcdefghijkmnpqrstuvwxyz23456789";
 
-	private Account getAccount(String lightest, String sessionId, String jobName, String options)
-			throws ServerException {
+	private Account getAccount(String lightest, String sessionId, String jobName,
+			List<String> parameters, File script) throws ServerException {
 		String userName;
 		try {
 			userName = icat.getUserName(sessionId);
@@ -102,8 +104,17 @@ public class MachineEJB {
 			pw[i] = chars.charAt(random.nextInt(chars.length()));
 		}
 		String password = new String(pw);
-		ShellCommand sc = new ShellCommand("ssh", lightest, prepareaccount, poolPrefix
-				+ account.getId(), password, sessionId, jobName, options);
+		
+		Long id = account.getId();
+		
+		ShellCommand sc = new ShellCommand("scp", script.getAbsolutePath(), "dmf@"+lightest+":"+id+".sh");
+		if (sc.isError()) {
+			throw new ServerException(sc.getMessage());
+		}
+		
+		List<String> args = Arrays.asList("ssh", lightest, prepareaccount,
+				poolPrefix + id, password, id+".sh");
+		 sc = new ShellCommand(args);
 		if (sc.isError()) {
 			throw new ServerException(sc.getMessage());
 		}
@@ -207,7 +218,7 @@ public class MachineEJB {
 		}
 	}
 
-	public Account prepareMachine(String sessionId, String jobName, String options)
+	public Account prepareMachine(String sessionId, String jobName, List<String> parameters, File script)
 			throws ServerException {
 		Set<String> machines = new HashSet<String>();
 		Map<String, Float> loads = loadFinder.getLoads();
@@ -240,7 +251,7 @@ public class MachineEJB {
 		}
 
 		pbs.setOffline(lightest);
-		return getAccount(lightest, sessionId, jobName, options);
+		return getAccount(lightest, sessionId, jobName, parameters, script);
 
 	}
 

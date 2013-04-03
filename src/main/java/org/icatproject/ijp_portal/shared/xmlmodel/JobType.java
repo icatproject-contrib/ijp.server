@@ -18,7 +18,9 @@ public class JobType implements IsSerializable {
 	private String type;
 
 	@XmlAttribute
-	protected String family;
+	private String family;
+	@XmlAttribute
+	private boolean sessionId;
 	@XmlElement
 	private List<String> datasetTypes = new ArrayList<String>();
 	@XmlElement
@@ -88,6 +90,10 @@ public class JobType implements IsSerializable {
 
 	public String getFamily() {
 		return family;
+	}
+
+	public boolean isSessionId() {
+		return sessionId;
 	}
 
 }
