@@ -215,6 +215,7 @@ public class JobManagementBean {
 		}
 	}
 
+	@Deprecated
 	public AccountDTO submitInteractiveFromPortal(String sessionId, String jobName, String options,
 			String datasetIds) throws ServerException {
 
@@ -234,6 +235,7 @@ public class JobManagementBean {
 		return null;
 	}
 
+	@Deprecated
 	public String submitBatchFromPortal(String sessionId, String jobName, String options,
 			String datasetIds, MultiJobTypes multiJobType) throws SessionException,
 			ServerException, ParameterException, InternalException {
@@ -270,37 +272,7 @@ public class JobManagementBean {
 		return "";
 	}
 
-	public String submitFromJobManager(String sessionId, String jobName, List<String> parameters)
-			throws InternalException, SessionException, ParameterException, ServerException {
-
-		logger.debug("submit: " + jobName + " with parameters " + parameters + " under sessionId "
-				+ sessionId);
-
-		if (jobName == null) {
-			throw new ParameterException("No jobName was specified");
-		}
-
-		JobType jobType = jobTypes.get(jobName);
-		if (jobType == null) {
-			throw new ParameterException("jobName " + jobName + " not recognised");
-		}
-		String type = jobType.getType();
-		if (type == null) {
-			throw new InternalException("XML describing job type does not include the type field");
-		}
-		if (type.equals("interactive")) {
-			AccountDTO accountDTO = submitInteractive(sessionId, jobType, parameters);
-			return "rdesktop -u " + accountDTO.getAccountName() + " -p " + accountDTO.getPassword()
-					+ " " + accountDTO.getHostName();
-		} else if (type.equals("batch")) {
-			return submitBatch(sessionId, jobType, parameters);
-		} else {
-			throw new InternalException("XML describing job '" + jobName
-					+ "' has a type field with an invalid value '" + jobType.getType() + "'");
-		}
-	}
-
-	private String submitBatch(String sessionId, JobType jobType, List<String> parameters)
+	public String submitBatch(String sessionId, JobType jobType, List<String> parameters)
 			throws ParameterException, SessionException, InternalException {
 		String reqFamily = jobType.getFamily();
 		String family = reqFamily == null ? defaultFamily : reqFamily;
@@ -387,7 +359,10 @@ public class JobManagementBean {
 			bw.newLine();
 			bw.write("echo $(date) - " + jobType.getName() + " starting");
 			bw.newLine();
-			bw.write(jobType.getExecutable() + " " + JobManagementBean.escaped(finalParameters));
+			String line = jobType.getExecutable() + " "
+					+ JobManagementBean.escaped(finalParameters);
+			logger.debug("Exec line for " + jobType.getName() + ": " + line);
+			bw.write(line);
 			bw.newLine();
 			bw.newLine();
 		} catch (IOException e) {
@@ -432,7 +407,7 @@ public class JobManagementBean {
 		return sb.toString();
 	}
 
-	private AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
+	public AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
 			throws ServerException, InternalException {
 		Path p = null;
 		try {
