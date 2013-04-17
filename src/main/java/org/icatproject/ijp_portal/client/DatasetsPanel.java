@@ -119,6 +119,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	private List<DatasetOverview> datasetList = new ArrayList<DatasetOverview>();
     final MultiSelectionModel<DatasetOverview> selectionModel = new MultiSelectionModel<DatasetOverview>();
 
+    private static final String DATASET_TYPES_LIST_FIRST_OPTION = "Dataset types ...";
     private static final String OPTIONS_LIST_FIRST_OPTION = "Options ...";
     private static final String OPTIONS_LIST_DOWNLOAD_OPTION = "Download";
     private static final String OPTIONS_LIST_DOWNLOAD_URL_OPTION = "Show Download URL";
@@ -132,13 +133,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		this.portal = portal;
 		initWidget(uiBinder.createAndBindUi(this));
 
+		datasetTypeListBox.addItem(DATASET_TYPES_LIST_FIRST_OPTION);
 		datasetActionListBox.addItem(OPTIONS_LIST_FIRST_OPTION, "");
-//		datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_OPTION);
-//		datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_URL_OPTION);
 		datasetActionListBox.setEnabled(false);
-		
-//		datasetsTable.setPageSize(5);
-//		datasetsScrollPanel.setAlwaysShowScrollBars(true);
 		
 		searchButton.addClickHandler(new ClickHandler() {
 			@Override
@@ -307,7 +304,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		addSearchBoxesAndPopulateTextArea();
 
 		// TODO - remove these later - just for development purposes
-//    	doStuffButton.setVisible(false);
+    	doStuffButton.setVisible(false);
 		debugTextArea.setVisible(false);
 	}
 	
@@ -399,6 +396,11 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		}
 	}
 	
+	/**
+	 * Retrieve a list of dataset types from the server then
+	 * clear the dataset types list box and populate it
+	 * with the new list just retrieved
+	 */
 	void populateDatasetTypeListBox() {
 		dataService.getDatasetTypesList(portal.getSessionId(), new AsyncCallback<List<String>>() {
 			@Override
@@ -408,6 +410,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	
 			@Override
 			public void onSuccess(List<String> datasetTypesList) {
+				datasetTypeListBox.clear();
+				datasetTypeListBox.addItem(DATASET_TYPES_LIST_FIRST_OPTION);
 				for (String datasetType : datasetTypesList) {
 					datasetTypeListBox.addItem(datasetType);
 				}
@@ -464,7 +468,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		this.jobTypeMappings = jobTypeMappings;
 	}
 	
-	protected void addSearchBoxesAndPopulateTextArea() {
+	private void addSearchBoxesAndPopulateTextArea() {
 		// put the SearchItems looked up from XML into a TextArea
 		dataService.getSearchItems(new AsyncCallback<SearchItems>() {
 			@Override
