@@ -19,6 +19,8 @@ import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.user.cellview.client.CellTable;
+import com.google.gwt.user.cellview.client.TextColumn;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
@@ -51,10 +53,16 @@ public class JobOptionsPanel extends VerticalPanel {
 
 	Map<JobOption, Widget> jobOptionToFormWidgetMap;
 
+	CellTable<String> submittedJobsTable = new CellTable<String>();
+	List<String> submittedJobsList;
+	
+	int jobIdCounter = 0;
 	
 	public JobOptionsPanel(final Portal portal, final DialogBox dialogBox) {
 		this.portal = portal;
 		this.dialogBox = dialogBox;
+
+		PortalResources.INSTANCE.css().ensureInjected();
 		
 		multipleDatasetsOptionListBox.addItem("Please select...", "");
 		multipleDatasetsOptionListBox.addItem("Submit multiple datasets to one job", MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB.name());
@@ -68,6 +76,15 @@ public class JobOptionsPanel extends VerticalPanel {
 			}
 		});
 	
+		// Add a text column to show the Job ID
+		TextColumn<String> jobIdColumn = new TextColumn<String>() {
+			@Override
+			public String getValue(String jobId) {
+				return jobId;
+			}
+		};
+		submittedJobsTable.addColumn(jobIdColumn, "Submitted Job IDs");
+
 		submitButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
@@ -161,13 +178,22 @@ public class JobOptionsPanel extends VerticalPanel {
 					}
 					Window.alert(formErrorsMessage.toString());
 				} else {
-					// just display the job name, options string and dataset ids in an alert for now
-					// TODO - send this off to the server to get a job executed
 					List<String> datasetIdsList = new ArrayList<String>();
 					for ( DatasetOverview selectedDataset : portal.datasetsPanel.selectionModel.getSelectedSet() ) {
 						String datasetId = Long.toString(selectedDataset.getDatasetId());
 						datasetIdsList.add(datasetId);
 					}
+					if ( multiJobType == MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB ) {
+						// create a comma separated string from the dataset IDs
+						// empty the existing datasetIdsList and
+						// put the comma separated string as a single entry
+						String datasetIdsString = PortalUtils.createStringFromList(datasetIdsList, ",");
+						datasetIdsList = new ArrayList<String>();
+						datasetIdsList.add(datasetIdsString);
+					}
+					
+					// just display the job name, options string and dataset ids in an alert for now
+					// TODO - send this off to the server to get a job executed
 //					String alertMessage = "";
 //					alertMessage += "sessionId = '" + portal.getSessionId() + "'\n";
 //					alertMessage += "jobName = '" + jobName + "'\n";
@@ -177,9 +203,13 @@ public class JobOptionsPanel extends VerticalPanel {
 //					Window.alert(alertMessage);
 
 					if ( jobType.getType().equalsIgnoreCase("interactive") ) {
-						dataService.submitInteractiveFromPortal(portal.getSessionId(), jobName, 
-								PortalUtils.createStringFromList(optionsList, " "), 
-								PortalUtils.createStringFromList(datasetIdsList, ","),
+						// add any dataset IDs as the first item in the parameters list
+						List<String> parameters = new ArrayList<String>();
+						parameters.add(PortalUtils.createStringFromList(datasetIdsList, ","));
+						parameters.addAll(optionsList);
+
+						dataService.submitInteractive(portal.getSessionId(),
+								jobType, parameters,
 								new AsyncCallback<AccountDTO>() {
 	
 							@Override
@@ -208,21 +238,37 @@ public class JobOptionsPanel extends VerticalPanel {
 							}
 						});
 					} else if ( jobType.getType().equalsIgnoreCase("batch") ) {
-						dataService.submitBatchFromPortal(portal.getSessionId(), jobName, 
-								PortalUtils.createStringFromList(optionsList, " "), 
-								PortalUtils.createStringFromList(datasetIdsList, ","),
-								multiJobType, new AsyncCallback<String>() {
-	
-							@Override
-							public void onFailure(Throwable caught) {
-								Window.alert("Server error: " + caught.getMessage());
-							}
-	
-							@Override
-							public void onSuccess(String message) {
-								Window.alert(message);
-							}
-						});
+						jobIdCounter = 0;
+						submittedJobsTable.setVisible(true);
+						submittedJobsList = new ArrayList<String>();
+						for ( String datasetId : datasetIdsList ) {
+							submittedJobsList.add("Waiting for job ID...");
+						}
+						submittedJobsTable.setRowData(0, submittedJobsList);
+						submittedJobsTable.setRowCount(submittedJobsList.size());
+
+						for ( String datasetId : datasetIdsList ) {
+							// add the dataset ID as the first item in the parameters list
+							List<String> parameters = new ArrayList<String>();
+							parameters.add(datasetId);
+							parameters.addAll(optionsList);
+							
+							dataService.submitBatchFromPortal(portal.getSessionId(), jobType, parameters, new AsyncCallback<String>() {
+							
+								@Override
+								public void onFailure(Throwable caught) {
+									Window.alert("Server error: " + caught.getMessage());
+								}
+		
+								@Override
+								public void onSuccess(String message) {
+//									Window.alert(message);
+									submittedJobsList.set(jobIdCounter, message);
+									submittedJobsTable.setRowData(0, submittedJobsList);
+									jobIdCounter++;
+								}
+							});
+						}
 					} else {
 						Window.alert("Error: job '" + jobName + "' is of an unrecognised type - '" + jobType.getType() + "'");
 					}
@@ -392,6 +438,15 @@ public class JobOptionsPanel extends VerticalPanel {
 				footerPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
 				footerPanel.add(closeButton);
 				add(footerPanel);
+				
+				submittedJobsTable.setVisible(false);
+				submittedJobsTable.addStyleName(PortalResources.INSTANCE.css().scrollPanel());
+				HorizontalPanel jobsPanel = new HorizontalPanel();
+//				jobsPanel.setBorderWidth(1);
+				jobsPanel.setWidth("100%");
+				jobsPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_CENTER);
+				jobsPanel.add(submittedJobsTable);
+				add(jobsPanel);
 				
 				portal.jobOptionsDialog.setText(jobName + " Options");
 				portal.jobOptionsDialog.show();
