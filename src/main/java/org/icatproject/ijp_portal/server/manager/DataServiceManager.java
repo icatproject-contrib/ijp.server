@@ -29,6 +29,7 @@ import org.icatproject.ijp_portal.server.Icat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.icatproject.ijp_portal.shared.Constants;
 import org.icatproject.ijp_portal.shared.DatasetOverview;
 import org.icatproject.ijp_portal.shared.GenericSearchSelections;
 import org.icatproject.ijp_portal.shared.PortalUtils;
@@ -38,6 +39,8 @@ import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobDatasetParameter;
 import org.icatproject.ijp_portal.shared.xmlmodel.SearchItem;
+
+import uk.ac.rl.esc.catutils.CheckedProperties;
 
 public class DataServiceManager {
 
@@ -73,10 +76,38 @@ public class DataServiceManager {
 		xmlFileManager = new XmlFileManager();
 		try {
 			icat = Icat.getIcat();
+
+			CheckedProperties props = new CheckedProperties();
+			props.loadFromFile(Constants.PROPERTIES_FILEPATH);
+			String icatAuthType = props.getString("icat.auth.type");
+			String icatUsername = props.getString("icat.username");
+			String icatPassword = props.getString("icat.password");
+
+			Map<String, String> credentials = new HashMap<String, String>();
+			credentials.put("username", icatUsername);
+			credentials.put("password", icatPassword);
+			String sessionId = login(icatAuthType, credentials);
+
 			populateDatasetFieldTypeAndMethodMappings();
+			populateDatasetParameterTypesMap(sessionId);
+			populateMergedDatasetParameterTypesMap();
+			
 		} catch (Exception e) {
 			throw new ServerException(e.getMessage());
 		}
+	}
+
+	/**
+	 * take a field name such as datasetId and generate the corresponding
+	 * get method name ie. getDatasetId
+	 * @param fieldName
+	 * @return the method name that would be called to retrieve the field
+	 */
+	private String getMethodName(String fieldName) {
+		StringBuilder sb = new StringBuilder("get");
+		sb.append(fieldName.substring(0,1).toUpperCase());
+		sb.append(fieldName.substring(1));
+		return sb.toString();
 	}
 
 	private void populateDatasetFieldTypeAndMethodMappings() throws IcatException_Exception, NoSuchMethodException, SecurityException {
@@ -102,47 +133,6 @@ public class DataServiceManager {
 		}
 	}
 
-	/**
-	 * take a field name such as datasetId and generate the corresponding
-	 * get method name ie. getDatasetId
-	 * @param fieldName
-	 * @return the method name that would be called to retrieve the field
-	 */
-	private String getMethodName(String fieldName) {
-		StringBuilder sb = new StringBuilder("get");
-		sb.append(fieldName.substring(0,1).toUpperCase());
-		sb.append(fieldName.substring(1));
-		return sb.toString();
-	}
-
-	public String login(String plugin, Map<String, String> credentialMap) throws SessionException {
-		Credentials credentials = new Credentials();
-		List<Entry> entries = credentials.getEntry();
-		for (java.util.Map.Entry<String, String> mapEntries : credentialMap.entrySet()) {
-			Entry e = new Entry();
-			e.setKey(mapEntries.getKey());
-			e.setValue(mapEntries.getValue());
-			entries.add(e);
-		}
-		try {
-			String sessionId = icat.login(plugin, credentials);
-			// use the first person's login to retrieve a list of
-			// dataset parameters from ICAT and populate a map
-			if ( datasetParameterTypeMappings == null ) {
-				populateDatasetParameterTypesMap(sessionId);
-			}
-			// combine the dataset field and dataset parameters maps
-			// into one ordered map 
-			if ( mergedDatasetParameterTypeMappings == null ) {
-				populateMergedDatasetParameterTypesMap();
-			}
-			return sessionId;
-		} catch (IcatException_Exception e) {
-			throw new SessionException("IcatException " + e.getFaultInfo().getType() + " "
-					+ e.getMessage());
-		}
-	}
-
 	private void populateMergedDatasetParameterTypesMap() {
 		Map<String, ParameterValueType> combinedMap = new HashMap<String, ParameterValueType>();
 		combinedMap.putAll(datasetFieldTypeMappings);
@@ -156,6 +146,34 @@ public class DataServiceManager {
 			mergedDatasetParameterTypeMappings.put(paramName, combinedMap.get(paramName));
 		}
 
+	}
+
+	public String login(String plugin, Map<String, String> credentialMap) throws SessionException {
+		Credentials credentials = new Credentials();
+		List<Entry> entries = credentials.getEntry();
+		for (java.util.Map.Entry<String, String> mapEntries : credentialMap.entrySet()) {
+			Entry e = new Entry();
+			e.setKey(mapEntries.getKey());
+			e.setValue(mapEntries.getValue());
+			entries.add(e);
+		}
+		try {
+			String sessionId = icat.login(plugin, credentials);
+//			// use the session ID provided to retrieve a list of
+//			// dataset parameters from ICAT and populate a map
+//			if ( datasetParameterTypeMappings == null ) {
+//				populateDatasetParameterTypesMap(sessionId);
+//			}
+//			// combine the dataset field and dataset parameters maps
+//			// into one ordered map 
+//			if ( mergedDatasetParameterTypeMappings == null ) {
+//				populateMergedDatasetParameterTypesMap();
+//			}
+			return sessionId;
+		} catch (IcatException_Exception e) {
+			throw new SessionException("IcatException " + e.getFaultInfo().getType() + " "
+					+ e.getMessage());
+		}
 	}
 
 	private String getParameterValueAsString(DatasetParameter datasetParameter) {
@@ -224,6 +242,7 @@ public class DataServiceManager {
 			Map<String, List<String>> selectedSearchParamsMap,
 			List<GenericSearchSelections> genericSearchSelectionsList)
 			throws SessionException, ServerException {
+		
 		logger.debug("datasetType=[" + datasetType.toString() + "]");
 		List<DatasetOverview> datasetOverviews = new ArrayList<DatasetOverview>();
 		List<String> queriesToRun = new ArrayList<String>();
