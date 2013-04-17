@@ -31,6 +31,7 @@ import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
+import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobTypeMappings;
 import org.icatproject.ijp_portal.shared.xmlmodel.SearchItems;
 
@@ -156,24 +157,24 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 			
 	@Override
-	public String submitBatchFromPortal(String sessionId, String jobName, String options,
-			String datasetIds, MultiJobTypes multiJobType)
-			throws ServerException, SessionException {
+	public String submitBatchFromPortal(String sessionId, JobType jobType, List<String> parameters)
+			throws ParameterException, SessionException, InternalException {
 		logger.debug("In DataServiceImpl.submitBatchFromPortal()");
-		try {
-			return jobManagementBean.submitBatchFromPortal(sessionId, jobName, options, datasetIds, multiJobType);
-		} catch (ParameterException e) {
-			throw new ServerException(e.getClass().getSimpleName() + ": " + e.getMessage());
-		} catch (InternalException e) {
-			throw new ServerException(e.getClass().getSimpleName() + ": " + e.getMessage());
-		}
+		return jobManagementBean.submitBatchFromPortal(sessionId, jobType, parameters);
 	}
 
+//	@Override
+//	public AccountDTO submitInteractiveFromPortal(String sessionId, String jobName,
+//			String options, String datasetIds) throws ServerException {
+//		logger.debug("In DataServiceImpl.submitInteractiveFromPortal()");
+//		return jobManagementBean.submitInteractiveFromPortal(sessionId, jobName, options, datasetIds);
+//	}
+
 	@Override
-	public AccountDTO submitInteractiveFromPortal(String sessionId, String jobName,
-			String options, String datasetIds) throws ServerException {
-		logger.debug("In DataServiceImpl.submitInteractiveFromPortal()");
-		return jobManagementBean.submitInteractiveFromPortal(sessionId, jobName, options, datasetIds);
+	public AccountDTO submitInteractive(String sessionId, JobType jobType,
+			List<String> parameters) throws ServerException, InternalException {
+		logger.debug("In DataServiceImpl.submitInteractive()");
+		return jobManagementBean.submitInteractive(sessionId, jobType, parameters);
 	}
 
 	@Override
