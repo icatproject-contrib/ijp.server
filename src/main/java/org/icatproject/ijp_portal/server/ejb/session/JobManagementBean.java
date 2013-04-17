@@ -43,7 +43,7 @@ import org.icatproject.ijp_portal.shared.Constants;
 import org.icatproject.ijp_portal.shared.ForbiddenException;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.ParameterException;
-import org.icatproject.ijp_portal.shared.PortalUtils.MultiJobTypes;
+import org.icatproject.ijp_portal.shared.PortalUtils;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
@@ -235,11 +235,11 @@ public class JobManagementBean {
 		return null;
 	}
 
-	@Deprecated
-	public String submitBatchFromPortal(String sessionId, String jobName, String options,
-			String datasetIds, MultiJobTypes multiJobType) throws SessionException,
-			ServerException, ParameterException, InternalException {
-
+//	@Deprecated
+//	public String submitBatchFromPortal(String sessionId, String jobName, String options,
+//			String datasetIds, MultiJobTypes multiJobType) throws SessionException,
+//			ServerException, ParameterException, InternalException {
+//
 		// JobType jobType = jobTypes.get(jobName);
 		//
 		// String datasetIdsPlusOptions = datasetIds;
@@ -269,9 +269,26 @@ public class JobManagementBean {
 		// + "' has a type field with an invalid value '"
 		// + jobType.getType() + "'");
 		// }
-		return "";
-	}
+//		return "";
+//	}
 
+	// TODO - method is just for testing - replace calls to it with calls to submitBatch once it is working
+	@Deprecated
+	public String submitBatchFromPortal(String sessionId, JobType jobType, List<String> parameters)
+			throws ParameterException, SessionException, InternalException {
+		logger.debug("In JMB.submitBatchFromPortal(): parameters are: " + PortalUtils.createStringFromList(parameters, ","));
+		// just return the current date and time as a dummy job ID
+		Random random = new Random();
+		int randomInt = random.nextInt(3000);
+		try {
+			Thread.sleep(randomInt);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			logger.debug(e.getClass().getName() + ": " + e.getMessage());
+		}
+		return "Job ID for dsID: " + parameters.get(0) + " [" + randomInt + "]";
+	}
+		
 	public String submitBatch(String sessionId, JobType jobType, List<String> parameters)
 			throws ParameterException, SessionException, InternalException {
 		String reqFamily = jobType.getFamily();
