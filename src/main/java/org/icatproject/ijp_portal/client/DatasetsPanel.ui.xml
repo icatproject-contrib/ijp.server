@@ -12,9 +12,7 @@
 	
 	<g:VerticalPanel spacing='10'>
 		<g:HorizontalPanel>
-			<g:ListBox ui:field="datasetTypeListBox">
-			  <g:item value=''>Dataset types...</g:item>
-			</g:ListBox>
+			<g:ListBox ui:field="datasetTypeListBox" />
 		</g:HorizontalPanel>
 		<g:HorizontalPanel>
 			<g:HorizontalPanel ui:field="searchListsPanel" />
