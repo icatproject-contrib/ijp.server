@@ -9,8 +9,13 @@
             <g:Button ui:field="jobOutputButton" text='Display Job Output' />
             <g:Button ui:field="jobErrorButton" text='Display Job Error' />
         </g:HorizontalPanel>
-        <g:ScrollPanel ui:field='jobsScrollPanel' width='900px' styleName='{style.scroll-panel}'>
+        <g:ScrollPanel ui:field='jobsScrollPanel' width='900px' height='500px' styleName='{style.scroll-panel}'>
             <c:CellTable ui:field='jobsTable' width='100%' />
         </g:ScrollPanel>
+		<g:HTMLPanel>
+			<center>
+				<g:Button ui:field="closeButton" text='Close' />
+			</center>
+		</g:HTMLPanel>
     </g:VerticalPanel>
 </ui:UiBinder>

@@ -6,27 +6,25 @@ import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 
 import com.google.gwt.core.client.EntryPoint;
-import com.google.gwt.core.client.GWT;
-import com.google.gwt.event.logical.shared.SelectionEvent;
-import com.google.gwt.event.logical.shared.SelectionHandler;
-import com.google.gwt.uibinder.client.UiBinder;
-import com.google.gwt.uibinder.client.UiField;
+import com.google.gwt.event.logical.shared.ResizeEvent;
+import com.google.gwt.event.logical.shared.ResizeHandler;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.DialogBox;
-import com.google.gwt.user.client.ui.RootLayoutPanel;
-import com.google.gwt.user.client.ui.TabLayoutPanel;
-import com.google.gwt.user.client.ui.Widget;
+import com.google.gwt.user.client.ui.RootPanel;
 
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
 public class Portal implements EntryPoint {
 	// Annotation can be used to change the name of the associated xml file
-	// @UiTemplate("LsfPortal.ui.xml")
-	interface MyUiBinder extends UiBinder<Widget, Portal> {
-	}
+	// @UiTemplate("Portal.ui.xml")
+//	interface MyUiBinder extends UiBinder<Widget, Portal> {
+//	}
 
-	@UiField
-	TabLayoutPanel tabLayoutPanel;
+	DatasetsPanel datasetsPanel;
+
+	DialogBox jobStatusDialog = new DialogBox(false, false);
+	JobStatusPanel jobStatusPanel;
 
 	DialogBox loginDialog;
 	LoginPanel loginPanel;
@@ -40,20 +38,29 @@ public class Portal implements EntryPoint {
 	DialogBox jobOptionsDialog = new DialogBox(false, true);
 	JobOptionsPanel jobOptionsPanel;
 
-	DatasetsPanel datasetsPanel;
-
-	JobStatusPanel jobStatusPanel;
-
 	private String username;
 	private String sessionId;
 
 	private LinkedHashMap<String, ParameterValueType> mergedDatasetParameterTypeMappings = null;
 
-	private static MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
+//	private static MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
 
 	public void onModuleLoad() {
 
-		RootLayoutPanel.get().add(uiBinder.createAndBindUi(this));
+//		RootLayoutPanel.get().add(uiBinder.createAndBindUi(this));
+		
+		datasetsPanel = new DatasetsPanel(this);
+		RootPanel.get().add(datasetsPanel);
+		Window.addResizeHandler(new ResizeHandler() {
+			public void onResize(ResizeEvent event) {
+				datasetsPanel.onResize();
+			}
+		});
+
+		jobStatusPanel = new JobStatusPanel(this);
+		jobStatusDialog.setText("Job Status");
+		jobStatusDialog.setWidget(jobStatusPanel);
+		jobStatusDialog.hide();
 
 		loginPanel = new LoginPanel(this);
 
@@ -63,31 +70,6 @@ public class Portal implements EntryPoint {
 				OutputType.ERROR_OUTPUT);
 
 		jobOptionsPanel = new JobOptionsPanel(this, jobOptionsDialog);
-
-		datasetsPanel = new DatasetsPanel(this);
-		datasetsPanel.setVisible(true);
-
-		jobStatusPanel = new JobStatusPanel(this);
-		jobStatusPanel.setVisible(true);
-
-		tabLayoutPanel.add(datasetsPanel, "Datasets");
-		tabLayoutPanel.add(jobStatusPanel, "Job Status");
-		tabLayoutPanel.addSelectionHandler(new SelectionHandler<Integer>() {
-			public void onSelection(SelectionEvent<Integer> event) {
-				int tabId = event.getSelectedItem();
-				Widget tabWidget = tabLayoutPanel.getWidget(tabId);
-				if (tabWidget != null) {
-					if (tabWidget == jobStatusPanel) {
-						// refresh the table of jobs in the job status panel
-						jobStatusPanel.refreshJobList();
-						// set a repeating timer going with a period of 1 minute
-						jobStatusPanel.tableRefreshTimer.scheduleRepeating(60000);
-					} else {
-						jobStatusPanel.tableRefreshTimer.cancel();
-					}
-				}
-			}
-		});
 
 		loginDialog = new DialogBox();
 		loginDialog.setText("Login");
@@ -107,7 +89,8 @@ public class Portal implements EntryPoint {
 
 		jobOptionsDialog.setWidget(jobOptionsPanel);
 		jobOptionsDialog.hide();
-
+		
+		datasetsPanel.onResize();
 	}
 
 	public String getSessionId() {

@@ -42,9 +42,9 @@ import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.RequiresResize;
-import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.VerticalPanel;
+import com.google.gwt.user.client.ui.VerticalSplitPanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.gwt.view.client.MultiSelectionModel;
 import com.google.gwt.view.client.SelectionChangeEvent;
@@ -58,6 +58,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	@UiField
 	ListBox datasetTypeListBox;
 	
+	@UiField
+	Button jobStatusButton;
+
 	@UiField
 	HorizontalPanel searchListsPanel;
 
@@ -80,23 +83,20 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	Label messageLabel;
 	
 	@UiField
-	CellTable<DatasetOverview> datasetsTable;
-	
-	@UiField
 	ListBox datasetActionListBox;
 
 	@UiField
 	Button datasetInfoButton;
 
-	@UiField
+	CellTable<DatasetOverview> datasetsTable;
+	
 	CellTable<DatasetInfoItem> datasetInfoTable;
 
 	@UiField
-	ScrollPanel datasetsScrollPanel;
-
-	@UiField
-	ScrollPanel infoScrollPanel;
-
+	VerticalPanel verticalSplitPanelHolder;
+	
+	VerticalSplitPanel verticalSplitPanel;
+	
 	@UiField
 	FormPanel rdpForm;
 	@UiField
@@ -133,10 +133,35 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		this.portal = portal;
 		initWidget(uiBinder.createAndBindUi(this));
 
+		PortalResources.INSTANCE.css().ensureInjected();
+
+		datasetsTable = new CellTable<DatasetOverview>();
+		datasetInfoTable = new CellTable<DatasetInfoItem>();
+		datasetsTable.setWidth("100%");
+		datasetInfoTable.setWidth("100%");
+		verticalSplitPanel = new VerticalSplitPanel();
+		verticalSplitPanel.addStyleName(PortalResources.INSTANCE.css().scrollPanel());
+		verticalSplitPanel.setTopWidget(datasetsTable);
+		verticalSplitPanel.setBottomWidget(datasetInfoTable);
+		verticalSplitPanel.setSplitPosition("50%");
+		verticalSplitPanelHolder.add(verticalSplitPanel);
+
 		datasetTypeListBox.addItem(DATASET_TYPES_LIST_FIRST_OPTION);
 		datasetActionListBox.addItem(OPTIONS_LIST_FIRST_OPTION, "");
 		datasetActionListBox.setEnabled(false);
 		
+		jobStatusButton.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				portal.jobStatusPanel.onResize();
+			    portal.jobStatusDialog.show();
+				// refresh the table of jobs in the job status panel
+			    portal.jobStatusPanel.refreshJobList();
+				// set a repeating timer going with a period of 1 minute
+			    portal.jobStatusPanel.tableRefreshTimer.scheduleRepeating(60000);
+			}
+		});
+
 		searchButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
@@ -410,10 +435,27 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	
 			@Override
 			public void onSuccess(List<String> datasetTypesList) {
+				// store the currently selected value in the datasetTypeListBox so
+				// that it can be re-selected when the list box is re-populated
+				String selectedDsType = datasetTypeListBox.getValue(datasetTypeListBox.getSelectedIndex());
 				datasetTypeListBox.clear();
 				datasetTypeListBox.addItem(DATASET_TYPES_LIST_FIRST_OPTION);
+				int itemCount = 1;
+				int selectedItemIndex = 0;
 				for (String datasetType : datasetTypesList) {
 					datasetTypeListBox.addItem(datasetType);
+					if ( datasetType.equals(selectedDsType) ) {
+						selectedItemIndex = itemCount;
+					}
+					itemCount++;
+				}
+				if ( selectedItemIndex == 0 ) {
+					// leave the first option selected in the list box but
+					// force the datasets table etc to update accordingly as
+					// this event does not seem to be fired automatically
+					handleDatasetTypeListBoxChange(null);
+				} else {
+					datasetTypeListBox.setSelectedIndex(selectedItemIndex);
 				}
 			}
 		});
@@ -646,14 +688,12 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 
 	@Override
 	public void onResize() {
-        int parentHeight = getParent().getOffsetHeight();
-        int parentWidth = getParent().getOffsetWidth();
-        int datasetsTableHeight = (int)parentHeight/3;
-        int infoTableHeight = (int)parentHeight/3;
-        datasetsScrollPanel.setHeight(datasetsTableHeight+"px");
-        datasetsScrollPanel.setWidth(parentWidth-40+"px");
-        infoScrollPanel.setHeight(infoTableHeight+"px");
-        infoScrollPanel.setWidth(parentWidth-40+"px");
+        int parentHeight = Window.getClientHeight();
+        int parentWidth = Window.getClientWidth();
+		int splitPanelHeight = (int)(parentHeight*0.7);
+		int splitPanelWidth = parentWidth-40;
+		verticalSplitPanel.setSize(splitPanelWidth+"px", splitPanelHeight+"px");
+		verticalSplitPanel.setSplitPosition("50%");
 	}
 
 }

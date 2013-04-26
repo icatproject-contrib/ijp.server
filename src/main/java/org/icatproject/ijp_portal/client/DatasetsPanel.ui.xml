@@ -10,9 +10,14 @@
 		.red { color: #FF0000; }
 	</ui:style-->
 	
-	<g:VerticalPanel spacing='10'>
-		<g:HorizontalPanel>
-			<g:ListBox ui:field="datasetTypeListBox" />
+	<g:VerticalPanel spacing='5' width='100%' height='100%'>
+		<g:HorizontalPanel width='100%'>
+			<g:cell width='50%' horizontalAlignment='ALIGN_LEFT'>
+				<g:ListBox ui:field="datasetTypeListBox" />
+			</g:cell>
+			<g:cell width='50%' horizontalAlignment='ALIGN_RIGHT'>
+				<g:Button ui:field="jobStatusButton" text='Show job status panel' />
+			</g:cell>
 		</g:HorizontalPanel>
 		<g:HorizontalPanel>
 			<g:HorizontalPanel ui:field="searchListsPanel" />
@@ -37,16 +42,9 @@
 				<g:Button ui:field="datasetInfoButton" text='Show dataset info' />
 			</g:cell>
 		</g:HorizontalPanel>
-		<!-- g:HTMLPanel><hr /></g:HTMLPanel-->
-		<g:ScrollPanel ui:field='datasetsScrollPanel' height='300px' styleName='{style.scroll-panel}'>
-			<c:CellTable ui:field='datasetsTable' width='100%'/>
-		</g:ScrollPanel>
-	   	<!-- g:Label styleName='{style.bolder}'>Project information</g:Label-->
-		<!-- g:HTMLPanel><hr /></g:HTMLPanel-->
-	   	<!-- g:HTMLPanel>&nbsp;&nbsp;&nbsp;&nbsp;<b>Information</b></g:HTMLPanel-->
-		<g:ScrollPanel ui:field='infoScrollPanel' height='300px' styleName='{style.scroll-panel}'>
-			<c:CellTable ui:field='datasetInfoTable' width='100%' />
-		</g:ScrollPanel>
+
+		<g:VerticalPanel ui:field='verticalSplitPanelHolder' width='100%' />
+		
         <g:FormPanel ui:field="rdpForm">
             <g:VerticalPanel>
                 <g:Hidden name="accountName" ui:field="accountNameField" />

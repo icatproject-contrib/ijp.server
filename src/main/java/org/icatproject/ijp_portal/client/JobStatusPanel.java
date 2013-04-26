@@ -54,6 +54,9 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 	@UiField
 	Button jobErrorButton;
 
+	@UiField
+	Button closeButton;
+
 	private List<JobDTO> jobList = new ArrayList<JobDTO>();
 	private final SingleSelectionModel<JobDTO> selectionModel = new SingleSelectionModel<JobDTO>();
 
@@ -70,6 +73,14 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 	public JobStatusPanel(final Portal portal) {
 		this.portal = portal;
 		initWidget(uiBinder.createAndBindUi(this));
+
+		closeButton.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				tableRefreshTimer.cancel();
+				portal.jobStatusDialog.hide();
+			}
+		});
 
 		// Add a text column to show the Job ID
 		TextColumn<JobDTO> nameColumn = new TextColumn<JobDTO>() {
@@ -180,6 +191,7 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 				jobsTable.setPageSize(jobList.size());
 				// push the data into the widget.
 				jobsTable.setRowData(0, jobList);
+    	    	selectionModel.setSelected(jobList.get(0), true);
 			}
 		};
 
@@ -191,11 +203,9 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 
 	@Override
 	public void onResize() {
-		int parentHeight = getParent().getOffsetHeight();
-		// int parentWidth = getParent().getOffsetWidth();
-		int jobsTableHeight = (int) (parentHeight / 10) * 9;
-		jobsScrollPanel.setHeight(jobsTableHeight + "px");
-		// jobsScrollPanel.setWidth(parentWidth-40+"px");
+        int parentHeight = Window.getClientHeight();
+		int scrollPanelHeight = (int)(parentHeight*0.5);
+		jobsScrollPanel.setHeight(scrollPanelHeight+"px");
 	}
 
 }

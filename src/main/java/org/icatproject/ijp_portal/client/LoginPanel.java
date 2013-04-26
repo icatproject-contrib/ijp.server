@@ -69,8 +69,8 @@ public class LoginPanel extends Composite {
 	    		portal.datasetsPanel.getJobTypesFromServer();
 	    		getMergedDatasetParameterTypeMappings();
 	    		// force the panels to resize
-	    		portal.datasetsPanel.onResize();
-	    		portal.jobStatusPanel.onResize();
+//	    		portal.datasetsPanel.onResize();
+//	    		portal.jobStatusPanel.onResize();
 	    	}
 		};
 
