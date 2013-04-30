@@ -253,7 +253,7 @@ public class JobOptionsPanel extends VerticalPanel {
 							parameters.add(datasetId);
 							parameters.addAll(optionsList);
 							
-							dataService.submitBatchFromPortal(portal.getSessionId(), jobType, parameters, new AsyncCallback<String>() {
+							dataService.submitBatch(portal.getSessionId(), jobType, parameters, new AsyncCallback<String>() {
 							
 								@Override
 								public void onFailure(Throwable caught) {

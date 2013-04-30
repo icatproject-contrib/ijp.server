@@ -11,22 +11,15 @@ import javax.servlet.UnavailableException;
 import org.icatproject.ijp_portal.client.service.DataService;
 import org.icatproject.ijp_portal.server.ejb.entity.Job;
 import org.icatproject.ijp_portal.server.ejb.session.JobManagementBean;
-import org.icatproject.ijp_portal.server.ejb.session.MachineEJB;
 import org.icatproject.ijp_portal.server.manager.DataServiceManager;
 import org.icatproject.ijp_portal.server.manager.XmlFileManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import uk.ac.rl.esc.catutils.CheckedProperties;
 import org.icatproject.ijp_portal.shared.AccountDTO;
-import org.icatproject.ijp_portal.shared.Constants;
 import org.icatproject.ijp_portal.shared.DatasetOverview;
 import org.icatproject.ijp_portal.shared.ForbiddenException;
 import org.icatproject.ijp_portal.shared.GenericSearchSelections;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.JobDTO;
 import org.icatproject.ijp_portal.shared.ParameterException;
-import org.icatproject.ijp_portal.shared.PortalUtils.MultiJobTypes;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 import org.icatproject.ijp_portal.shared.ServerException;
@@ -34,6 +27,8 @@ import org.icatproject.ijp_portal.shared.SessionException;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobTypeMappings;
 import org.icatproject.ijp_portal.shared.xmlmodel.SearchItems;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
@@ -48,19 +43,10 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	@EJB
 	private JobManagementBean jobManagementBean;
 
-	// TODO - the two declarations below plus some of the init method appear to be redundant now
-	// remove them once this is confirmed to be the case and tidy up the imports
-//	@EJB
-//	private MachineEJB machineEJB;
-//
-//	private String poolPrefix;
 
 	@Override
 	public void init() throws UnavailableException {
-//		CheckedProperties portalProps = new CheckedProperties();
 		try {
-//			portalProps.loadFromFile(Constants.PROPERTIES_FILEPATH);
-//			poolPrefix = portalProps.getString("poolPrefix");
 			dataServiceManager = new DataServiceManager();
 			xmlFileManager = new XmlFileManager();
 		} catch (Exception e) {
@@ -120,14 +106,6 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 		return xmlFileManager.getSearchItems();
 	}
 
-//	@Override
-//	public AccountDTO getAccountFor(String sessionId, String jobName, String parameters) throws ServerException
-//			 {
-//		logger.debug("In DataServiceImpl.getAccountFor()");
-//		return machineEJB.prepareMachine(sessionId, jobName, parameters)
-//				.getDTO(poolPrefix);
-//	}
-
 	@Override
 	public List<String> getDatasetTypesList(String sessionId) throws SessionException,
 			ServerException {
@@ -157,18 +135,11 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 			
 	@Override
-	public String submitBatchFromPortal(String sessionId, JobType jobType, List<String> parameters)
+	public String submitBatch(String sessionId, JobType jobType, List<String> parameters)
 			throws ParameterException, SessionException, InternalException {
 		logger.debug("In DataServiceImpl.submitBatchFromPortal()");
-		return jobManagementBean.submitBatchFromPortal(sessionId, jobType, parameters);
+		return jobManagementBean.submitBatch(sessionId, jobType, parameters);
 	}
-
-//	@Override
-//	public AccountDTO submitInteractiveFromPortal(String sessionId, String jobName,
-//			String options, String datasetIds) throws ServerException {
-//		logger.debug("In DataServiceImpl.submitInteractiveFromPortal()");
-//		return jobManagementBean.submitInteractiveFromPortal(sessionId, jobName, options, datasetIds);
-//	}
 
 	@Override
 	public AccountDTO submitInteractive(String sessionId, JobType jobType,

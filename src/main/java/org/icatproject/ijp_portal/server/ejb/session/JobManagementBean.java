@@ -43,7 +43,6 @@ import org.icatproject.ijp_portal.shared.Constants;
 import org.icatproject.ijp_portal.shared.ForbiddenException;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.ParameterException;
-import org.icatproject.ijp_portal.shared.PortalUtils;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
@@ -213,80 +212,6 @@ public class JobManagementBean {
 			logger.error("Update of db jobs from qstat failed. Class " + e.getClass() + " reports "
 					+ e.getMessage() + baos.toString());
 		}
-	}
-
-	@Deprecated
-	public AccountDTO submitInteractiveFromPortal(String sessionId, String jobName, String options,
-			String datasetIds) throws ServerException {
-
-		// JobType jobType = jobTypes.get(jobName);
-		//
-		// String datasetIdsPlusOptions = datasetIds;
-		// if (options != null && options.length() > 0) {
-		// datasetIdsPlusOptions += " " + options;
-		// }
-		// if ( jobType.getType().equalsIgnoreCase("interactive") ) {
-		// return submitInteractive(sessionId, jobType, datasetIdsPlusOptions);
-		// } else {
-		// throw new ServerException("XML describing job '" + jobName
-		// + "' has a type field with an invalid value '"
-		// + jobType.getType() + "'");
-		// }
-		return null;
-	}
-
-//	@Deprecated
-//	public String submitBatchFromPortal(String sessionId, String jobName, String options,
-//			String datasetIds, MultiJobTypes multiJobType) throws SessionException,
-//			ServerException, ParameterException, InternalException {
-//
-		// JobType jobType = jobTypes.get(jobName);
-		//
-		// String datasetIdsPlusOptions = datasetIds;
-		// if ( options != null && options.length()>0 ) {
-		// datasetIdsPlusOptions += " " + options;
-		// }
-		// if ( jobType.getType().equalsIgnoreCase("batch") ) {
-		// String[] datasetIdsArray = datasetIds.split(",");
-		// if ( datasetIdsArray.length > 1 && multiJobType == MultiJobTypes.ONE_DATASET_PER_JOB ) {
-		// // loop through the dataset IDs array and submit a job for each dataset
-		// String jobIdsMessage = "";
-		// for ( String datasetId : datasetIdsArray ) {
-		// String datasetIdPlusOptions = datasetId;
-		// if ( options != null && options.length()>0 ) {
-		// datasetIdPlusOptions += " " + options;
-		// }
-		// String jobId = submitBatch(sessionId, jobType, datasetIdPlusOptions,
-		// jobType.getFamily());
-		// jobIdsMessage += jobId + "\n";
-		// }
-		// return jobIdsMessage;
-		// } else {
-		// return submitBatch(sessionId, jobType, datasetIdsPlusOptions, jobType.getFamily());
-		// }
-		// } else {
-		// throw new ServerException("XML describing job '" + jobName
-		// + "' has a type field with an invalid value '"
-		// + jobType.getType() + "'");
-		// }
-//		return "";
-//	}
-
-	// TODO - method is just for testing - replace calls to it with calls to submitBatch once it is working
-	@Deprecated
-	public String submitBatchFromPortal(String sessionId, JobType jobType, List<String> parameters)
-			throws ParameterException, SessionException, InternalException {
-		logger.debug("In JMB.submitBatchFromPortal(): parameters are: " + PortalUtils.createStringFromList(parameters, ","));
-		// just return the current date and time as a dummy job ID
-		Random random = new Random();
-		int randomInt = random.nextInt(3000);
-		try {
-			Thread.sleep(randomInt);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			logger.debug(e.getClass().getName() + ": " + e.getMessage());
-		}
-		return "Job ID for dsID: " + parameters.get(0) + " [" + randomInt + "]";
 	}
 		
 	public String submitBatch(String sessionId, JobType jobType, List<String> parameters)

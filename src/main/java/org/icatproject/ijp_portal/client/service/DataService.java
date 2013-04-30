@@ -11,7 +11,6 @@ import org.icatproject.ijp_portal.shared.GenericSearchSelections;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.JobDTO;
 import org.icatproject.ijp_portal.shared.ParameterException;
-import org.icatproject.ijp_portal.shared.PortalUtils.MultiJobTypes;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 import org.icatproject.ijp_portal.shared.ServerException;
@@ -46,9 +45,6 @@ public interface DataService extends RemoteService {
 
 	JobTypeMappings getJobTypeMappings() throws ServerException;
 
-//	AccountDTO getAccountFor(String sessionId, String command, String parameters)
-//			throws ServerException;
-	
 	LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(String sessionId)
 			throws SessionException, ServerException;
 
@@ -56,14 +52,9 @@ public interface DataService extends RemoteService {
 			String sessionId, String datasetType, List<Long> datasetIds)
 			throws ServerException, SessionException;
 
-//	String submitBatchFromPortal(String sessionId, String jobName, String options,
-//			String datasetIds, MultiJobTypes multiJobType)
-//			throws ServerException, SessionException;
-	String submitBatchFromPortal(String sessionId, JobType jobType, List<String> parameters)
+	String submitBatch(String sessionId, JobType jobType, List<String> parameters)
 			throws ParameterException, SessionException, InternalException;
 	
-//	AccountDTO submitInteractiveFromPortal(String sessionId, String jobName,
-//			String options, String datasetIds) throws ServerException;
 	AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
 			throws ServerException, InternalException;
 	
