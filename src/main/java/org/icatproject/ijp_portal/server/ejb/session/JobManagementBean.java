@@ -255,7 +255,7 @@ public class JobManagementBean {
 
 		sc = new ShellCommand("qstat", "-x", jobId);
 		if (sc.isError()) {
-			throw new InternalException("Unable to query just submitted job via qstat "
+			throw new InternalException("Unable to query just submitted job (id " + jobId + ") via qstat "
 					+ sc.getStderr());
 		}
 		String jobsXml = sc.getStdout().trim();
@@ -264,7 +264,7 @@ public class JobManagementBean {
 		try {
 			qstat = (Qstat) qstatUnmarshaller.unmarshal(new StringReader(jobsXml));
 		} catch (JAXBException e1) {
-			throw new InternalException("Unable to query jobs via qstat " + sc.getStderr());
+			throw new InternalException("Unable to parse qstat output for job (id " + jobId + ") " + sc.getStderr());
 		}
 		for (Qstat.Job xjob : qstat.getJobs()) {
 			String id = xjob.getJobId();
