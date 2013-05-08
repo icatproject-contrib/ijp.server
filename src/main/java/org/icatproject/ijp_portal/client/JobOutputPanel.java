@@ -3,6 +3,7 @@ package org.icatproject.ijp_portal.client;
 import org.icatproject.ijp_portal.client.service.DataService;
 import org.icatproject.ijp_portal.client.service.DataServiceAsync;
 
+import org.icatproject.ijp_portal.shared.JobDTO;
 import org.icatproject.ijp_portal.shared.PortalUtils;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 
@@ -48,7 +49,6 @@ public class JobOutputPanel extends Composite {
 	Timer outputRefreshTimer = new Timer() {
 		public void run() {
 			getOutputForJob(currentJobId);
-			jobOutputScrollPanel.scrollToBottom();
 		}
 	};
 
@@ -84,20 +84,28 @@ public class JobOutputPanel extends Composite {
 			public void onSuccess(String result) {
 				dialogBox.setText(outputType.toString() + " from Job " + jobId);
 				jobOutputLabel.setText(result);
-				// only quincy output panels need their content refreshing
-				// if (outputType == OutputType.QUINCY_OUTPUT) {
-				// jobOutputScrollPanel.scrollToBottom();
-				// // if we find the words "Project completed." in the quincy output
-				// // (it should be right at the end) then there will be no need
-				// // to refresh the output any more as it will not change
-				// if (result.indexOf("Project completed.") == -1) {
-				// // set a repeating timer going with a period of 10 secs
-				// outputRefreshTimer.scheduleRepeating(10000);
-				// } else {
-				// // we are now displaying the completed project file
-				// outputRefreshTimer.cancel();
-				// }
-				// }
+				jobOutputScrollPanel.scrollToBottom();
+				// if the job is not COMPLETED refresh the output contents regularly
+//				JobDTO selectedJob = portal.jobStatusPanel.selectionModel.getSelectedObject();
+				JobDTO requiredJob = null;
+				for ( JobDTO job : portal.jobStatusPanel.jobList ) {
+					if ( job.getId().equals(currentJobId) ) {
+						requiredJob = job;
+						break;
+					}
+				}
+				if ( requiredJob == null ) {
+					// this should never happen
+					Window.alert("Job with id '" + currentJobId + "' not found in Job Status Panel");
+				}
+				if (!requiredJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("C"))) {
+					// set a repeating timer going with a period of 10 secs
+					outputRefreshTimer.scheduleRepeating(10000);
+				} else {
+					// we are now displaying the whole log file
+					// for a completed job so cancel the timer
+					outputRefreshTimer.cancel();
+				}
 			}
 		};
 		// make the call to the server

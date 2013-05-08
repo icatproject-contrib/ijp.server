@@ -1,6 +1,8 @@
 package org.icatproject.ijp_portal.client;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
@@ -23,19 +25,21 @@ public class Portal implements EntryPoint {
 
 	DatasetsPanel datasetsPanel;
 
-	DialogBox jobStatusDialog = new DialogBox(false, false);
-	JobStatusPanel jobStatusPanel;
-
 	DialogBox loginDialog;
 	LoginPanel loginPanel;
 
-	DialogBox jobOutputDialog = new DialogBox(false, false);
+	List<PortalDialogBox> portalDialogBoxes = new ArrayList<PortalDialogBox>();
+	 
+	PortalDialogBox jobStatusDialog = new PortalDialogBox(this, false, false);
+	JobStatusPanel jobStatusPanel;
+
+	PortalDialogBox jobOutputDialog = new PortalDialogBox(this, false, false);
 	JobOutputPanel jobStandardOutputPanel;
 
-	DialogBox jobErrorDialog = new DialogBox(false, false);
+	PortalDialogBox jobErrorDialog = new PortalDialogBox(this, false, false);
 	JobOutputPanel jobErrorOutputPanel;
 
-	DialogBox jobOptionsDialog = new DialogBox(false, true);
+	PortalDialogBox jobOptionsDialog = new PortalDialogBox(this, false, true);
 	JobOptionsPanel jobOptionsPanel;
 
 	private String username;
@@ -91,6 +95,10 @@ public class Portal implements EntryPoint {
 		jobOptionsDialog.hide();
 		
 		datasetsPanel.onResize();
+		
+		portalDialogBoxes.add(jobStatusDialog);
+		portalDialogBoxes.add(jobOutputDialog);
+		portalDialogBoxes.add(jobErrorDialog);
 	}
 
 	public String getSessionId() {

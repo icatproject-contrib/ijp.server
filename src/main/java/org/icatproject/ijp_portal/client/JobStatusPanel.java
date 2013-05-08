@@ -28,6 +28,7 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.RequiresResize;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.Widget;
+import com.google.gwt.view.client.SelectionChangeEvent;
 import com.google.gwt.view.client.SingleSelectionModel;
 
 public class JobStatusPanel extends Composite implements RequiresResize {
@@ -57,8 +58,10 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 	@UiField
 	Button closeButton;
 
-	private List<JobDTO> jobList = new ArrayList<JobDTO>();
-	private final SingleSelectionModel<JobDTO> selectionModel = new SingleSelectionModel<JobDTO>();
+	List<JobDTO> jobList = new ArrayList<JobDTO>();
+	final SingleSelectionModel<JobDTO> selectionModel = new SingleSelectionModel<JobDTO>();
+	String selectedJobId;
+	String previouslySelectedJobId;
 
 	private DateTimeFormat dateTimeFormat = DateTimeFormat.getFormat("dd-MM-yyyy HH:mm:ss");
 
@@ -142,13 +145,16 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 			@Override
 			public void onClick(ClickEvent event) {
 				JobDTO selectedJob = selectionModel.getSelectedObject();
-				// check that the job status is COMPLETED before attempting to show the log file
-				if (selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("C"))) {
+				// check that the job status is RUNNING or COMPLETED before attempting to show the log file
+				if ( selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("R")) || 
+					 selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("C")) ) {
 					portal.jobOutputDialog.show();
 					portal.jobStandardOutputPanel.getOutputForJob(selectedJob.getId());
 				} else {
-					Window.alert("Job output is not available until the job status is COMPLETED");
+					Window.alert("Job output is only available when the job status is RUNNING or COMPLETED");
 				}
+				// ensure this dialog is in front of others that are open
+				portal.jobOutputDialog.bringToFront();
 			}
 		});
 
@@ -156,15 +162,27 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 			@Override
 			public void onClick(ClickEvent event) {
 				JobDTO selectedJob = selectionModel.getSelectedObject();
-				// check that the job status is COMPLETED before attempting to show the log file
-				if (selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("C"))) {
+				// check that the job status is RUNNING or COMPLETED before attempting to show the log file
+				if ( selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("R")) || 
+					 selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("C")) ) {
 					portal.jobErrorDialog.show();
 					portal.jobErrorOutputPanel.getOutputForJob(selectedJob.getId());
 				} else {
-					Window.alert("Job error output is not available until the job status is COMPLETED");
+					Window.alert("Job output is only available when the job status is RUNNING or COMPLETED");
 				}
+				// ensure this dialog is in front of others that are open
+				portal.jobErrorDialog.bringToFront();
 			}
 		});
+		
+	    selectionModel.addSelectionChangeHandler(new SelectionChangeEvent.Handler() {
+	    	public void onSelectionChange(SelectionChangeEvent event) {
+	    		// store the selected job ID each time a new job is selected
+	    		// this is used for reselecting this job when the job table is refreshed
+	    		selectedJobId = selectionModel.getSelectedObject().getId();
+	    	}
+	    });
+
 	}
 
 	void refreshJobList() {
@@ -185,13 +203,28 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 			}
 
 			public void onSuccess(List<JobDTO> result) {
+				previouslySelectedJobId = selectedJobId;
 				jobList = result;
 				// set the page size to the number of projects returned
 				// otherwise we only see the first 15 by default
 				jobsTable.setPageSize(jobList.size());
 				// push the data into the widget.
 				jobsTable.setRowData(0, jobList);
-    	    	selectionModel.setSelected(jobList.get(0), true);
+				JobDTO requiredJob = null;
+				for ( JobDTO job : portal.jobStatusPanel.jobList ) {
+					if ( job.getId().equals(previouslySelectedJobId) ) {
+						requiredJob = job;
+						break;
+					}
+				}
+				if ( requiredJob == null ) {
+					// this should never happen but for some reason the
+					// previously selected job is no longer in the table
+					// so just select the first job instead
+					selectionModel.setSelected(jobList.get(0), true);
+				} else {
+					selectionModel.setSelected(requiredJob, true);
+				}
 			}
 		};
 
