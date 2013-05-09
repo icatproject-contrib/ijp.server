@@ -128,12 +128,14 @@ public class JobOptionsPanel extends VerticalPanel {
 						} else if (formWidget.getClass() == ListBox.class) {
 							String selectedListBoxValue = ((ListBox)formWidget).getValue(((ListBox)formWidget).getSelectedIndex());
 							if ( selectedListBoxValue != null && !selectedListBoxValue.equals("") ) {
-								optionsList.add( jobOption.getProgramParameter() + " " + selectedListBoxValue );
+								optionsList.add( jobOption.getProgramParameter() );
+								optionsList.add( selectedListBoxValue );
 							}
 						} else if (formWidget.getClass() == TextBox.class) {
 							String textBoxValue = ((TextBox)formWidget).getValue();
 							if ( !textBoxValue.equals("") ) {
-								optionsList.add( jobOption.getProgramParameter() + " " + textBoxValue );
+								optionsList.add( jobOption.getProgramParameter() );
+								optionsList.add( textBoxValue );
 							}
 						} else if (formWidget.getClass() == LongBox.class || formWidget.getClass() == DoubleBox.class) {
 							Number numericBoxValueNumber = (Number) ((ValueBox)formWidget).getValue();
@@ -163,7 +165,8 @@ public class JobOptionsPanel extends VerticalPanel {
 										formErrors.add("maxValue '" + maxValueString + "' of job option '" + jobOption.getName() + "' is not a valid number");
 									}
 								}
-								optionsList.add( jobOption.getProgramParameter() + " " + numericBoxValueDouble );
+								optionsList.add( jobOption.getProgramParameter() );
+								optionsList.add( String.valueOf(numericBoxValueDouble) );
 							}
 						}
 					}
@@ -449,7 +452,7 @@ public class JobOptionsPanel extends VerticalPanel {
 				add(jobsPanel);
 				
 				portal.jobOptionsDialog.setText(jobName + " Options");
-				portal.jobOptionsDialog.show();
+				portal.jobOptionsDialog.center();
 			}
 		});
 
