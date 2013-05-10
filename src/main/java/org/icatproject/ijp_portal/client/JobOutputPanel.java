@@ -83,7 +83,7 @@ public class JobOutputPanel extends Composite {
 
 			public void onSuccess(String result) {
 				dialogBox.setText(outputType.toString() + " from Job " + jobId);
-				jobOutputLabel.setText(result);
+				jobOutputLabel.setText( PortalUtils.removeBackspacesFromString(result) );
 				jobOutputScrollPanel.scrollToBottom();
 				// if the job is not COMPLETED refresh the output contents regularly
 //				JobDTO selectedJob = portal.jobStatusPanel.selectionModel.getSelectedObject();

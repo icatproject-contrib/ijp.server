@@ -70,7 +70,7 @@ public class PortalUtils {
 		return jobStatusMappings;
 	}
 
-	public static synchronized String createStringFromList(List<String> stringList, String separator) {
+	public static String createStringFromList(List<String> stringList, String separator) {
 		if ( stringList.size() == 0 ) {
 			return "";
 		}
@@ -80,6 +80,20 @@ public class PortalUtils {
 			sb.append(separator);
 		}
 		return sb.substring(0, sb.length()-separator.length());
+	}
+
+	public static String removeBackspacesFromString(String inString) {
+		char backspaceChar = new Character('\b').charValue();
+		StringBuilder sb = new StringBuilder(inString.length());
+		for (int i = 0; i < inString.length(); i++) {
+			char nextChar = inString.charAt(i);
+			if (nextChar == backspaceChar) {
+				sb.deleteCharAt(sb.length() - 1);
+			} else {
+				sb.append(nextChar);
+			}
+		}
+		return sb.toString();
 	}
 
 	public static void main(String[] args) {
