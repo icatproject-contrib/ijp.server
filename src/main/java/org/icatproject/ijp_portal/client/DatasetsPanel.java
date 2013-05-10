@@ -120,6 +120,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
     final MultiSelectionModel<DatasetOverview> selectionModel = new MultiSelectionModel<DatasetOverview>();
 
     private static final String DATASET_TYPES_LIST_FIRST_OPTION = "Dataset types ...";
+    static final String DATASET_TYPES_LIST_JOB_ONLY_OPTION = "none (job only)";
     private static final String OPTIONS_LIST_FIRST_OPTION = "Options ...";
     private static final String OPTIONS_LIST_DOWNLOAD_OPTION = "Download";
     private static final String OPTIONS_LIST_DOWNLOAD_URL_OPTION = "Show Download URL";
@@ -339,9 +340,11 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 //		Window.alert("Value is:'" + selectedValue + "'");
 		datasetActionListBox.clear();
 		datasetActionListBox.addItem(OPTIONS_LIST_FIRST_OPTION, "");
-		datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_OPTION);
-		datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_URL_OPTION);
-
+		if ( !selectedValue.equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION) ) {
+			datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_OPTION);
+			datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_URL_OPTION);
+		}
+		
 		// remove any datasets listed in the Datasets Table
 		datasetList = new ArrayList<DatasetOverview>();
 		datasetsTable.setRowData(datasetList);
@@ -349,9 +352,19 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		clearDatasetInfoTable();
 		// make sure any selections in the Datasets Table are cleared
 		selectionModel.clear();
-		// disable the dataset actions box - it will be re-enabled when a search
-		// is done and a new list of datasets appears
-		datasetActionListBox.setEnabled(false);
+		if ( selectedValue.equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION) ) {
+			// enable the dataset actions box because it is not necessary
+			// (or possible) to select a dataset of this type
+			datasetActionListBox.setEnabled(true);
+			// disable the search button - if the user presses it
+			// the Options... box gets disabled
+			searchButton.setEnabled(false);
+		} else {
+			// disable the dataset actions box - it will be re-enabled when a search
+			// is done and a new list of datasets appears
+			datasetActionListBox.setEnabled(false);
+			searchButton.setEnabled(true);
+		}
 		// remove any message text ("3 datasets found" etc)
 		messageLabel.setText(DEFAULT_MESSAGE);
 		
@@ -440,6 +453,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				String selectedDsType = datasetTypeListBox.getValue(datasetTypeListBox.getSelectedIndex());
 				datasetTypeListBox.clear();
 				datasetTypeListBox.addItem(DATASET_TYPES_LIST_FIRST_OPTION);
+				datasetTypeListBox.addItem(DATASET_TYPES_LIST_JOB_ONLY_OPTION);
 				int itemCount = 1;
 				int selectedItemIndex = 0;
 				for (String datasetType : datasetTypesList) {

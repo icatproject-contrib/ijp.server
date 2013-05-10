@@ -186,7 +186,12 @@ public class JobOptionsPanel extends VerticalPanel {
 						String datasetId = Long.toString(selectedDataset.getDatasetId());
 						datasetIdsList.add(datasetId);
 					}
-					if ( multiJobType == MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB ) {
+					if ( jobType.getDatasetTypes().contains(DatasetsPanel.DATASET_TYPES_LIST_JOB_ONLY_OPTION) ) {
+						// there can be no datasets selected for this type of job 
+						// but we need to add one entry that is null so that the loop
+						// for submitBatch further down gets executed once
+						datasetIdsList.add(null);
+					} else if ( multiJobType == MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB ) {
 						// create a comma separated string from the dataset IDs
 						// empty the existing datasetIdsList and
 						// put the comma separated string as a single entry
@@ -206,9 +211,12 @@ public class JobOptionsPanel extends VerticalPanel {
 //					Window.alert(alertMessage);
 
 					if ( jobType.getType().equalsIgnoreCase("interactive") ) {
-						// add any dataset IDs as the first item in the parameters list
 						List<String> parameters = new ArrayList<String>();
-						parameters.add(PortalUtils.createStringFromList(datasetIdsList, ","));
+						// add any dataset IDs as the first item in the parameters list
+						// but only do this if the job type is not "job only" (no datasets required) 
+						if ( !jobType.getDatasetTypes().contains(DatasetsPanel.DATASET_TYPES_LIST_JOB_ONLY_OPTION) ) {
+							parameters.add(PortalUtils.createStringFromList(datasetIdsList, ","));
+						}
 						parameters.addAll(optionsList);
 
 						dataService.submitInteractive(portal.getSessionId(),
@@ -253,7 +261,10 @@ public class JobOptionsPanel extends VerticalPanel {
 						for ( String datasetId : datasetIdsList ) {
 							// add the dataset ID as the first item in the parameters list
 							List<String> parameters = new ArrayList<String>();
-							parameters.add(datasetId);
+							// only add a dataset ID if the job type is not "job only" (no datasets required) 
+							if ( !jobType.getDatasetTypes().contains(DatasetsPanel.DATASET_TYPES_LIST_JOB_ONLY_OPTION) ) {
+								parameters.add(datasetId);
+							}
 							parameters.addAll(optionsList);
 							
 							dataService.submitBatch(portal.getSessionId(), jobType, parameters, new AsyncCallback<String>() {
