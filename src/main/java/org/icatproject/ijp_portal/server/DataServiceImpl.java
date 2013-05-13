@@ -35,14 +35,13 @@ import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 @SuppressWarnings("serial")
 public class DataServiceImpl extends RemoteServiceServlet implements DataService {
 
-	final static Logger logger = LoggerFactory.getLogger(DataServiceImpl.class);
+	private final static Logger logger = LoggerFactory.getLogger(DataServiceImpl.class);
 
 	private DataServiceManager dataServiceManager;
 	private XmlFileManager xmlFileManager;
 
 	@EJB
 	private JobManagementBean jobManagementBean;
-
 
 	@Override
 	public void init() throws UnavailableException {
@@ -60,7 +59,6 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 			Map<String, List<String>> selectedSearchParamsMap,
 			List<GenericSearchSelections> genericSearchSelectionsList) throws SessionException,
 			ServerException {
-		logger.debug("In DataServiceImpl.getDatasetList()");
 		return dataServiceManager.getDatasetList(sessionId, datasetType, selectedSearchParamsMap,
 				genericSearchSelectionsList);
 	}
@@ -68,19 +66,16 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	@Override
 	public LinkedHashMap<String, String> getDatasetParameters(String sessionId, Long datasetId)
 			throws SessionException, ServerException {
-		logger.debug("In DataServiceImpl.getDatasetParameters()");
 		return dataServiceManager.getDatasetParameters(sessionId, datasetId);
 	}
 
 	@Override
 	public String login(String plugin, Map<String, String> credentials) throws SessionException {
-		logger.debug("In DataServiceImpl.login()");
 		return dataServiceManager.login(plugin, credentials);
 	}
 
 	@Override
 	public List<JobDTO> getJobsForUser(String sessionId) throws SessionException {
-		logger.debug("In DataServiceImpl.getJobsForUser()");
 		List<Job> jobList = jobManagementBean.getJobsForUser(sessionId);
 		return convertJobListToJobDTOList(jobList);
 	}
@@ -88,8 +83,6 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	private List<JobDTO> convertJobListToJobDTOList(List<Job> jobList) {
 		List<JobDTO> jobDTOList = new ArrayList<JobDTO>();
 		for (Job job : jobList) {
-			// add a JobDTO to the list, converting the status flag
-			// to a proper string in the process
 			jobDTOList.add(job.getJobDTO());
 		}
 		return jobDTOList;
@@ -109,42 +102,36 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	@Override
 	public List<String> getDatasetTypesList(String sessionId) throws SessionException,
 			ServerException {
-		logger.debug("In DataServiceImpl.getDatasetTypesList()");
 		return dataServiceManager.getDatasetTypesList(sessionId);
 	}
 
 	@Override
 	public LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(String sessionId)
 			throws SessionException, ServerException {
-		logger.debug("In DataServiceImpl.getDatasetParameterTypesMap()");
 		return dataServiceManager.getDatasetParameterTypesMap(sessionId);
 	}
 
 	@Override
 	public JobTypeMappings getJobTypeMappings() throws ServerException {
-		logger.debug("In DataServiceImpl.getJobTypeMappings()");
 		return xmlFileManager.getJobTypeMappings();
 	}
 
 	@Override
-	public Map<Long, Map<String, Object>> getJobDatasetParametersForDatasets(
-			String sessionId, String datasetType, List<Long> datasetIds)
-			throws ServerException, SessionException {
-		logger.debug("In DataServiceImpl.getJobDatasetParametersForDatasets()");
-		return dataServiceManager.getJobDatasetParametersForDatasets(sessionId, datasetType, datasetIds);
+	public Map<Long, Map<String, Object>> getJobDatasetParametersForDatasets(String sessionId,
+			String datasetType, List<Long> datasetIds) throws ServerException, SessionException {
+		return dataServiceManager.getJobDatasetParametersForDatasets(sessionId, datasetType,
+				datasetIds);
 	}
-			
+
 	@Override
 	public String submitBatch(String sessionId, JobType jobType, List<String> parameters)
 			throws ParameterException, SessionException, InternalException {
-		logger.debug("In DataServiceImpl.submitBatchFromPortal()");
 		return jobManagementBean.submitBatch(sessionId, jobType, parameters);
 	}
 
 	@Override
-	public AccountDTO submitInteractive(String sessionId, JobType jobType,
-			List<String> parameters) throws ServerException, InternalException {
-		logger.debug("In DataServiceImpl.submitInteractive()");
+	public AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
+			throws ServerException, InternalException {
 		return jobManagementBean.submitInteractive(sessionId, jobType, parameters);
 	}
 

@@ -15,11 +15,14 @@ import org.icatproject.ijp_portal.shared.PortalUtils;
 
 @SuppressWarnings("serial")
 @Entity
-@NamedQueries({ @NamedQuery(name = "Job.FIND_BY_USERNAME", query = "SELECT j FROM Job j WHERE j.username = :username ORDER BY j.submitDate DESC") })
+@NamedQueries({
+		@NamedQuery(name = "Job.FIND_BY_USERNAME", query = "SELECT j FROM Job j WHERE j.username = :username ORDER BY j.submitDate DESC"),
+		@NamedQuery(name = "Job.FIND_INCOMPLETE", query = "SELECT j FROM Job j WHERE j.status != 'C'") })
 public class Job implements Serializable {
 
 	public final static String FIND_BY_USERNAME = "Job.FIND_BY_USERNAME";
-
+	public final static String FIND_INCOMPLETE = "Job.FIND_INCOMPLETE";
+	
 	@Id
 	private String id;
 

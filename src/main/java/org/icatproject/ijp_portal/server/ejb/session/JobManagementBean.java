@@ -175,6 +175,13 @@ public class JobManagementBean {
 			}
 			String jobsXml = sc.getStdout().trim();
 			if (jobsXml.isEmpty()) {
+				/* See if any jobs have completed without being noticed */
+				for (Job job : entityManager.createNamedQuery(Job.FIND_INCOMPLETE, Job.class)
+						.getResultList()) {
+					logger.warn("Updating status of job '" + job.getId() + "' from '"
+							+ job.getStatus() + "' to 'C' as not known to qstat");
+					job.setStatus("C");
+				}
 				return;
 			}
 
@@ -213,7 +220,7 @@ public class JobManagementBean {
 					+ e.getMessage() + baos.toString());
 		}
 	}
-		
+
 	public String submitBatch(String sessionId, JobType jobType, List<String> parameters)
 			throws ParameterException, SessionException, InternalException {
 		String reqFamily = jobType.getFamily();
@@ -255,8 +262,8 @@ public class JobManagementBean {
 
 		sc = new ShellCommand("qstat", "-x", jobId);
 		if (sc.isError()) {
-			throw new InternalException("Unable to query just submitted job (id " + jobId + ") via qstat "
-					+ sc.getStderr());
+			throw new InternalException("Unable to query just submitted job (id " + jobId
+					+ ") via qstat " + sc.getStderr());
 		}
 		String jobsXml = sc.getStdout().trim();
 
@@ -264,7 +271,8 @@ public class JobManagementBean {
 		try {
 			qstat = (Qstat) qstatUnmarshaller.unmarshal(new StringReader(jobsXml));
 		} catch (JAXBException e1) {
-			throw new InternalException("Unable to parse qstat output for job (id " + jobId + ") " + sc.getStderr());
+			throw new InternalException("Unable to parse qstat output for job (id " + jobId + ") "
+					+ sc.getStderr());
 		}
 		for (Qstat.Job xjob : qstat.getJobs()) {
 			String id = xjob.getJobId();

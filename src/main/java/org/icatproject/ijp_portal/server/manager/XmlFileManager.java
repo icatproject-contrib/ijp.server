@@ -29,11 +29,10 @@ public class XmlFileManager {
 		try {
 			JAXBContext context = JAXBContext.newInstance(SearchItems.class);
 			Unmarshaller u = context.createUnmarshaller();
-			logger.debug("Path to xmlFile is: " + xmlFile.getAbsolutePath());
+			logger.debug("SearchItems read");
 			JAXBElement<SearchItems> root = u.unmarshal(new StreamSource(xmlFile),
 					SearchItems.class);
 			searchItems = root.getValue();
-			// logger.debug("searchItems.toString(): " + searchItems.toString() );
 		} catch (JAXBException e) {
 			throw new ServerException("Error reading XML definition for SearchItems from file "
 					+ xmlFile.getAbsolutePath() + ": " + e.getMessage());
@@ -48,8 +47,6 @@ public class XmlFileManager {
 			JobType jobType = getJobType(xmlFile);
 			jobTypeMappings.addJobTypeToMap(jobType);
 		}
-		// logger.debug("XmlFileManager getJobTypeMappings() returning object:");
-		// logger.debug(jobTypeMappings.toString());
 		return jobTypeMappings;
 	}
 
@@ -58,10 +55,9 @@ public class XmlFileManager {
 		try {
 			JAXBContext context = JAXBContext.newInstance(JobType.class);
 			Unmarshaller u = context.createUnmarshaller();
-			logger.debug("Path to xmlFile is: " + xmlFile.getAbsolutePath());
 			JAXBElement<JobType> root = u.unmarshal(new StreamSource(xmlFile), JobType.class);
 			jobType = root.getValue();
-			// logger.debug("jobType.toString(): " + jobType.toString() );
+			logger.debug("JobType " + jobType.getName() + " read");
 		} catch (JAXBException e) {
 			throw new ServerException("Error reading XML definition for JobType from file "
 					+ xmlFile.getAbsolutePath() + ": " + e.getMessage());
@@ -77,8 +73,6 @@ public class XmlFileManager {
 			JobDatasetType jobDatasetType = getJobDatasetType(xmlFile);
 			jobDatasetMappings.addJobDatasetTypeToMap(jobDatasetType);
 		}
-		// logger.debug("XmlFileManager getJobDatasetMappings() returning object:");
-		// logger.debug(jobDatasetMappings.toString());
 		return jobDatasetMappings;
 	}
 
@@ -87,11 +81,10 @@ public class XmlFileManager {
 		try {
 			JAXBContext context = JAXBContext.newInstance(JobDatasetType.class);
 			Unmarshaller u = context.createUnmarshaller();
-			logger.debug("Path to xmlFile is: " + xmlFile.getAbsolutePath());
+			logger.debug("JobDatasetType read");
 			JAXBElement<JobDatasetType> root = u.unmarshal(new StreamSource(xmlFile),
 					JobDatasetType.class);
 			jobDatasetType = root.getValue();
-			// logger.debug("jobDatasetType.toString(): " + jobDatasetType.toString() );
 		} catch (JAXBException e) {
 			throw new ServerException("Error reading XML definition for JobDatasetType from file "
 					+ xmlFile.getAbsolutePath() + ": " + e.getMessage());

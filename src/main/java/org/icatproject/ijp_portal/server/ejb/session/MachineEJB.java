@@ -104,17 +104,18 @@ public class MachineEJB {
 			pw[i] = chars.charAt(random.nextInt(chars.length()));
 		}
 		String password = new String(pw);
-		
+
 		Long id = account.getId();
-		
-		ShellCommand sc = new ShellCommand("scp", script.getAbsolutePath(), "dmf@"+lightest+":"+id+".sh");
+
+		ShellCommand sc = new ShellCommand("scp", script.getAbsolutePath(), "dmf@" + lightest + ":"
+				+ id + ".sh");
 		if (sc.isError()) {
 			throw new ServerException(sc.getMessage());
 		}
-		
-		List<String> args = Arrays.asList("ssh", lightest, prepareaccount,
-				poolPrefix + id, password, id+".sh");
-		 sc = new ShellCommand(args);
+
+		List<String> args = Arrays.asList("ssh", lightest, prepareaccount, poolPrefix + id,
+				password, id + ".sh");
+		sc = new ShellCommand(args);
 		if (sc.isError()) {
 			throw new ServerException(sc.getMessage());
 		}
@@ -154,15 +155,18 @@ public class MachineEJB {
 					.getResultList();
 			boolean deleted = false;
 			for (Account account : accounts) {
-				logger.debug("About to ssh " + account.getHost() + " ps -F --noheaders -U "
-						+ poolPrefix + account.getId());
 				ShellCommand sc = new ShellCommand("ssh", account.getHost(), "ps", "-F",
 						"--noheaders", "-U", poolPrefix + account.getId());
 
-				if (sc.isError() && (!sc.getStdout().isEmpty() || !sc.getStderr().isEmpty())) {
+				if (sc.getExitValue() == 1
+						&& sc.getStderr().startsWith("ERROR: User name does not exist")) {
+					/* Account seems to have vanished */
+					entityManager.remove(account);
+					deleted = true;
+					logger.warn("Account for " + poolPrefix + account.getId() + " has vanished!");
+				} else if (sc.isError() && (!sc.getStdout().isEmpty() || !sc.getStderr().isEmpty())) {
 					throw new RuntimeException(sc.getMessage());
-				}
-				if (sc.getStdout().isEmpty()) {
+				} else if (sc.getStdout().isEmpty()) {
 					logger.debug("No processes running for " + poolPrefix + account.getId());
 					sc = new ShellCommand("ssh", account.getHost(), "sudo", "userdel", "-r",
 							poolPrefix + account.getId());
@@ -218,8 +222,8 @@ public class MachineEJB {
 		}
 	}
 
-	public Account prepareMachine(String sessionId, String jobName, List<String> parameters, File script)
-			throws ServerException {
+	public Account prepareMachine(String sessionId, String jobName, List<String> parameters,
+			File script) throws ServerException {
 		Set<String> machines = new HashSet<String>();
 		Map<String, Float> loads = loadFinder.getLoads();
 		Map<String, String> avail = pbs.getStates();
