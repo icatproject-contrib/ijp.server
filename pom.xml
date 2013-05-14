@@ -25,8 +25,8 @@
     </issueManagement>
 
     <scm>
-        <connection>scm:svn:http://icatproject.googlecode.com/svn/portal/trunk</connection>
-        <developerConnection>scm:svn:https://icatproject.googlecode.com/svn/portal/trunk</developerConnection>
+        <connection>scm:svn:http://icat-job-portal.googlecode.com/svn/portal/trunk</connection>
+        <developerConnection>scm:svn:https://icat-job-portal.googlecode.com/svn/portal/trunk</developerConnection>
         <url>http://code.google.com/p/icat-job-portal/source/browse/#svn%2Fportal%2Ftrunk</url>
     </scm>
 
