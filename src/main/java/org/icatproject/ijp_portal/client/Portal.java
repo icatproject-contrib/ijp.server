@@ -91,6 +91,7 @@ public class Portal implements EntryPoint {
 		jobErrorDialog.setWidget(jobErrorOutputPanel);
 		jobErrorDialog.hide();
 
+		jobOptionsDialog.setGlassEnabled(true);
 		jobOptionsDialog.setWidget(jobOptionsPanel);
 		jobOptionsDialog.hide();
 		
