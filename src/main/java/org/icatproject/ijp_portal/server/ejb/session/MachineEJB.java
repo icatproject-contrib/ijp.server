@@ -157,14 +157,17 @@ public class MachineEJB {
 			for (Account account : accounts) {
 				ShellCommand sc = new ShellCommand("ssh", account.getHost(), "ps", "-F",
 						"--noheaders", "-U", poolPrefix + account.getId());
-
 				if (sc.getExitValue() == 1
 						&& sc.getStderr().startsWith("ERROR: User name does not exist")) {
 					/* Account seems to have vanished */
 					entityManager.remove(account);
 					deleted = true;
-					logger.warn("Account for " + poolPrefix + account.getId() + " has vanished!");
-				} else if (sc.isError() && (!sc.getStdout().isEmpty() || !sc.getStderr().isEmpty())) {
+					logger.warn("Account for " + poolPrefix + account.getId() + " on "
+							+ account.getHost() + " has vanished!");
+				} else if (!sc.getStderr().isEmpty()) {
+					/* Odd condition because no processes has error code 1 */
+					logger.error("Unexpected problem using ssh to connect to " + account.getHost()
+							+ " to find proceeses for " + poolPrefix + account.getId());
 					throw new RuntimeException(sc.getMessage());
 				} else if (sc.getStdout().isEmpty()) {
 					logger.debug("No processes running for " + poolPrefix + account.getId());

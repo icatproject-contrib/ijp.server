@@ -4,9 +4,14 @@ import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.icatproject.ijp_portal.shared.Constants;
+import org.icatproject.ijp_portal.shared.ServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
@@ -18,8 +23,6 @@ import org.xml.sax.helpers.DefaultHandler;
 import uk.ac.rl.esc.catutils.CheckedProperties;
 import uk.ac.rl.esc.catutils.CheckedProperties.CheckedPropertyException;
 import uk.ac.rl.esc.catutils.ShellCommand;
-import org.icatproject.ijp_portal.shared.Constants;
-import org.icatproject.ijp_portal.shared.ServerException;
 
 public class Pbs {
 
@@ -52,6 +55,7 @@ public class Pbs {
 				state = null;
 				job = null;
 			}
+
 		}
 
 		@Override
@@ -84,6 +88,7 @@ public class Pbs {
 	private String qsig;
 	private String qstat;
 	private String qsub;
+	private Unmarshaller qstatUnmarshaller;
 
 	public Pbs() throws ServerException {
 
@@ -110,6 +115,12 @@ public class Pbs {
 		}
 		this.xmlReader.setContentHandler(pbsParser);
 		this.xmlReader.setErrorHandler(pbsParser);
+
+		try {
+			qstatUnmarshaller = JAXBContext.newInstance(Qstat.class).createUnmarshaller();
+		} catch (JAXBException e) {
+			throw new ServerException("Unable to create marshaller " + e.getMessage());
+		}
 
 	}
 
@@ -148,7 +159,7 @@ public class Pbs {
 		String jobs = getJobs().get(hostName);
 		if (jobs != null) {
 			for (String job : jobs.split(",")) {
-				suspendJobs(job.split("/")[1]);
+				suspendJob(job.split("/")[1]);
 			}
 		}
 		logger.debug(hostName + " is now offline");
@@ -159,14 +170,28 @@ public class Pbs {
 		if (sc.isError()) {
 			throw new ServerException(sc.getMessage());
 		}
-		sc = new ShellCommand(qstat, "-n1");
+		sc = new ShellCommand(qstat, "-x");
 		if (sc.isError()) {
 			throw new ServerException(sc.getMessage());
 		}
-		for (String line : sc.getStdout().split("(?m)^")) {
-			String[] words = line.split("\\s+");
-			if (words.length == 12 && hostName.startsWith(words[11] + ".")) {
-				resumeJobs(words[0]);
+		String jobsXml = sc.getStdout().trim();
+		if (jobsXml.isEmpty()) {
+			return;
+		}
+		Qstat qstat;
+		try {
+			qstat = (Qstat) qstatUnmarshaller.unmarshal(new StringReader(jobsXml));
+		} catch (JAXBException e) {
+			throw new ServerException("Unable to unmarshall qstat output " + e.getMessage() + " "
+					+ jobsXml);
+		}
+		for (Qstat.Job xjob : qstat.getJobs()) {
+			String id = xjob.getJobId();
+			String status = xjob.getStatus();
+			String wn = xjob.getWorkerNode();
+			String workerNode = wn != null ? wn.split("/")[0] : "";
+			if ("S".equals(status) && hostName.equals(workerNode)) {
+				resumeJob(id);
 			}
 		}
 		sc = new ShellCommand(qsub, "-o", "/dev/null", "-e", "/dev/null", "/home/dmf/bin/wakeup");
@@ -179,7 +204,7 @@ public class Pbs {
 		logger.debug(hostName + " is now online");
 	}
 
-	private void resumeJobs(String jobName) throws ServerException {
+	private void resumeJob(String jobName) throws ServerException {
 		ShellCommand sc = new ShellCommand(qsig, "-s", "resume", jobName);
 		if (sc.isError()) {
 			throw new ServerException(sc.getMessage());
@@ -187,7 +212,7 @@ public class Pbs {
 		logger.debug(jobName + " has now resumed");
 	}
 
-	private void suspendJobs(String jobName) throws ServerException {
+	private void suspendJob(String jobName) throws ServerException {
 		ShellCommand sc = new ShellCommand(qsig, "-s", "suspend", jobName);
 		if (sc.getExitValue() == 170) { // Invalid state for job
 			logger.debug(sc.getMessage());
