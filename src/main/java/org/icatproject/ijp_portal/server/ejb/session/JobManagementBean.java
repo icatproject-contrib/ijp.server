@@ -144,7 +144,7 @@ public class JobManagementBean {
 			delete = true;
 		}
 		if (Files.exists(path)) {
-			logger.debug("Returning final output for " + jobId);
+			logger.debug("Returning output for " + jobId);
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			try {
 				Files.copy(path, baos);
