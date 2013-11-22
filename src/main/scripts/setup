@@ -25,7 +25,7 @@ elif arg == "INSTALL":
     
     try:
         
-        app = actions.getAppName("ijp_portal")
+        app = actions.getAppName("ijp.server")
         if app: actions.asadmin("undeploy " + app)
         
         actions.asadmin("delete-jdbc-resource jdbc/ijp", tolerant=True)
@@ -37,7 +37,7 @@ elif arg == "INSTALL":
         
         actions.asadmin("create-jdbc-resource --connectionpoolid ijp jdbc/ijp")
       
-        actions.deploy("ijp_portal-*.war")
+        actions.deploy("ijp.server-*.war")
                     
     except Exception, e:
         abort(str(e))
@@ -47,7 +47,7 @@ else:  # UNINSTALL
     actions.removeDir("ijp")
     
     try:
-        app = actions.getAppName("ijp_portal")
+        app = actions.getAppName("ijp.server")
         if app: actions.asadmin("undeploy " + app)
         actions.asadmin("delete-jdbc-resource jdbc/portal", tolerant=True)
         actions.asadmin("delete-jdbc-connection-pool portal", tolerant=True)   

@@ -4,7 +4,7 @@
 
     <servlet>
         <servlet-name>DataService</servlet-name>
-        <servlet-class>org.icatproject.ijp_portal.server.DataServiceImpl</servlet-class>
+        <servlet-class>org.icatproject.ijp.server.DataServiceImpl</servlet-class>
     </servlet>
 
     <servlet-mapping>
@@ -17,7 +17,7 @@
         <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
         <init-param>
             <param-name>com.sun.jersey.config.property.packages</param-name>
-            <param-value>org.icatproject.ijp_portal.server.rest</param-value>
+            <param-value>org.icatproject.ijp.server.rest</param-value>
         </init-param>
     </servlet>
 
