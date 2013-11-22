@@ -8,9 +8,9 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.Schedule;
@@ -25,15 +25,14 @@ import org.icatproject.ijp_portal.server.Icat;
 import org.icatproject.ijp_portal.server.LoadFinder;
 import org.icatproject.ijp_portal.server.Pbs;
 import org.icatproject.ijp_portal.server.ejb.entity.Account;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import uk.ac.rl.esc.catutils.CheckedProperties;
-import uk.ac.rl.esc.catutils.CheckedProperties.CheckedPropertyException;
-import uk.ac.rl.esc.catutils.ShellCommand;
 import org.icatproject.ijp_portal.shared.Constants;
 import org.icatproject.ijp_portal.shared.InternalException;
 import org.icatproject.ijp_portal.shared.ServerException;
+import org.icatproject.utils.CheckedProperties;
+import org.icatproject.utils.CheckedProperties.CheckedPropertyException;
+import org.icatproject.utils.ShellCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Stateless
 public class MachineEJB {
@@ -75,7 +74,7 @@ public class MachineEJB {
 		}
 	}
 
-	@PersistenceContext(unitName = "portal")
+	@PersistenceContext(unitName = "ijp")
 	private EntityManager entityManager;
 
 	private String poolPrefix;

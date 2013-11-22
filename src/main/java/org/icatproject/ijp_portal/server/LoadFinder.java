@@ -9,16 +9,15 @@ import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.icatproject.ijp_portal.shared.Constants;
+import org.icatproject.ijp_portal.shared.ServerException;
+import org.icatproject.utils.CheckedProperties;
+import org.icatproject.utils.CheckedProperties.CheckedPropertyException;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
-
-import uk.ac.rl.esc.catutils.CheckedProperties;
-import uk.ac.rl.esc.catutils.CheckedProperties.CheckedPropertyException;
-import org.icatproject.ijp_portal.shared.Constants;
-import org.icatproject.ijp_portal.shared.ServerException;
 
 public class LoadFinder {
 

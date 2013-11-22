@@ -14,9 +14,25 @@ import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobTypeMappings;
 import org.icatproject.ijp_portal.shared.xmlmodel.SearchItems;
 
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
 public interface DataServiceAsync {
+
+	public static final class Util {
+		private static DataServiceAsync instance;
+
+		public static final DataServiceAsync getInstance() {
+			if (instance == null) {
+				instance = (DataServiceAsync) GWT.create(DataService.class);
+			}
+			return instance;
+		}
+
+		private Util() {
+		}
+	}
+
 	void getDatasetList(String sessionId, String datasetType,
 			Map<String, List<String>> selectedSearchParamsMap,
 			List<GenericSearchSelections> genericSearchSelectionsList,
@@ -41,16 +57,17 @@ public interface DataServiceAsync {
 	void getDatasetParameterTypesMap(String sessionId,
 			AsyncCallback<LinkedHashMap<String, ParameterValueType>> callback);
 
-	void getJobDatasetParametersForDatasets(String sessionId,
-			String datasetType, List<Long> datasetIds,
-			AsyncCallback<Map<Long, Map<String, Object>>> callback);
+	void getJobDatasetParametersForDatasets(String sessionId, String datasetType,
+			List<Long> datasetIds, AsyncCallback<Map<Long, Map<String, Object>>> callback);
 
-	void submitBatch(String sessionId, JobType jobType,
-			List<String> parameters, AsyncCallback<String> callback);
+	void submitBatch(String sessionId, JobType jobType, List<String> parameters,
+			AsyncCallback<String> callback);
 
-	void submitInteractive(String sessionId, JobType jobType,
-			List<String> parameters, AsyncCallback<AccountDTO> callback);
-			
+	void submitInteractive(String sessionId, JobType jobType, List<String> parameters,
+			AsyncCallback<AccountDTO> callback);
+
 	void addDoubleToSerializationPolicy(Double aDouble, AsyncCallback<Double> callback);
+
+	void getIdsUrlString(AsyncCallback<String> callback);
 
 }

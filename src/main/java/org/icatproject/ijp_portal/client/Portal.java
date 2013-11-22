@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import org.icatproject.ijp_portal.client.service.DataServiceAsync;
 import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.PortalUtils.ParameterValueType;
 
@@ -11,17 +12,11 @@ import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.RootPanel;
 
-/**
- * Entry point classes define <code>onModuleLoad()</code>.
- */
 public class Portal implements EntryPoint {
-	// Annotation can be used to change the name of the associated xml file
-	// @UiTemplate("Portal.ui.xml")
-//	interface MyUiBinder extends UiBinder<Widget, Portal> {
-//	}
 
 	DatasetsPanel datasetsPanel;
 
@@ -29,7 +24,7 @@ public class Portal implements EntryPoint {
 	LoginPanel loginPanel;
 
 	List<PortalDialogBox> portalDialogBoxes = new ArrayList<PortalDialogBox>();
-	 
+
 	PortalDialogBox jobStatusDialog = new PortalDialogBox(this, false, false);
 	JobStatusPanel jobStatusPanel;
 
@@ -47,13 +42,30 @@ public class Portal implements EntryPoint {
 
 	private LinkedHashMap<String, ParameterValueType> mergedDatasetParameterTypeMappings = null;
 
-//	private static MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
+	DataServiceAsync dataService = DataServiceAsync.Util.getInstance();
+
+	// private static MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
 
 	public void onModuleLoad() {
 
-//		RootLayoutPanel.get().add(uiBinder.createAndBindUi(this));
-		
-		datasetsPanel = new DatasetsPanel(this);
+		dataService.getIdsUrlString(new AsyncCallback<String>() {
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert("Server error: " + caught.getMessage());
+			}
+
+			@Override
+			public void onSuccess(String idsUrlString) {
+				init(idsUrlString);
+
+			}
+		});
+
+	}
+
+	private void init(String idsUrlString) {
+		datasetsPanel = new DatasetsPanel(this, idsUrlString);
 		RootPanel.get().add(datasetsPanel);
 		Window.addResizeHandler(new ResizeHandler() {
 			public void onResize(ResizeEvent event) {
@@ -70,8 +82,7 @@ public class Portal implements EntryPoint {
 
 		jobStandardOutputPanel = new JobOutputPanel(this, jobOutputDialog,
 				OutputType.STANDARD_OUTPUT);
-		jobErrorOutputPanel = new JobOutputPanel(this, jobErrorDialog,
-				OutputType.ERROR_OUTPUT);
+		jobErrorOutputPanel = new JobOutputPanel(this, jobErrorDialog, OutputType.ERROR_OUTPUT);
 
 		jobOptionsPanel = new JobOptionsPanel(this, jobOptionsDialog);
 
@@ -94,9 +105,9 @@ public class Portal implements EntryPoint {
 		jobOptionsDialog.setGlassEnabled(true);
 		jobOptionsDialog.setWidget(jobOptionsPanel);
 		jobOptionsDialog.hide();
-		
+
 		datasetsPanel.onResize();
-		
+
 		portalDialogBoxes.add(jobStatusDialog);
 		portalDialogBoxes.add(jobOutputDialog);
 		portalDialogBoxes.add(jobErrorDialog);

@@ -58,6 +58,8 @@ public interface DataService extends RemoteService {
 	AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
 			throws ServerException, InternalException;
 	
+	String getIdsUrlString();
+	
 	// dummy methods to get other objects we want to use added to the GWT SerializationPolicy
 	Double addDoubleToSerializationPolicy(Double aDouble);
 

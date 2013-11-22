@@ -14,6 +14,7 @@ import org.icatproject.ijp_portal.server.ejb.session.JobManagementBean;
 import org.icatproject.ijp_portal.server.manager.DataServiceManager;
 import org.icatproject.ijp_portal.server.manager.XmlFileManager;
 import org.icatproject.ijp_portal.shared.AccountDTO;
+import org.icatproject.ijp_portal.shared.Constants;
 import org.icatproject.ijp_portal.shared.DatasetOverview;
 import org.icatproject.ijp_portal.shared.ForbiddenException;
 import org.icatproject.ijp_portal.shared.GenericSearchSelections;
@@ -27,6 +28,7 @@ import org.icatproject.ijp_portal.shared.SessionException;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobTypeMappings;
 import org.icatproject.ijp_portal.shared.xmlmodel.SearchItems;
+import org.icatproject.utils.CheckedProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,11 +45,20 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	@EJB
 	private JobManagementBean jobManagementBean;
 
+	private String idsUrlString;
+
 	@Override
 	public void init() throws UnavailableException {
 		try {
 			dataServiceManager = new DataServiceManager();
 			xmlFileManager = new XmlFileManager();
+			CheckedProperties props = new CheckedProperties();
+			props.loadFromFile(Constants.PROPERTIES_FILEPATH);
+			if (props.has("javax.net.ssl.trustStore")) {
+				System.setProperty("javax.net.ssl.trustStore",
+						props.getProperty("javax.net.ssl.trustStore"));
+			}
+			idsUrlString = props.getURL("ids.url").toExternalForm() + "/ids/";
 		} catch (Exception e) {
 			logger.error("Fatal error " + e.getClass() + " reports " + e.getMessage());
 			throw new UnavailableException(e.getMessage());
@@ -138,6 +149,11 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	@Override
 	public Double addDoubleToSerializationPolicy(Double aDouble) {
 		return null;
+	}
+
+	@Override
+	public String getIdsUrlString() {
+		return idsUrlString;
 	}
 
 }

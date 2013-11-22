@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+from setup_utils import *
+import os
+
+# ijp
+
+actions, options, arg = getActions()
+props = actions.getGlassfish("ijp-setup.properties", ["dbProperties", "glassfish", "driver", "port"])
+
+prop_name = "ijp.properties"
+prop_list = ["icat.url", "ids.url", "gangliaHost", "pbsnodes", "qsig", "qstat", "qsub", "prepareaccount",
+"passwordDurationSeconds", "poolPrefix", "reader"]
+
+if arg == "CONFIGURE":
+    actions.configure(prop_name, prop_list, dir="ijp")
+    actions.setConfigured()
+    
+elif arg == "INSTALL":
+    
+    actions.checkConfigured()
+           
+    ijpProperties = actions.getProperties(os.path.join("ijp", prop_name), prop_list)
+            
+    actions.installDir("ijp")
+    
+    try:
+        
+        app = actions.getAppName("ijp_portal")
+        if app: actions.asadmin("undeploy " + app)
+        
+        actions.asadmin("delete-jdbc-resource jdbc/ijp", tolerant=True)
+        actions.asadmin("delete-jdbc-connection-pool ijp", tolerant=True)
+        
+        actions.asadmin('create-jdbc-connection-pool --datasourceclassname ' + props["driver"] + 
+                ' --restype javax.sql.DataSource --failconnection=true --steadypoolsize 2' + 
+                ' --maxpoolsize 8 --ping --property ' + props["dbProperties"] + ' ijp', printOutput=True)
+        
+        actions.asadmin("create-jdbc-resource --connectionpoolid ijp jdbc/ijp")
+      
+        actions.deploy("ijp_portal-*.war")
+                    
+    except Exception, e:
+        abort(str(e))
+               
+else:  # UNINSTALL
+    
+    actions.removeDir("ijp")
+    
+    try:
+        app = actions.getAppName("ijp_portal")
+        if app: actions.asadmin("undeploy " + app)
+        actions.asadmin("delete-jdbc-resource jdbc/portal", tolerant=True)
+        actions.asadmin("delete-jdbc-connection-pool portal", tolerant=True)   
+    except Exception, e:
+        abort(str(e))       
+    
+            
+    

@@ -47,10 +47,9 @@ import org.icatproject.ijp_portal.shared.PortalUtils.OutputType;
 import org.icatproject.ijp_portal.shared.ServerException;
 import org.icatproject.ijp_portal.shared.SessionException;
 import org.icatproject.ijp_portal.shared.xmlmodel.JobType;
+import org.icatproject.utils.ShellCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import uk.ac.rl.esc.catutils.ShellCommand;
 
 /**
  * Session Bean implementation to manage job status
@@ -115,7 +114,7 @@ public class JobManagementBean {
 	private final static Random random = new Random();
 	private final static String chars = "abcdefghijklmnpqrstuvwxyz";
 
-	@PersistenceContext(unitName = "portal")
+	@PersistenceContext(unitName = "ijp")
 	private EntityManager entityManager;
 
 	public List<Job> getJobsForUser(String sessionId) throws SessionException {

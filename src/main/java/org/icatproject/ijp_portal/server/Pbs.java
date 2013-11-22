@@ -12,6 +12,9 @@ import javax.xml.parsers.SAXParserFactory;
 
 import org.icatproject.ijp_portal.shared.Constants;
 import org.icatproject.ijp_portal.shared.ServerException;
+import org.icatproject.utils.CheckedProperties;
+import org.icatproject.utils.CheckedProperties.CheckedPropertyException;
+import org.icatproject.utils.ShellCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
@@ -19,10 +22,6 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
-
-import uk.ac.rl.esc.catutils.CheckedProperties;
-import uk.ac.rl.esc.catutils.CheckedProperties.CheckedPropertyException;
-import uk.ac.rl.esc.catutils.ShellCommand;
 
 public class Pbs {
 

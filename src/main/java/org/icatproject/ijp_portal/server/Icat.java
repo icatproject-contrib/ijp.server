@@ -7,11 +7,10 @@ import javax.xml.namespace.QName;
 
 import org.icatproject.ICAT;
 import org.icatproject.ICATService;
-
-import uk.ac.rl.esc.catutils.CheckedProperties;
-import uk.ac.rl.esc.catutils.CheckedProperties.CheckedPropertyException;
 import org.icatproject.ijp_portal.shared.Constants;
 import org.icatproject.ijp_portal.shared.InternalException;
+import org.icatproject.utils.CheckedProperties;
+import org.icatproject.utils.CheckedProperties.CheckedPropertyException;
 
 /**
  * Provides an ICAT instance. If there is a problem an exception will be thrown. It will continue to
