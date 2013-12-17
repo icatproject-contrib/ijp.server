@@ -5,9 +5,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.icatproject.ijp.shared.AccountDTO;
+import org.icatproject.ijp.shared.Authenticator;
 import org.icatproject.ijp.shared.DatasetOverview;
 import org.icatproject.ijp.shared.GenericSearchSelections;
 import org.icatproject.ijp.shared.JobDTO;
+import org.icatproject.ijp.shared.LoginResult;
 import org.icatproject.ijp.shared.PortalUtils.OutputType;
 import org.icatproject.ijp.shared.PortalUtils.ParameterValueType;
 import org.icatproject.ijp.shared.xmlmodel.JobType;
@@ -41,7 +43,8 @@ public interface DataServiceAsync {
 	void getDatasetParameters(String sessionId, Long datasetId,
 			AsyncCallback<LinkedHashMap<String, String>> callback);
 
-	void login(String plugin, Map<String, String> credentials, AsyncCallback<String> callback);
+	void login(String plugin, Map<String, String> credentials,
+			AsyncCallback<LoginResult> asyncCallback);
 
 	void getJobsForUser(String sessionId, AsyncCallback<List<JobDTO>> callback);
 
@@ -68,6 +71,11 @@ public interface DataServiceAsync {
 
 	void addDoubleToSerializationPolicy(Double aDouble, AsyncCallback<Double> callback);
 
-	void getIdsUrlString(AsyncCallback<String> callback);
+	void getDataUrl(String sessionId, List<Long> investigationIds, List<Long> datasetIds,
+			List<Long> datafileIds, String outname, AsyncCallback<String> callback);
+
+	void getIdsUrlString(AsyncCallback<String> asyncCallback);
+
+	void getAuthenticators(AsyncCallback<List<Authenticator>> asyncCallback);
 
 }

@@ -10,7 +10,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.icatproject.ijp.shared.Constants;
-import org.icatproject.ijp.shared.ServerException;
+import org.icatproject.ijp.shared.InternalException;
 import org.icatproject.utils.CheckedProperties;
 import org.icatproject.utils.CheckedProperties.CheckedPropertyException;
 import org.xml.sax.Attributes;
@@ -46,22 +46,22 @@ public class LoadFinder {
 	private GangliaParser gangliaParser;
 	private XMLReader xmlReader;
 
-	public LoadFinder() throws ServerException {
+	public LoadFinder() throws InternalException {
 
 		CheckedProperties props = new CheckedProperties();
 		try {
 			props.loadFromFile(Constants.PROPERTIES_FILEPATH);
 			gangliaHost = props.getString("gangliaHost");
 		} catch (CheckedPropertyException e) {
-			throw new ServerException("CheckedPropertyException " + e.getMessage());
+			throw new InternalException("CheckedPropertyException " + e.getMessage());
 		}
 
 		try {
 			new Socket(gangliaHost, 8649);
 		} catch (UnknownHostException e) {
-			throw new ServerException(gangliaHost + " host is not known");
+			throw new InternalException(gangliaHost + " host is not known");
 		} catch (IOException e) {
-			throw new ServerException(e.getClass() + " reports " + e.getMessage());
+			throw new InternalException(e.getClass() + " reports " + e.getMessage());
 		}
 
 		gangliaParser = new GangliaParser();
@@ -70,16 +70,16 @@ public class LoadFinder {
 		try {
 			xmlReader = saxFactory.newSAXParser().getXMLReader();
 		} catch (SAXException e) {
-			throw new ServerException("SAX Exception " + e.getMessage());
+			throw new InternalException("SAX Exception " + e.getMessage());
 		} catch (ParserConfigurationException e) {
-			throw new ServerException("SAX Parser Configuration Exception " + e.getMessage());
+			throw new InternalException("SAX Parser Configuration Exception " + e.getMessage());
 		}
 		this.xmlReader.setContentHandler(gangliaParser);
 		this.xmlReader.setErrorHandler(gangliaParser);
 
 	}
 
-	public Map<String, Float> getLoads() throws ServerException {
+	public Map<String, Float> getLoads() throws InternalException {
 		Socket socket = null;
 		try {
 			socket = new Socket(gangliaHost, 8649);
@@ -87,7 +87,7 @@ public class LoadFinder {
 			xmlReader.parse(new InputSource(socket.getInputStream()));
 			return gangliaParser.loads;
 		} catch (Exception e) {
-			throw new ServerException(e.getClass() + " reports " + e.getMessage());
+			throw new InternalException(e.getClass() + " reports " + e.getMessage());
 		} finally {
 			if (socket != null) {
 				try {

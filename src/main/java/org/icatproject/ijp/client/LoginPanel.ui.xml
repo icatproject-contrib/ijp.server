@@ -1,35 +1,15 @@
-<ui:UiBinder xmlns:ui='urn:ui:com.google.gwt.uibinder'
-	xmlns:g='urn:import:com.google.gwt.user.client.ui'>
-	<ui:style src="portal.css" />
-	<g:HTMLPanel>
-		<table>
-			<tr>
-				<td>
-					<g:Label>Username</g:Label>
-				</td>
-				<td>
-					<g:TextBox ui:field="username" width="15em" />
-				</td>
+<ui:UiBinder xmlns:ui='urn:ui:com.google.gwt.uibinder' xmlns:g='urn:import:com.google.gwt.user.client.ui'>
 
-			</tr>
-			<tr>
-				<td>
-					<g:Label>Password</g:Label>
-				</td>
-				<td>
-					<g:PasswordTextBox ui:field="password" width="15em" />
-				</td>
-			</tr>
-			<tr>
-				<td colspan="2" align="center">
-					<g:Label ui:field='messageLabel' height='20px' styleName='{style.red}'></g:Label>
-				</td>
-			</tr>
-			<tr>
-				<td colspan="2" align="center">
-					<g:Button ui:field="login" text="login" />
-				</td>
-			</tr>
-		</table>
-	</g:HTMLPanel>
+    <ui:with field='res' type='org.icatproject.ijp.client.IjpResources' />
+
+    <g:HTMLPanel>
+        <g:Label ui:field="messageLabel" addStyleNames='{res.css.errorMessage}'></g:Label>
+        <g:HorizontalPanel>
+            <g:Label>Authenticator</g:Label>
+            <g:ListBox ui:field="authnList" title="Please specify the authentication method to use"></g:ListBox>
+        </g:HorizontalPanel>
+        <g:FlexTable ui:field="credentials">
+        </g:FlexTable>
+        <g:Button ui:field="login">Login</g:Button>
+    </g:HTMLPanel>
 </ui:UiBinder>

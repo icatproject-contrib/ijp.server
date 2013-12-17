@@ -14,17 +14,18 @@ import org.icatproject.ijp.server.ejb.session.JobManagementBean;
 import org.icatproject.ijp.server.manager.DataServiceManager;
 import org.icatproject.ijp.server.manager.XmlFileManager;
 import org.icatproject.ijp.shared.AccountDTO;
+import org.icatproject.ijp.shared.Authenticator;
 import org.icatproject.ijp.shared.Constants;
 import org.icatproject.ijp.shared.DatasetOverview;
 import org.icatproject.ijp.shared.ForbiddenException;
 import org.icatproject.ijp.shared.GenericSearchSelections;
 import org.icatproject.ijp.shared.InternalException;
 import org.icatproject.ijp.shared.JobDTO;
+import org.icatproject.ijp.shared.LoginResult;
 import org.icatproject.ijp.shared.ParameterException;
-import org.icatproject.ijp.shared.ServerException;
-import org.icatproject.ijp.shared.SessionException;
 import org.icatproject.ijp.shared.PortalUtils.OutputType;
 import org.icatproject.ijp.shared.PortalUtils.ParameterValueType;
+import org.icatproject.ijp.shared.SessionException;
 import org.icatproject.ijp.shared.xmlmodel.JobType;
 import org.icatproject.ijp.shared.xmlmodel.JobTypeMappings;
 import org.icatproject.ijp.shared.xmlmodel.SearchItems;
@@ -45,8 +46,6 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	@EJB
 	private JobManagementBean jobManagementBean;
 
-	private String idsUrlString;
-
 	@Override
 	public void init() throws UnavailableException {
 		try {
@@ -58,7 +57,6 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 				System.setProperty("javax.net.ssl.trustStore",
 						props.getProperty("javax.net.ssl.trustStore"));
 			}
-			idsUrlString = props.getURL("ids.url").toExternalForm() + "/ids/";
 		} catch (Exception e) {
 			logger.error("Fatal error " + e.getClass() + " reports " + e.getMessage());
 			throw new UnavailableException(e.getMessage());
@@ -69,19 +67,20 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	public List<DatasetOverview> getDatasetList(String sessionId, String datasetType,
 			Map<String, List<String>> selectedSearchParamsMap,
 			List<GenericSearchSelections> genericSearchSelectionsList) throws SessionException,
-			ServerException {
+			InternalException {
 		return dataServiceManager.getDatasetList(sessionId, datasetType, selectedSearchParamsMap,
 				genericSearchSelectionsList);
 	}
 
 	@Override
 	public LinkedHashMap<String, String> getDatasetParameters(String sessionId, Long datasetId)
-			throws SessionException, ServerException {
+			throws SessionException, InternalException {
 		return dataServiceManager.getDatasetParameters(sessionId, datasetId);
 	}
 
 	@Override
-	public String login(String plugin, Map<String, String> credentials) throws SessionException {
+	public LoginResult login(String plugin, Map<String, String> credentials)
+			throws SessionException, InternalException {
 		return dataServiceManager.login(plugin, credentials);
 	}
 
@@ -106,30 +105,30 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 
 	@Override
-	public SearchItems getSearchItems() throws ServerException {
+	public SearchItems getSearchItems() throws InternalException {
 		return xmlFileManager.getSearchItems();
 	}
 
 	@Override
 	public List<String> getDatasetTypesList(String sessionId) throws SessionException,
-			ServerException {
+			InternalException {
 		return dataServiceManager.getDatasetTypesList(sessionId);
 	}
 
 	@Override
 	public LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(String sessionId)
-			throws SessionException, ServerException {
+			throws SessionException {
 		return dataServiceManager.getDatasetParameterTypesMap(sessionId);
 	}
 
 	@Override
-	public JobTypeMappings getJobTypeMappings() throws ServerException {
+	public JobTypeMappings getJobTypeMappings() throws InternalException {
 		return xmlFileManager.getJobTypeMappings();
 	}
 
 	@Override
 	public Map<Long, Map<String, Object>> getJobDatasetParametersForDatasets(String sessionId,
-			String datasetType, List<Long> datasetIds) throws ServerException, SessionException {
+			String datasetType, List<Long> datasetIds) throws SessionException, InternalException {
 		return dataServiceManager.getJobDatasetParametersForDatasets(sessionId, datasetType,
 				datasetIds);
 	}
@@ -142,7 +141,7 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 
 	@Override
 	public AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
-			throws ServerException, InternalException {
+			throws InternalException {
 		return jobManagementBean.submitInteractive(sessionId, jobType, parameters);
 	}
 
@@ -152,8 +151,19 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 
 	@Override
-	public String getIdsUrlString() {
-		return idsUrlString;
+	public String getDataUrl(String sessionId, List<Long> investigationIds, List<Long> datasetIds,
+			List<Long> datafileIds, String outname) {
+		return dataServiceManager.getDataUrl(sessionId, investigationIds, datasetIds, datafileIds,
+				outname);
 	}
 
+	@Override
+	public String getIdsUrlString() {
+		return dataServiceManager.getIdsUrlString();
+	}
+
+	@Override
+	public List<Authenticator> getAuthenticators() {
+		return dataServiceManager.getAuthenticators();
+	}
 }

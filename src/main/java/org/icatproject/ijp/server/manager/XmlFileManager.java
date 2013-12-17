@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.icatproject.ijp.shared.Constants;
-import org.icatproject.ijp.shared.ServerException;
+import org.icatproject.ijp.shared.InternalException;
 import org.icatproject.ijp.shared.xmlmodel.JobDatasetMappings;
 import org.icatproject.ijp.shared.xmlmodel.JobDatasetType;
 import org.icatproject.ijp.shared.xmlmodel.JobType;
@@ -23,7 +23,7 @@ public class XmlFileManager {
 
 	final static Logger logger = LoggerFactory.getLogger(XmlFileManager.class);
 
-	public SearchItems getSearchItems() throws ServerException {
+	public SearchItems getSearchItems() throws InternalException {
 		SearchItems searchItems = null;
 		File xmlFile = new File(Constants.CONFIG_SUBDIR + "/search_items.xml");
 		try {
@@ -34,13 +34,13 @@ public class XmlFileManager {
 					SearchItems.class);
 			searchItems = root.getValue();
 		} catch (JAXBException e) {
-			throw new ServerException("Error reading XML definition for SearchItems from file "
+			throw new InternalException("Error reading XML definition for SearchItems from file "
 					+ xmlFile.getAbsolutePath() + ": " + e.getMessage());
 		}
 		return searchItems;
 	}
 
-	public JobTypeMappings getJobTypeMappings() throws ServerException {
+	public JobTypeMappings getJobTypeMappings() throws InternalException {
 		JobTypeMappings jobTypeMappings = new JobTypeMappings();
 		File[] dirListing = new File(Constants.CONFIG_SUBDIR + "/job_types").listFiles();
 		for (File xmlFile : dirListing) {
@@ -50,7 +50,7 @@ public class XmlFileManager {
 		return jobTypeMappings;
 	}
 
-	private JobType getJobType(File xmlFile) throws ServerException {
+	private JobType getJobType(File xmlFile) throws InternalException {
 		JobType jobType = null;
 		try {
 			JAXBContext context = JAXBContext.newInstance(JobType.class);
@@ -59,13 +59,13 @@ public class XmlFileManager {
 			jobType = root.getValue();
 			logger.debug("JobType " + jobType.getName() + " read");
 		} catch (JAXBException e) {
-			throw new ServerException("Error reading XML definition for JobType from file "
+			throw new InternalException("Error reading XML definition for JobType from file "
 					+ xmlFile.getAbsolutePath() + ": " + e.getMessage());
 		}
 		return jobType;
 	}
 
-	JobDatasetMappings getJobDatasetMappings() throws ServerException {
+	JobDatasetMappings getJobDatasetMappings() throws InternalException {
 		JobDatasetMappings jobDatasetMappings = new JobDatasetMappings();
 		File[] dirListing = new File(Constants.CONFIG_SUBDIR + "/job_dataset_parameters")
 				.listFiles();
@@ -76,7 +76,7 @@ public class XmlFileManager {
 		return jobDatasetMappings;
 	}
 
-	private JobDatasetType getJobDatasetType(File xmlFile) throws ServerException {
+	private JobDatasetType getJobDatasetType(File xmlFile) throws InternalException {
 		JobDatasetType jobDatasetType = null;
 		try {
 			JAXBContext context = JAXBContext.newInstance(JobDatasetType.class);
@@ -86,8 +86,9 @@ public class XmlFileManager {
 					JobDatasetType.class);
 			jobDatasetType = root.getValue();
 		} catch (JAXBException e) {
-			throw new ServerException("Error reading XML definition for JobDatasetType from file "
-					+ xmlFile.getAbsolutePath() + ": " + e.getMessage());
+			throw new InternalException(
+					"Error reading XML definition for JobDatasetType from file "
+							+ xmlFile.getAbsolutePath() + ": " + e.getMessage());
 		}
 		return jobDatasetType;
 	}

@@ -22,9 +22,8 @@ import org.icatproject.ijp.shared.AccountDTO;
 import org.icatproject.ijp.shared.ForbiddenException;
 import org.icatproject.ijp.shared.InternalException;
 import org.icatproject.ijp.shared.ParameterException;
-import org.icatproject.ijp.shared.ServerException;
-import org.icatproject.ijp.shared.SessionException;
 import org.icatproject.ijp.shared.PortalUtils.OutputType;
+import org.icatproject.ijp.shared.SessionException;
 import org.icatproject.ijp.shared.xmlmodel.JobType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -224,9 +223,6 @@ public class JobManager {
 				throw new InternalException("XML describing job '" + jobName
 						+ "' has a type field with an invalid value '" + jobType.getType() + "'");
 			}
-		} catch (ServerException e) {
-			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(e.getMessage() + "\n").build());
 		} catch (InternalException e) {
 			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
 					.entity(e.getMessage() + "\n").build());

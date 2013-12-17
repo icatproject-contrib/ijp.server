@@ -1,50 +1,44 @@
 <!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
-<ui:UiBinder xmlns:ui='urn:ui:com.google.gwt.uibinder'
-			 xmlns:g='urn:import:com.google.gwt.user.client.ui'
-			 xmlns:c='urn:import:com.google.gwt.user.cellview.client'
-			 xmlns:d='urn:import:com.google.gwt.user.datepicker.client' >
+<ui:UiBinder xmlns:ui='urn:ui:com.google.gwt.uibinder' xmlns:g='urn:import:com.google.gwt.user.client.ui' xmlns:c='urn:import:com.google.gwt.user.cellview.client'
+    xmlns:d='urn:import:com.google.gwt.user.datepicker.client'>
 
-	<ui:style src="portal.css" />
-	<!--ui:style>
-		.bolder { font-weight: bold; }
-		.red { color: #FF0000; }
-	</ui:style-->
-	
-	<g:VerticalPanel spacing='5' width='100%' height='100%'>
-		<g:HorizontalPanel width='100%'>
-			<g:cell width='50%' horizontalAlignment='ALIGN_LEFT'>
-				<g:ListBox ui:field="datasetTypeListBox" />
-			</g:cell>
-			<g:cell width='50%' horizontalAlignment='ALIGN_RIGHT'>
-				<g:Button ui:field="jobStatusButton" text='Show job status panel' />
-			</g:cell>
-		</g:HorizontalPanel>
-		<g:HorizontalPanel>
-			<g:HorizontalPanel ui:field="searchListsPanel" />
-			<g:VerticalPanel>
-				<g:Button ui:field="searchButton" text='Search' />
-				<g:Button ui:field="addGenericSearchButton" text='+' title='Add another search'/>
-			</g:VerticalPanel>
-			<g:Button ui:field="doStuffButton" text='Do stuff' />
-			<g:TextArea ui:field="debugTextArea" width="500px" />
-		</g:HorizontalPanel>
-		<g:HorizontalPanel>
-			<g:VerticalPanel ui:field="genericSearchesVerticalPanel" />
-		</g:HorizontalPanel>
-		<g:HorizontalPanel width='100%'>
-			<g:cell width='20%' horizontalAlignment='ALIGN_LEFT'>
-				<g:Label ui:field='messageLabel' height='20px' styleName='{style.red}'></g:Label>
-			</g:cell>
-			<g:cell width='30%' horizontalAlignment='ALIGN_RIGHT'>
-				<g:ListBox ui:field="datasetActionListBox" width='300px'/>
-			</g:cell>
-			<g:cell width='30%' horizontalAlignment='ALIGN_RIGHT'>
-				<g:Button ui:field="datasetInfoButton" text='Show dataset info' />
-			</g:cell>
-		</g:HorizontalPanel>
+    <ui:style src="portal.css" />
+        
+    <g:VerticalPanel spacing='5' width='100%' height='100%'>
+        <g:HorizontalPanel width='100%'>
+            <g:cell width='50%' horizontalAlignment='ALIGN_LEFT'>
+                <g:ListBox ui:field="datasetTypeListBox" />
+            </g:cell>
+            <g:cell width='50%' horizontalAlignment='ALIGN_RIGHT'>
+                <g:Button ui:field="jobStatusButton" text='Show job status panel' />
+            </g:cell>
+        </g:HorizontalPanel>
+        <g:HorizontalPanel>
+            <g:HorizontalPanel ui:field="searchListsPanel" />
+            <g:VerticalPanel>
+                <g:Button ui:field="searchButton" text='Search' />
+                <g:Button ui:field="addGenericSearchButton" text='+' title='Add another search' />
+            </g:VerticalPanel>
+            <g:Button ui:field="doStuffButton" text='Do stuff' />
+            <g:TextArea ui:field="debugTextArea" width="500px" />
+        </g:HorizontalPanel>
+        <g:HorizontalPanel>
+            <g:VerticalPanel ui:field="genericSearchesVerticalPanel" />
+        </g:HorizontalPanel>
+        <g:HorizontalPanel width='100%'>
+            <g:cell width='20%' horizontalAlignment='ALIGN_LEFT'>
+                <g:Label ui:field='messageLabel' height='20px' styleName='{style.red}'></g:Label>
+            </g:cell>
+            <g:cell width='30%' horizontalAlignment='ALIGN_RIGHT'>
+                <g:ListBox ui:field="datasetActionListBox" width='300px' />
+            </g:cell>
+            <g:cell width='30%' horizontalAlignment='ALIGN_RIGHT'>
+                <g:Button ui:field="datasetInfoButton" text='Show dataset info' />
+            </g:cell>
+        </g:HorizontalPanel>
 
-		<g:VerticalPanel ui:field='verticalSplitPanelHolder' width='100%' />
-		
+        <g:VerticalPanel ui:field='verticalSplitPanelHolder' width='100%' />
+
         <g:FormPanel ui:field="rdpForm">
             <g:VerticalPanel>
                 <g:Hidden name="accountName" ui:field="accountNameField" />
@@ -54,10 +48,10 @@
         <g:FormPanel ui:field="downloadForm">
             <g:VerticalPanel>
                 <g:Hidden name="sessionId" ui:field="sessionIdField" />
-                <g:Hidden name="datasetId" ui:field="datasetIdField" />
-                <g:Hidden name="datasetName" ui:field="datasetNameField" />
+                <g:Hidden name="datasetIds" ui:field="datasetIdsField" />
+                <g:Hidden name="outname" ui:field="outnameField" />
             </g:VerticalPanel>
         </g:FormPanel>
-		
-	</g:VerticalPanel>
+
+    </g:VerticalPanel>
 </ui:UiBinder>

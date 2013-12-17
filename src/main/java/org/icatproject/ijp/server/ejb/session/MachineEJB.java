@@ -3,6 +3,7 @@ package org.icatproject.ijp.server.ejb.session;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
+import java.rmi.ServerException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -27,7 +28,6 @@ import org.icatproject.ijp.server.Pbs;
 import org.icatproject.ijp.server.ejb.entity.Account;
 import org.icatproject.ijp.shared.Constants;
 import org.icatproject.ijp.shared.InternalException;
-import org.icatproject.ijp.shared.ServerException;
 import org.icatproject.utils.CheckedProperties;
 import org.icatproject.utils.CheckedProperties.CheckedPropertyException;
 import org.icatproject.utils.ShellCommand;
@@ -55,7 +55,6 @@ public class MachineEJB {
 			passwordDurationMillis = props.getPositiveInt("passwordDurationSeconds") * 1000L;
 			poolPrefix = props.getString("poolPrefix");
 			prepareaccount = props.getString("prepareaccount");
-
 			logger.debug("Machine Manager Initialised");
 		} catch (CheckedPropertyException e) {
 			throw new RuntimeException("CheckedPropertyException " + e.getMessage());
@@ -64,13 +63,9 @@ public class MachineEJB {
 			pbs = new Pbs();
 			loadFinder = new LoadFinder();
 			pbs = new Pbs();
-		} catch (ServerException e) {
-			throw new RuntimeException("ServerException " + e.getMessage());
-		}
-		try {
 			icat = Icat.getIcat();
 		} catch (InternalException e) {
-			throw new RuntimeException("InternalException " + e.getMessage());
+			throw new RuntimeException("ServerException " + e.getMessage());
 		}
 	}
 
@@ -85,12 +80,12 @@ public class MachineEJB {
 	private final static String chars = "abcdefghijkmnpqrstuvwxyz23456789";
 
 	private Account getAccount(String lightest, String sessionId, String jobName,
-			List<String> parameters, File script) throws ServerException {
+			List<String> parameters, File script) throws InternalException  {
 		String userName;
 		try {
 			userName = icat.getUserName(sessionId);
 		} catch (IcatException_Exception e) {
-			throw new ServerException(e.getMessage());
+			throw new InternalException(e.getMessage());
 		}
 		logger.debug("Set up account for " + userName + " on " + lightest);
 
@@ -109,14 +104,14 @@ public class MachineEJB {
 		ShellCommand sc = new ShellCommand("scp", script.getAbsolutePath(), "dmf@" + lightest + ":"
 				+ id + ".sh");
 		if (sc.isError()) {
-			throw new ServerException(sc.getMessage());
+			throw new InternalException(sc.getMessage());
 		}
 
 		List<String> args = Arrays.asList("ssh", lightest, prepareaccount, poolPrefix + id,
 				password, id + ".sh");
 		sc = new ShellCommand(args);
 		if (sc.isError()) {
-			throw new ServerException(sc.getMessage());
+			throw new InternalException(sc.getMessage());
 		}
 		if (!sc.getStdout().isEmpty()) {
 			logger.debug("Prepare account reports " + sc.getStdout());
@@ -225,7 +220,7 @@ public class MachineEJB {
 	}
 
 	public Account prepareMachine(String sessionId, String jobName, List<String> parameters,
-			File script) throws ServerException {
+			File script) throws InternalException {
 		Set<String> machines = new HashSet<String>();
 		Map<String, Float> loads = loadFinder.getLoads();
 		Map<String, String> avail = pbs.getStates();
@@ -245,7 +240,7 @@ public class MachineEJB {
 		if (machines.isEmpty()) {
 			machines = avail.keySet();
 			if (machines.isEmpty()) {
-				throw new ServerException("No machines available");
+				throw new InternalException("No machines available");
 			}
 		}
 

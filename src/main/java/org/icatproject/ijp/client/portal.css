@@ -2,14 +2,18 @@
 	font-weight: bold;
 }
 
-.red { 
-	color: #FF0000; 
+.errorMessage {
+	color: #FF0000;
 }
 
-.black { 
-	color: #000000; 
+.red {
+	color: #FF0000;
+}
+
+.black {
+	color: #000000;
 }
 
 .scroll-panel {
-    border: 1px solid;
+	border: 1px solid;
 }

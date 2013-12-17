@@ -43,7 +43,7 @@ import org.icatproject.ijp.shared.Constants;
 import org.icatproject.ijp.shared.ForbiddenException;
 import org.icatproject.ijp.shared.InternalException;
 import org.icatproject.ijp.shared.ParameterException;
-import org.icatproject.ijp.shared.ServerException;
+import org.icatproject.ijp.shared.InternalException;
 import org.icatproject.ijp.shared.SessionException;
 import org.icatproject.ijp.shared.PortalUtils.OutputType;
 import org.icatproject.ijp.shared.xmlmodel.JobType;
@@ -357,7 +357,7 @@ public class JobManagementBean {
 	}
 
 	public AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
-			throws ServerException, InternalException {
+			throws InternalException {
 		Path p = null;
 		try {
 			p = Files.createTempFile(null, null);

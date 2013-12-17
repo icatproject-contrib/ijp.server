@@ -1,6 +1,8 @@
 package org.icatproject.ijp.client;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -12,9 +14,8 @@ import org.icatproject.ijp.client.service.DataServiceAsync;
 import org.icatproject.ijp.shared.DatasetOverview;
 import org.icatproject.ijp.shared.GenericSearchSelections;
 import org.icatproject.ijp.shared.PortalUtils;
-import org.icatproject.ijp.shared.ServerException;
-import org.icatproject.ijp.shared.SessionException;
 import org.icatproject.ijp.shared.PortalUtils.ParameterValueType;
+import org.icatproject.ijp.shared.SessionException;
 import org.icatproject.ijp.shared.xmlmodel.JobType;
 import org.icatproject.ijp.shared.xmlmodel.JobTypeMappings;
 import org.icatproject.ijp.shared.xmlmodel.ListOption;
@@ -48,8 +49,7 @@ import com.google.gwt.view.client.MultiSelectionModel;
 import com.google.gwt.view.client.SelectionChangeEvent;
 
 public class DatasetsPanel extends Composite implements RequiresResize {
-	// Annotation can be used to change the name of the associated xml file
-	// @UiTemplate("LoginPanel.ui.xml")
+
 	interface MyUiBinder extends UiBinder<Widget, DatasetsPanel> {
 	}
 
@@ -107,9 +107,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	@UiField
 	Hidden sessionIdField;
 	@UiField
-	Hidden datasetIdField;
+	Hidden datasetIdsField;
 	@UiField
-	Hidden datasetNameField;
+	Hidden outnameField;
 
 	private static MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
 	private DataServiceAsync dataService = DataServiceAsync.Util.getInstance();
@@ -128,22 +128,35 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	Map<String, ListBox> searchItemsListBoxMap = new HashMap<String, ListBox>();
 	JobTypeMappings jobTypeMappings;
 
-	private String idsUrlString;
-
-	public DatasetsPanel(final Portal portal, String idsUrlString) {
+	public DatasetsPanel(final Portal portal) {
 		initWidget(uiBinder.createAndBindUi(this));
 
-		this.portal = portal;
-		this.idsUrlString = idsUrlString;
+		dataService.getIdsUrlString(new AsyncCallback<String>() {
 
-		PortalResources.INSTANCE.css().ensureInjected();
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert("Server error: " + caught.getMessage());
+			}
+
+			@Override
+			public void onSuccess(String idsUrlString) {
+				// for the downloadForm to request a dataset zip file download
+				downloadForm.setEncoding(FormPanel.ENCODING_URLENCODED);
+				downloadForm.setMethod(FormPanel.METHOD_GET);
+				downloadForm.setAction(idsUrlString + "getData");
+			}
+		});
+
+		this.portal = portal;
+
+		IjpResources.INSTANCE.css().ensureInjected();
 
 		datasetsTable = new CellTable<DatasetOverview>();
 		datasetInfoTable = new CellTable<DatasetInfoItem>();
 		datasetsTable.setWidth("100%");
 		datasetInfoTable.setWidth("100%");
 		verticalSplitPanel = new VerticalSplitPanel();
-		verticalSplitPanel.addStyleName(PortalResources.INSTANCE.css().scrollPanel());
+		verticalSplitPanel.addStyleName(IjpResources.INSTANCE.css().scrollPanel());
 		verticalSplitPanel.setTopWidget(datasetsTable);
 		verticalSplitPanel.setBottomWidget(datasetInfoTable);
 		verticalSplitPanel.setSplitPosition("50%");
@@ -341,11 +354,6 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		rdpForm.setMethod(FormPanel.METHOD_GET);
 		rdpForm.setAction(GWT.getHostPageBaseURL() + "rdp");
 
-		// for the downloadForm to request a dataset zip file download
-		downloadForm.setEncoding(FormPanel.ENCODING_URLENCODED);
-		downloadForm.setMethod(FormPanel.METHOD_GET);
-		downloadForm.setAction(GWT.getHostPageBaseURL() + "download");
-
 		addSearchBoxesAndPopulateTextArea();
 
 		// TODO - remove these later - just for development purposes
@@ -420,8 +428,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			} else {
 				sessionIdField.setValue(portal.getSessionId());
 				DatasetOverview selectedDataset = selectionModel.getSelectedSet().iterator().next();
-				datasetIdField.setValue(selectedDataset.getDatasetId().toString());
-				datasetNameField.setValue(selectedDataset.getName());
+				datasetIdsField.setValue(selectedDataset.getDatasetId().toString());
+				outnameField.setValue(selectedDataset.getName());
+				Window.alert(downloadForm.getAction());
 				downloadForm.submit();
 			}
 			datasetActionListBox.setSelectedIndex(0);
@@ -431,10 +440,28 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
 			} else {
 				DatasetOverview selectedDataset = selectionModel.getSelectedSet().iterator().next();
-				String urlSB = idsUrlString + "getData" + "?sessionId=" + portal.getSessionId()
-						+ "&datasetIds=" + selectedDataset.getDatasetId().toString() + "&outname="
-						+ selectedDataset.getName();
-				Window.alert(urlSB);
+				List<Long> mtList = Collections.emptyList();
+				dataService.getDataUrl(portal.getSessionId(), mtList,
+						Arrays.asList(selectedDataset.getDatasetId()), mtList,
+						selectedDataset.getName(), new AsyncCallback<String>() {
+
+							@Override
+							public void onFailure(Throwable caught) {
+								if (caught.getClass() == SessionException.class) {
+									System.err.println("caught is a SessionException");
+									portal.loginPanel.setMessageText(caught.getMessage());
+									portal.loginDialog.show();
+								} else {
+									Window.alert("Server error: " + caught.getMessage());
+								}
+							}
+
+							@Override
+							public void onSuccess(String url) {
+								Window.alert(url);
+
+							}
+						});
 			}
 			datasetActionListBox.setSelectedIndex(0);
 		} else {
@@ -585,10 +612,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 					System.err.println("caught is a SessionException");
 					portal.loginPanel.setMessageText(caught.getMessage());
 					portal.loginDialog.show();
-				} else if (caught.getClass() == ServerException.class) {
-					Window.alert("Server error: " + caught.getMessage());
 				} else {
-					// no other exceptions are expected
+					Window.alert(caught.getClass().getName() + " " + caught.getMessage());
 				}
 			}
 
@@ -627,10 +652,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 					System.err.println("caught is a SessionException");
 					portal.loginPanel.setMessageText(caught.getMessage());
 					portal.loginDialog.show();
-				} else if (caught.getClass() == ServerException.class) {
-					Window.alert("Server error: " + caught.getMessage());
 				} else {
-					// no other exceptions are expected
+					Window.alert("Server error: " + caught.getMessage());
 				}
 			}
 

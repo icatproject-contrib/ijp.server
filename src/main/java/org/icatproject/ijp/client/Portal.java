@@ -12,7 +12,6 @@ import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.RootPanel;
 
@@ -48,24 +47,7 @@ public class Portal implements EntryPoint {
 
 	public void onModuleLoad() {
 
-		dataService.getIdsUrlString(new AsyncCallback<String>() {
-
-			@Override
-			public void onFailure(Throwable caught) {
-				Window.alert("Server error: " + caught.getMessage());
-			}
-
-			@Override
-			public void onSuccess(String idsUrlString) {
-				init(idsUrlString);
-
-			}
-		});
-
-	}
-
-	private void init(String idsUrlString) {
-		datasetsPanel = new DatasetsPanel(this, idsUrlString);
+		datasetsPanel = new DatasetsPanel(this);
 		RootPanel.get().add(datasetsPanel);
 		Window.addResizeHandler(new ResizeHandler() {
 			public void onResize(ResizeEvent event) {
@@ -92,9 +74,6 @@ public class Portal implements EntryPoint {
 		loginDialog.setAnimationEnabled(true);
 		loginDialog.setWidget(loginPanel);
 		loginDialog.center(); // includes show()
-
-		// put the cursor in the username box
-		loginPanel.username.setFocus(true);
 
 		jobOutputDialog.setWidget(jobStandardOutputPanel);
 		jobOutputDialog.hide();

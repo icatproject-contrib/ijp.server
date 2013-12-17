@@ -8,9 +8,7 @@ import org.icatproject.ijp.client.service.DataService;
 import org.icatproject.ijp.client.service.DataServiceAsync;
 import org.icatproject.ijp.shared.JobDTO;
 import org.icatproject.ijp.shared.PortalUtils;
-import org.icatproject.ijp.shared.ServerException;
 import org.icatproject.ijp.shared.SessionException;
-
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -145,9 +143,10 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 			@Override
 			public void onClick(ClickEvent event) {
 				JobDTO selectedJob = selectionModel.getSelectedObject();
-				// check that the job status is RUNNING or COMPLETED before attempting to show the log file
-				if ( selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("R")) || 
-					 selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("C")) ) {
+				// check that the job status is RUNNING or COMPLETED before attempting to show the
+				// log file
+				if (selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("R"))
+						|| selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("C"))) {
 					portal.jobOutputDialog.show();
 					portal.jobStandardOutputPanel.getOutputForJob(selectedJob.getId());
 				} else {
@@ -162,9 +161,10 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 			@Override
 			public void onClick(ClickEvent event) {
 				JobDTO selectedJob = selectionModel.getSelectedObject();
-				// check that the job status is RUNNING or COMPLETED before attempting to show the log file
-				if ( selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("R")) || 
-					 selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("C")) ) {
+				// check that the job status is RUNNING or COMPLETED before attempting to show the
+				// log file
+				if (selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("R"))
+						|| selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("C"))) {
 					portal.jobErrorDialog.show();
 					portal.jobErrorOutputPanel.getOutputForJob(selectedJob.getId());
 				} else {
@@ -174,14 +174,14 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 				portal.jobErrorDialog.bringToFront();
 			}
 		});
-		
-	    selectionModel.addSelectionChangeHandler(new SelectionChangeEvent.Handler() {
-	    	public void onSelectionChange(SelectionChangeEvent event) {
-	    		// store the selected job ID each time a new job is selected
-	    		// this is used for reselecting this job when the job table is refreshed
-	    		selectedJobId = selectionModel.getSelectedObject().getId();
-	    	}
-	    });
+
+		selectionModel.addSelectionChangeHandler(new SelectionChangeEvent.Handler() {
+			public void onSelectionChange(SelectionChangeEvent event) {
+				// store the selected job ID each time a new job is selected
+				// this is used for reselecting this job when the job table is refreshed
+				selectedJobId = selectionModel.getSelectedObject().getId();
+			}
+		});
 
 	}
 
@@ -195,10 +195,8 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 					System.err.println("caught is a SessionException");
 					portal.loginPanel.setMessageText(caught.getMessage());
 					portal.loginDialog.show();
-				} else if (caught.getClass() == ServerException.class) {
-					Window.alert("Server error: " + caught.getMessage());
 				} else {
-					// no other exceptions are expected
+					Window.alert("Server error: " + caught.getMessage());
 				}
 			}
 
@@ -211,13 +209,13 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 				// push the data into the widget.
 				jobsTable.setRowData(0, jobList);
 				JobDTO requiredJob = null;
-				for ( JobDTO job : portal.jobStatusPanel.jobList ) {
-					if ( job.getId().equals(previouslySelectedJobId) ) {
+				for (JobDTO job : portal.jobStatusPanel.jobList) {
+					if (job.getId().equals(previouslySelectedJobId)) {
 						requiredJob = job;
 						break;
 					}
 				}
-				if ( requiredJob == null ) {
+				if (requiredJob == null) {
 					// this should never happen but for some reason the
 					// previously selected job is no longer in the table
 					// so just select the first job instead
@@ -236,9 +234,9 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 
 	@Override
 	public void onResize() {
-        int parentHeight = Window.getClientHeight();
-		int scrollPanelHeight = (int)(parentHeight*0.5);
-		jobsScrollPanel.setHeight(scrollPanelHeight+"px");
+		int parentHeight = Window.getClientHeight();
+		int scrollPanelHeight = (int) (parentHeight * 0.5);
+		jobsScrollPanel.setHeight(scrollPanelHeight + "px");
 	}
 
 }

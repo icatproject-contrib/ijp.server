@@ -11,7 +11,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.icatproject.ijp.shared.Constants;
-import org.icatproject.ijp.shared.ServerException;
+import org.icatproject.ijp.shared.InternalException;
 import org.icatproject.utils.CheckedProperties;
 import org.icatproject.utils.CheckedProperties.CheckedPropertyException;
 import org.icatproject.utils.ShellCommand;
@@ -89,7 +89,7 @@ public class Pbs {
 	private String qsub;
 	private Unmarshaller qstatUnmarshaller;
 
-	public Pbs() throws ServerException {
+	public Pbs() throws InternalException {
 
 		CheckedProperties props = new CheckedProperties();
 		try {
@@ -99,7 +99,7 @@ public class Pbs {
 			qstat = props.getString("qstat");
 			qsub = props.getString("qsub");
 		} catch (CheckedPropertyException e) {
-			throw new ServerException("CheckedPropertyException " + e.getMessage());
+			throw new InternalException("CheckedPropertyException " + e.getMessage());
 		}
 
 		pbsParser = new PbsParser();
@@ -108,9 +108,9 @@ public class Pbs {
 		try {
 			xmlReader = saxFactory.newSAXParser().getXMLReader();
 		} catch (SAXException e) {
-			throw new ServerException("SAX Exception " + e.getMessage());
+			throw new InternalException("SAX Exception " + e.getMessage());
 		} catch (ParserConfigurationException e) {
-			throw new ServerException("SAX Parser Configuration Exception " + e.getMessage());
+			throw new InternalException("SAX Parser Configuration Exception " + e.getMessage());
 		}
 		this.xmlReader.setContentHandler(pbsParser);
 		this.xmlReader.setErrorHandler(pbsParser);
@@ -118,12 +118,12 @@ public class Pbs {
 		try {
 			qstatUnmarshaller = JAXBContext.newInstance(Qstat.class).createUnmarshaller();
 		} catch (JAXBException e) {
-			throw new ServerException("Unable to create marshaller " + e.getMessage());
+			throw new InternalException("Unable to create marshaller " + e.getMessage());
 		}
 
 	}
 
-	public Map<String, String> getStates() throws ServerException {
+	public Map<String, String> getStates() throws InternalException {
 		parse();
 		/*
 		 * A copy of the map is returned so that subsequent calls to setOffline or setOnline - both
@@ -132,28 +132,28 @@ public class Pbs {
 		return new HashMap<String, String>(pbsParser.states);
 	}
 
-	private void parse() throws ServerException {
+	private void parse() throws InternalException {
 		ShellCommand sc = new ShellCommand(pbsnodes, "-x");
 		if (sc.isError()) {
-			throw new ServerException("Code " + sc.getExitValue() + ": " + sc.getStderr());
+			throw new InternalException("Code " + sc.getExitValue() + ": " + sc.getStderr());
 		}
 		pbsParser.reset();
 		try {
 			xmlReader.parse(new InputSource(new StringReader(sc.getStdout())));
 		} catch (Exception e) {
-			throw new ServerException(e.getMessage());
+			throw new InternalException(e.getMessage());
 		}
 	}
 
-	private Map<String, String> getJobs() throws ServerException {
+	private Map<String, String> getJobs() throws InternalException {
 		parse();
 		return pbsParser.jobs;
 	}
 
-	public void setOffline(String hostName) throws ServerException {
+	public void setOffline(String hostName) throws InternalException {
 		ShellCommand sc = new ShellCommand(pbsnodes, "-o", hostName);
 		if (sc.isError()) {
-			throw new ServerException("Code " + sc.getExitValue() + ": " + sc.getStderr());
+			throw new InternalException("Code " + sc.getExitValue() + ": " + sc.getStderr());
 		}
 		String jobs = getJobs().get(hostName);
 		if (jobs != null) {
@@ -164,14 +164,14 @@ public class Pbs {
 		logger.debug(hostName + " is now offline");
 	}
 
-	public void setOnline(String hostName) throws ServerException {
+	public void setOnline(String hostName) throws InternalException {
 		ShellCommand sc = new ShellCommand(pbsnodes, "-c", hostName);
 		if (sc.isError()) {
-			throw new ServerException(sc.getMessage());
+			throw new InternalException(sc.getMessage());
 		}
 		sc = new ShellCommand(qstat, "-x");
 		if (sc.isError()) {
-			throw new ServerException(sc.getMessage());
+			throw new InternalException(sc.getMessage());
 		}
 		String jobsXml = sc.getStdout().trim();
 		if (jobsXml.isEmpty()) {
@@ -181,7 +181,7 @@ public class Pbs {
 		try {
 			qstat = (Qstat) qstatUnmarshaller.unmarshal(new StringReader(jobsXml));
 		} catch (JAXBException e) {
-			throw new ServerException("Unable to unmarshall qstat output " + e.getMessage() + " "
+			throw new InternalException("Unable to unmarshall qstat output " + e.getMessage() + " "
 					+ jobsXml);
 		}
 		for (Qstat.Job xjob : qstat.getJobs()) {
@@ -195,7 +195,7 @@ public class Pbs {
 		}
 		sc = new ShellCommand(qsub, "-o", "/dev/null", "-e", "/dev/null", "/home/dmf/bin/wakeup");
 		if (sc.isError()) {
-			throw new ServerException(sc.getMessage());
+			throw new InternalException(sc.getMessage());
 		}
 		if (sc.getStdout() != null) {
 			logger.debug("qsub reports " + sc.getStdout());
@@ -203,22 +203,22 @@ public class Pbs {
 		logger.debug(hostName + " is now online");
 	}
 
-	private void resumeJob(String jobName) throws ServerException {
+	private void resumeJob(String jobName) throws InternalException {
 		ShellCommand sc = new ShellCommand(qsig, "-s", "resume", jobName);
 		if (sc.isError()) {
-			throw new ServerException(sc.getMessage());
+			throw new InternalException(sc.getMessage());
 		}
 		logger.debug(jobName + " has now resumed");
 	}
 
-	private void suspendJob(String jobName) throws ServerException {
+	private void suspendJob(String jobName) throws InternalException {
 		ShellCommand sc = new ShellCommand(qsig, "-s", "suspend", jobName);
 		if (sc.getExitValue() == 170) { // Invalid state for job
 			logger.debug(sc.getMessage());
 			return;
 		}
 		if (sc.isError()) {
-			throw new ServerException(sc.getMessage());
+			throw new InternalException(sc.getMessage());
 		}
 		logger.debug(jobName + " is now suspended");
 	}
