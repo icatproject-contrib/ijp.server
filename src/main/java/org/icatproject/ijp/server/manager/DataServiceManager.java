@@ -71,8 +71,6 @@ public class DataServiceManager {
 
 	private String idsUrlString;
 
-//	private Map<String, List<CredType>> credentialList = new LinkedHashMap<String, List<CredType>>();
-
 	private List<Authenticator> authenticators = new ArrayList<>() ;
 	
 
