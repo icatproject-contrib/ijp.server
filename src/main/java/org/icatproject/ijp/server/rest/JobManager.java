@@ -180,7 +180,7 @@ public class JobManager {
 		try {
 			XmlFileManager xmlFileManager = new XmlFileManager();
 			jobTypes = xmlFileManager.getJobTypeMappings().getJobTypesMap();
-			logger.debug("Initialised JobManagementBean");
+			logger.debug("Initialised JobManager");
 		} catch (Exception e) {
 			String msg = e.getClass().getName() + " reports " + e.getMessage();
 			logger.error(msg);
