@@ -7,15 +7,15 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <fileSets>
         <fileSet>
-            <outputDirectory>ijp.server</outputDirectory>
+            <outputDirectory>ijp.r92</outputDirectory>
             <directory>${basedir}/src/main/scripts</directory>
         </fileSet>
         <fileSet>
-            <outputDirectory>ijp.server</outputDirectory>
+            <outputDirectory>ijp.r92</outputDirectory>
             <directory>${basedir}/src/main/config</directory>
         </fileSet>
         <fileSet>
-            <outputDirectory>ijp.server</outputDirectory>
+            <outputDirectory>ijp.r92</outputDirectory>
             <directory>${basedir}</directory>
             <filtered>true</filtered>
             <includes>
@@ -27,15 +27,15 @@
 
     <dependencySets>
         <dependencySet>
-            <outputDirectory>ijp.server</outputDirectory>
+            <outputDirectory>ijp.r92</outputDirectory>
             <useTransitiveDependencies>false</useTransitiveDependencies>
             <includes>
-                <include>org.icatproject:ijp.server</include>
+                <include>org.icatproject:ijp.r92</include>
             </includes>
         </dependencySet>
 
         <dependencySet>
-            <outputDirectory>ijp.server</outputDirectory>
+            <outputDirectory>ijp.r92</outputDirectory>
             <useTransitiveDependencies>false</useTransitiveDependencies>
             <unpack>true</unpack>
             <unpackOptions>
