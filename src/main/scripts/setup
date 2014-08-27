@@ -2,50 +2,48 @@
 from setup_utils import *
 import os
 
-# r92
+# ijp
+
+def uninstall():
+    app = actions.getAppName("ijp.server")
+    if app: actions.asadmin("undeploy " + app)
+    actions.asadmin("delete-jdbc-resource jdbc/ijp", tolerant=True)
+    actions.asadmin("delete-jdbc-connection-pool ijp", tolerant=True)
+
 
 actions, options, arg = getActions()
-props = actions.getGlassfish("r92-setup.properties", ["dbProperties", "glassfish", "driver", "port"])
+props = actions.getGlassfish("ijp-setup.properties", ["dbProperties", "glassfish", "driver", "port"])
 
-prop_name = "r92.properties"
-prop_list = ["icat.url", "ids.url", "gangliaHost", "pbsnodes", "qsig", "qstat", "qsub", "prepareaccount",
-"passwordDurationSeconds", "poolPrefix", "reader"]
+prop_name = "ijp.properties"
+prop_list = ["icat.url", "ids.url", "reader"]
 
 if arg in ["CONFIGURE", "INSTALL"]:
-    actions.configure(prop_name, prop_list)
+    actions.configure(prop_name, prop_list, dir="ijp")
+    ijpProperties = actions.getProperties(os.path.join("ijp", prop_name), prop_list)
     actions.checkNoErrors()
     
-if arg == "INSTALL":
-    r92Properties = actions.getProperties(prop_name, prop_list)        
-    actions.installFile("r92.properties")
+elif arg == "INSTALL":   
+    actions.installDir("ijp")
     
-    try:    
-        app = actions.getAppName("ijp.r92")
-        if app: actions.asadmin("undeploy " + app)
-        
-        actions.asadmin("delete-jdbc-resource jdbc/r92", tolerant=True)
-        actions.asadmin("delete-jdbc-connection-pool r92", tolerant=True)
-        
+    try:
+        uninstall()
+              
         actions.asadmin('create-jdbc-connection-pool --datasourceclassname ' + props["driver"] + 
                 ' --restype javax.sql.DataSource --failconnection=true --steadypoolsize 2' + 
-                ' --maxpoolsize 8 --ping --property ' + props["dbProperties"] + ' r92', printOutput=True)
+                ' --maxpoolsize 8 --ping --property ' + props["dbProperties"] + ' ijp', printOutput=True)
         
-        actions.asadmin("create-jdbc-resource --connectionpoolid ijp jdbc/r92")
+        actions.asadmin("create-jdbc-resource --connectionpoolid ijp jdbc/ijp")
       
-        actions.deploy("ijp.r92-*.war")
+        actions.deploy("ijp.server-*.war", deploymentorder=140)
                     
     except Exception, e:
         abort(str(e))
                
 if arg == "UNINSTALL":
-    
-    actions.removeFile("r92.properties")
+    actions.removeDir("ijp")
     
     try:
-        app = actions.getAppName("ijp.r92")
-        if app: actions.asadmin("undeploy " + app)
-        actions.asadmin("delete-jdbc-resource jdbc/r92", tolerant=True)
-        actions.asadmin("delete-jdbc-connection-pool r92", tolerant=True)   
+        uninstall()
     except Exception, e:
         abort(str(e))       
     

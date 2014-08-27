@@ -192,48 +192,37 @@ public class JobManager {
 	@Path("submit")
 	public String submit(@QueryParam("jobName") String jobName,
 			@QueryParam("parameter") List<String> parameters,
-			@QueryParam("sessionId") String sessionId) {
+			@QueryParam("sessionId") String sessionId) throws ForbiddenException,
+			ParameterException, InternalException, SessionException {
 
 		checkCredentials(sessionId);
-		try {
-			logger.debug("submit: " + jobName + " with parameters " + parameters
-					+ " under sessionId " + sessionId);
 
-			if (jobName == null) {
-				throw new ParameterException("No jobName was specified");
-			}
+		logger.debug("submit: " + jobName + " with parameters " + parameters + " under sessionId "
+				+ sessionId);
 
-			JobType jobType = jobTypes.get(jobName);
-			if (jobType == null) {
-				throw new ParameterException("jobName " + jobName + " not recognised");
-			}
-			String type = jobType.getType();
-			if (type == null) {
-				throw new InternalException(
-						"XML describing job type does not include the type field");
-			}
-			if (type.equals("interactive")) {
-				AccountDTO accountDTO = jobManagementBean.submitInteractive(sessionId, jobType,
-						parameters);
-				return "rdesktop -u " + accountDTO.getAccountName() + " -p "
-						+ accountDTO.getPassword() + " " + accountDTO.getHostName();
-			} else if (type.equals("batch")) {
-				return jobManagementBean.submitBatch(sessionId, jobType, parameters);
-			} else {
-				throw new InternalException("XML describing job '" + jobName
-						+ "' has a type field with an invalid value '" + jobType.getType() + "'");
-			}
-		} catch (InternalException e) {
-			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(e.getMessage() + "\n").build());
-		} catch (SessionException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (ParameterException e) {
-			throw new WebApplicationException(Response.status(Status.BAD_REQUEST)
-					.entity(e.getMessage() + "\n").build());
+		if (jobName == null) {
+			throw new ParameterException("No jobName was specified");
 		}
 
+		JobType jobType = jobTypes.get(jobName);
+		if (jobType == null) {
+			throw new ParameterException("jobName " + jobName + " not recognised");
+		}
+		String type = jobType.getType();
+		if (type == null) {
+			throw new InternalException("XML describing job type does not include the type field");
+		}
+		if (type.equals("interactive")) {
+			AccountDTO accountDTO = jobManagementBean.submitInteractive(sessionId, jobType,
+					parameters);
+			return "rdesktop -u " + accountDTO.getAccountName() + " -p " + accountDTO.getPassword()
+					+ " " + accountDTO.getHostName();
+		} else if (type.equals("batch")) {
+			return jobManagementBean.submitBatch(sessionId, jobType, parameters);
+		} else {
+			throw new InternalException("XML describing job '" + jobName
+					+ "' has a type field with an invalid value '" + jobType.getType() + "'");
+		}
 	}
 
 }

@@ -32,12 +32,6 @@ public class Families {
 		protected List<Families.Family.Allowed> allowed;
 		@XmlAttribute
 		protected String name;
-		@XmlAttribute
-		protected Integer count;
-		@XmlAttribute
-		protected String create;
-		@XmlAttribute
-		protected String destroy;
 
 		public List<Families.Family.Allowed> getAllowed() {
 			if (allowed == null) {
@@ -48,10 +42,6 @@ public class Families {
 
 		public String getName() {
 			return name;
-		}
-
-		public Integer getCount() {
-			return count;
 		}
 
 		public static class Allowed {
@@ -65,40 +55,19 @@ public class Families {
 
 		}
 
-		public String getDestroy() {
-			return destroy;
-		}
-
-		public String getCreate() {
-			return create;
-		}
-
 		public Pattern getRE() {
 			StringBuilder sb = new StringBuilder();
 			if (getAllowed().isEmpty()) {
 				return null;
 			}
 			for (Families.Family.Allowed ffa : getAllowed()) {
-				if (sb.length() != 0)sb.append("|");
+				if (sb.length() != 0)
+					sb.append("|");
 				sb.append("(" + ffa.pattern + ")");
 			}
 			return Pattern.compile(sb.toString());
 		}
 
-	}
-
-	public String getPuppet() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("class usergen {").append('\n');
-		for (Family f : getFamily()) {
-			String create = f.getCreate();
-			for (int i = 0; i < f.getCount(); i++) {
-				String user = f.getName() + i;
-				sb.append(create.replace("$user", user)).append('\n');
-			}
-		}
-		sb.append("}").append('\n');
-		return sb.toString();
 	}
 
 }

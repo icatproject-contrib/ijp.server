@@ -54,7 +54,7 @@ public interface DataService extends RemoteService {
 			String datasetType, List<Long> datasetIds) throws SessionException, InternalException;
 
 	String submitBatch(String sessionId, JobType jobType, List<String> parameters)
-			throws ParameterException, SessionException, InternalException;
+			throws ParameterException, SessionException, InternalException, ForbiddenException;
 
 	AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
 			throws InternalException;

@@ -1,10 +1,8 @@
 package org.icatproject.ijp.server.ejb.session;
 
-import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
@@ -12,30 +10,36 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
-import javax.ejb.EJB;
+import javax.annotation.PreDestroy;
 import javax.ejb.Schedule;
 import javax.ejb.Stateless;
+import javax.json.Json;
+import javax.json.JsonException;
+import javax.json.JsonReader;
+import javax.json.stream.JsonParser;
+import javax.json.stream.JsonParser.Event;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 
 import org.icatproject.ICAT;
 import org.icatproject.IcatException_Exception;
 import org.icatproject.ijp.server.Families;
 import org.icatproject.ijp.server.Icat;
-import org.icatproject.ijp.server.Qstat;
-import org.icatproject.ijp.server.ejb.entity.Account;
 import org.icatproject.ijp.server.ejb.entity.Job;
 import org.icatproject.ijp.server.manager.XmlFileManager;
 import org.icatproject.ijp.shared.AccountDTO;
@@ -46,6 +50,7 @@ import org.icatproject.ijp.shared.ParameterException;
 import org.icatproject.ijp.shared.PortalUtils.OutputType;
 import org.icatproject.ijp.shared.SessionException;
 import org.icatproject.ijp.shared.xmlmodel.JobType;
+import org.icatproject.utils.CheckedProperties;
 import org.icatproject.utils.ShellCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,51 +61,86 @@ import org.slf4j.LoggerFactory;
 @Stateless
 public class JobManagementBean {
 
-	private ICAT icat;
+	public class Estimator implements Runnable {
 
-	private class LocalFamily {
+		private String sessionId;
+		private JobType jobType;
+		private List<String> parameters;
+		private Entry<String, WebTarget> entry;
 
-		private int count;
-		private Pattern re;
+		private Response response;
 
-		public LocalFamily(int count, Pattern re) {
-			this.count = count;
-			this.re = re;
+		public Estimator(String sessionId, JobType jobType, List<String> parameters,
+				Entry<String, WebTarget> entry) {
+			this.sessionId = sessionId;
+			this.jobType = jobType;
+			this.parameters = parameters;
+			this.entry = entry;
+		}
+
+		@Override
+		public void run() {
+			WebTarget server = entry.getValue();
+			response = server.path("estimate").queryParam("sessionId", sessionId)
+					.queryParam("jobType", jobType).queryParam("parameters", parameters)
+					.request(MediaType.TEXT_PLAIN).get(Response.class);
+		}
+
+		/** returns null in case of error */
+		public Integer getTime() {
+			String json = null;
+			try {
+				json = (String) processResponse(response);
+				try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
+					return jsonReader.readObject().getInt("time");
+				}
+			} catch (Exception e) {
+				logger.error("Bad response from batch service " + json);
+				return null;
+			}
+
 		}
 
 	}
 
-	@EJB
-	private MachineEJB machineEJB;
+	private ICAT icat;
 
 	private String defaultFamily;
-	private Map<String, LocalFamily> families = new HashMap<String, LocalFamily>();
-	private Unmarshaller qstatUnmarshaller;
+	private Map<String, Pattern> familyPatterm = new HashMap<>();
 
 	private Map<String, JobType> jobTypes;
 
+	private Client client;
+
+	private Map<String, WebTarget> batchServers = new HashMap<>();
+
 	@PostConstruct
-	void init() {
+	private void init() {
 		try {
 			icat = Icat.getIcat();
 
 			Unmarshaller um = JAXBContext.newInstance(Families.class).createUnmarshaller();
 			Families fams = (Families) um.unmarshal(new FileReader(Constants.CONFIG_SUBDIR
 					+ "/families.xml"));
-			PrintStream p = new PrintStream("/etc/puppet/modules/usergen/manifests/init.pp");
-			p.print(fams.getPuppet());
-			p.close();
+
 			defaultFamily = fams.getDefault();
 			for (Families.Family fam : fams.getFamily()) {
-				LocalFamily lf = new LocalFamily(fam.getCount(), fam.getRE());
-				families.put(fam.getName(), lf);
+				familyPatterm.put(fam.getName(), fam.getRE());
 			}
-
-			qstatUnmarshaller = JAXBContext.newInstance(Qstat.class).createUnmarshaller();
 
 			XmlFileManager xmlFileManager = new XmlFileManager();
 			jobTypes = xmlFileManager.getJobTypeMappings().getJobTypesMap();
 
+			CheckedProperties props = new CheckedProperties();
+			props.loadFromFile(Constants.PROPERTIES_FILEPATH);
+			List<String> batchserverUrlstrings = new ArrayList<>(Arrays.asList(props.getString(
+					"batchserverUrls").split("\\s+")));
+			client = ClientBuilder.newClient();
+
+			for (String batchserverUrlstring : batchserverUrlstrings) {
+				batchServers.put(batchserverUrlstring,
+						client.target(batchserverUrlstring + "/unixbatch"));
+			}
 			logger.debug("Initialised JobManagementBean");
 		} catch (Exception e) {
 			String msg = e.getClass().getName() + " reports " + e.getMessage();
@@ -109,9 +149,15 @@ public class JobManagementBean {
 		}
 	}
 
+	@PreDestroy
+	private void exit() {
+		client.close();
+		logger.debug("Closing down JobManagementBean");
+	}
+
 	private final static Logger logger = LoggerFactory.getLogger(JobManagementBean.class);
-	private final static Random random = new Random();
-	private final static String chars = "abcdefghijklmnpqrstuvwxyz";
+
+	private static final int maxSeconds = 5;
 
 	@PersistenceContext(unitName = "ijp")
 	private EntityManager entityManager;
@@ -183,34 +229,34 @@ public class JobManagementBean {
 				return;
 			}
 
-			Qstat qstat = (Qstat) qstatUnmarshaller.unmarshal(new StringReader(jobsXml));
-			for (Qstat.Job xjob : qstat.getJobs()) {
-				String id = xjob.getJobId();
-				String status = xjob.getStatus();
-				String wn = xjob.getWorkerNode();
-				String workerNode = wn != null ? wn.split("/")[0] : "";
-				String comment = xjob.getComment() == null ? "" : xjob.getComment();
-
-				Job job = entityManager.find(Job.class, id);
-				if (job != null) {/* Log updates on portal jobs */
-					if (!job.getStatus().equals(xjob.getStatus())) {
-						logger.debug("Updating status of job '" + id + "' from '" + job.getStatus()
-								+ "' to '" + status + "'");
-						job.setStatus(status);
-					}
-					if (!job.getWorkerNode().equals(workerNode)) {
-						logger.debug("Updating worker node of job '" + id + "' from '"
-								+ job.getWorkerNode() + "' to '" + workerNode + "'");
-						job.setWorkerNode(workerNode);
-					}
-					String oldComment = job.getComment() == null ? "" : job.getComment();
-					if (!oldComment.equals(comment)) {
-						logger.debug("Updating comment of job '" + id + "' from '" + oldComment
-								+ "' to '" + comment + "'");
-						job.setComment(comment);
-					}
-				}
-			}
+			// Qstat qstat = (Qstat) qstatUnmarshaller.unmarshal(new StringReader(jobsXml));
+			// for (Qstat.Job xjob : qstat.getJobs()) {
+			// String id = xjob.getJobId();
+			// String status = xjob.getStatus();
+			// String wn = xjob.getWorkerNode();
+			// String workerNode = wn != null ? wn.split("/")[0] : "";
+			// String comment = xjob.getComment() == null ? "" : xjob.getComment();
+			//
+			// Job job = entityManager.find(Job.class, id);
+			// if (job != null) {/* Log updates on portal jobs */
+			// if (!job.getStatus().equals(xjob.getStatus())) {
+			// logger.debug("Updating status of job '" + id + "' from '" + job.getStatus()
+			// + "' to '" + status + "'");
+			// job.setStatus(status);
+			// }
+			// if (!job.getWorkerNode().equals(workerNode)) {
+			// logger.debug("Updating worker node of job '" + id + "' from '"
+			// + job.getWorkerNode() + "' to '" + workerNode + "'");
+			// job.setWorkerNode(workerNode);
+			// }
+			// String oldComment = job.getComment() == null ? "" : job.getComment();
+			// if (!oldComment.equals(comment)) {
+			// logger.debug("Updating comment of job '" + id + "' from '" + oldComment
+			// + "' to '" + comment + "'");
+			// job.setComment(comment);
+			// }
+			// }
+			// }
 		} catch (Exception e) {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			e.printStackTrace(new PrintStream(baos));
@@ -220,154 +266,125 @@ public class JobManagementBean {
 	}
 
 	public String submitBatch(String sessionId, JobType jobType, List<String> parameters)
-			throws ParameterException, SessionException, InternalException {
+			throws SessionException, InternalException, ForbiddenException, ParameterException {
 		String reqFamily = jobType.getFamily();
 		String family = reqFamily == null ? defaultFamily : reqFamily;
-		LocalFamily lf = families.get(family);
+		Pattern lf = familyPatterm.get(family);
 		if (lf == null) {
 			throw new ParameterException("Requested family " + reqFamily + " not known");
 		}
 		String username = getUserName(sessionId);
 
-		if (lf.re != null && !lf.re.matcher(username).matches()) {
-			throw new ParameterException(username + " is not allowed to use family " + family);
+		if (lf != null && !lf.matcher(username).matches()) {
+			throw new ForbiddenException(username + " is not allowed to use family " + family);
 		}
-		String owner = family + random.nextInt(lf.count);
 
-		/*
-		 * The batch script needs to be written to disk by the dmf user (running glassfish) before
-		 * it can be submitted via the qsub command as a less privileged batch user. First generate
-		 * a unique name for it.
-		 */
-		File batchScriptFile = null;
-		do {
-			char[] pw = new char[10];
-			for (int i = 0; i < pw.length; i++) {
-				pw[i] = chars.charAt(random.nextInt(chars.length()));
+		Entry<String, WebTarget> bestEntry;
+		if (batchServers.size() == 1) {
+			bestEntry = batchServers.entrySet().iterator().next();
+		} else {
+			Map<Thread, Estimator> threads = new HashMap<>();
+
+			/* Send message to batch workers in parallel */
+			for (Entry<String, WebTarget> entry : batchServers.entrySet()) {
+				Estimator estimator = new Estimator(sessionId, jobType, parameters, entry);
+				Thread thread = new Thread(estimator);
+				thread.start();
+				threads.put(thread, estimator);
 			}
-			String batchScriptName = new String(pw) + ".sh";
-			batchScriptFile = new File(Constants.DMF_WORKING_DIR_NAME, batchScriptName);
-		} while (batchScriptFile.exists());
-
-		createScript(batchScriptFile, parameters, jobType, sessionId);
-
-		ShellCommand sc = new ShellCommand("sudo", "-u", owner, "qsub", "-k", "eo",
-				batchScriptFile.getAbsolutePath());
-		if (sc.isError()) {
-			throw new InternalException("Unable to submit job via qsub " + sc.getStderr());
-		}
-		String jobId = sc.getStdout().trim();
-
-		sc = new ShellCommand("qstat", "-x", jobId);
-		if (sc.isError()) {
-			throw new InternalException("Unable to query just submitted job (id " + jobId
-					+ ") via qstat " + sc.getStderr());
-		}
-		String jobsXml = sc.getStdout().trim();
-
-		Qstat qstat;
-		try {
-			qstat = (Qstat) qstatUnmarshaller.unmarshal(new StringReader(jobsXml));
-		} catch (JAXBException e1) {
-			throw new InternalException("Unable to parse qstat output for job (id " + jobId + ") "
-					+ sc.getStderr());
-		}
-		for (Qstat.Job xjob : qstat.getJobs()) {
-			String id = xjob.getJobId();
-			if (id.equals(jobId)) {
-				Job job = new Job();
-				job.setId(jobId);
-				job.setStatus(xjob.getStatus());
-				job.setComment(xjob.getComment());
-				String wn = xjob.getWorkerNode();
-				job.setWorkerNode(wn != null ? wn.split("/")[0] : "");
-				job.setBatchUsername(owner);
-				job.setUsername(username);
-				job.setSubmitDate(new Date());
-				job.setBatchFilename(batchScriptFile.getName());
-				entityManager.persist(job);
-			}
-		}
-		return jobId;
-	}
-
-	private void createScript(File batchScriptFile, List<String> parameters, JobType jobType,
-			String sessionId) throws InternalException {
-
-		List<String> finalParameters = new ArrayList<String>();
-		if (jobType.isSessionId()) {
-			finalParameters.add(sessionId);
-		}
-		finalParameters.addAll(parameters);
-
-		BufferedWriter bw = null;
-		try {
-			bw = new BufferedWriter(new FileWriter(batchScriptFile));
-			bw.write("#!/bin/sh");
-			bw.newLine();
-			bw.write("echo $(date) - " + jobType.getName() + " starting");
-			bw.newLine();
-			String line = jobType.getExecutable() + " "
-					+ JobManagementBean.escaped(finalParameters);
-			logger.debug("Exec line for " + jobType.getName() + ": " + line);
-			bw.write(line);
-			bw.newLine();
-			bw.newLine();
-		} catch (IOException e) {
-			throw new InternalException("Exception creating batch script: " + e.getMessage());
-		} finally {
-			if (bw != null) {
-				try {
-					bw.close();
-				} catch (IOException e) {
-					// Ignore it
-				}
-			}
-		}
-		batchScriptFile.setExecutable(true);
-
-	}
-
-	private static String sq = "\"'\"";
-
-	static String escaped(List<String> parameters) {
-		StringBuilder sb = new StringBuilder();
-		for (String parameter : parameters) {
-			if (sb.length() != 0) {
-				sb.append(" ");
-			}
-			int offset = 0;
+			int m = 0;
 			while (true) {
-				int quote = parameter.indexOf('\'', offset);
-				if (quote == offset) {
-					sb.append(sq);
-				} else if (quote > offset) {
-					sb.append("'" + parameter.substring(offset, quote) + "'" + sq);
-				} else if (offset != parameter.length()) {
-					sb.append("'" + parameter.substring(offset) + "'");
-					break;
-				} else {
+				m++;
+				int n = 0;
+				int best = 0;
+				Estimator bestEstimator = null;
+				for (Entry<Thread, Estimator> threadEntry : threads.entrySet()) {
+					Thread thread = threadEntry.getKey();
+					Estimator estimator = threadEntry.getValue();
+					if (!thread.isAlive()) {
+						n++;
+						Integer bestCandidiate = estimator.getTime();
+						if (bestCandidiate != null) {
+							if (bestEstimator == null || bestCandidiate < best) {
+								bestEstimator = estimator;
+								best = bestCandidiate;
+							}
+						}
+					}
+				}
+				if (n == batchServers.size() || m > maxSeconds) {
+					bestEntry = bestEstimator.entry;
 					break;
 				}
-				offset = quote + 1;
 			}
 		}
-		return sb.toString();
+
+		Response response = bestEntry.getValue().path("submit").queryParam("sessionId", sessionId)
+				.queryParam("jobType", jobType).queryParam("parameters", parameters)
+				.request(MediaType.TEXT_PLAIN).get(Response.class);
+		String json = (String) processResponse(response);
+		try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
+			return jsonReader.readObject().getString("jobId");
+		} catch (JsonException e) {
+			throw new InternalException("Bad response from batch service " + json);
+		}
+
+	}
+
+	private Object processResponse(Response response) throws InternalException, ForbiddenException,
+			ParameterException, SessionException {
+		if (response.getStatus() / 200 != 2) {
+			String code = null;
+			String message = null;
+			String result = (String) response.getEntity();
+			try (JsonParser parser = Json.createParser(new ByteArrayInputStream(result.getBytes()))) {
+				String key = null;
+				while (parser.hasNext()) {
+					JsonParser.Event event = parser.next();
+					if (event == Event.KEY_NAME) {
+						key = parser.getString();
+					} else if (event == Event.VALUE_STRING || event == Event.VALUE_NUMBER) {
+						if (key.equals("code")) {
+							code = parser.getString();
+						} else if (key.equals("message")) {
+							message = parser.getString();
+						} else {
+							throw new InternalException(key + " is not an expected key in the json");
+						}
+					}
+				}
+			}
+			if (code == null || message == null) {
+				throw new InternalException("Values of code or message not specified in " + result);
+			}
+			if (code.equals("ForbiddenException")) {
+				throw new ForbiddenException(message);
+			} else if (code.equals("InternalException")) {
+				throw new InternalException(message);
+			} else if (code.equals("ParameterException")) {
+				throw new ParameterException(message);
+			} else if (code.equals("SessionException")) {
+				throw new SessionException(message);
+			}
+		}
+		return response.getEntity();
 	}
 
 	public AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
 			throws InternalException {
-		Path p = null;
-		try {
-			p = Files.createTempFile(null, null);
-		} catch (IOException e) {
-			throw new InternalException("Unable to create a temporary file: " + e.getMessage());
-		}
-		File interactiveScriptFile = p.toFile();
-		createScript(interactiveScriptFile, parameters, jobType, sessionId);
-		Account account = machineEJB.prepareMachine(sessionId, jobType.getExecutable(), parameters,
-				interactiveScriptFile);
-		return account.getDTO(machineEJB.getPoolPrefix());
+		return null;
+		// Path p = null; TODO
+		// try {
+		// p = Files.createTempFile(null, null);
+		// } catch (IOException e) {
+		// throw new InternalException("Unable to create a temporary file: " + e.getMessage());
+		// }
+		// File interactiveScriptFile = p.toFile();
+		// createScript(interactiveScriptFile, parameters, jobType, sessionId);
+		// Account account = machineEJB.prepareMachine(sessionId, jobType.getExecutable(),
+		// parameters,
+		// interactiveScriptFile);
+		// return account.getDTO(machineEJB.getPoolPrefix());
 	}
 
 	private String getUserName(String sessionId) throws SessionException {
