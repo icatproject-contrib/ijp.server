@@ -22,7 +22,7 @@ if arg in ["CONFIGURE", "INSTALL"]:
     ijpProperties = actions.getProperties(os.path.join("ijp", prop_name), prop_list)
     actions.checkNoErrors()
     
-elif arg == "INSTALL":   
+if arg == "INSTALL":   
     actions.installDir("ijp")
     
     try:
@@ -46,6 +46,3 @@ if arg == "UNINSTALL":
         uninstall()
     except Exception, e:
         abort(str(e))       
-    
-            
-    

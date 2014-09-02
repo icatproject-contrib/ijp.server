@@ -31,21 +31,18 @@ public class JobType implements IsSerializable {
 	}
 
 	public String toString() {
-		String lineSep = "\n";
-		String objectAsString = "name='" + name + "', executable='" + executable + "', multiple='"
-				+ multiple + "', type='" + type + "'" + lineSep;
-		objectAsString += "datasetTypes=";
+		StringBuilder sb = new StringBuilder("name='" + name + "', executable='" + executable
+				+ "', multiple='" + multiple + "', type='" + type + "'" + " datasetTypes=");
 		for (int i = 0; i < datasetTypes.size(); i++) {
-			objectAsString += "'" + datasetTypes.get(i) + "'";
+			sb.append("'" + datasetTypes.get(i) + "'");
 			if (i != datasetTypes.size() - 1) {
-				objectAsString += ",";
+				sb.append(',');
 			}
 		}
-		objectAsString += lineSep;
 		for (JobOption jobOption : jobOptions) {
-			objectAsString += jobOption.toString() + lineSep;
+			sb.append(" " + jobOption.toString());
 		}
-		return objectAsString;
+		return sb.toString();
 	}
 
 	public String getName() {

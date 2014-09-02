@@ -1,7 +1,9 @@
 package org.icatproject.ijp.shared;
 
+import java.net.HttpURLConnection;
+
 @SuppressWarnings("serial")
-public class SessionException extends Exception {
+public class SessionException extends IjpException {
 
 	// Needed by GWT serialization
 	@SuppressWarnings("unused")
@@ -9,8 +11,8 @@ public class SessionException extends Exception {
 		super();
 	}
 
-	public SessionException(String msg) {
-		super(msg);
+	public SessionException(String message) {
+		super(HttpURLConnection.HTTP_FORBIDDEN, message);
 	}
 
 }

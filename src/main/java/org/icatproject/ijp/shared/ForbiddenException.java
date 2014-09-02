@@ -1,7 +1,9 @@
 package org.icatproject.ijp.shared;
 
+import java.net.HttpURLConnection;
+
 @SuppressWarnings("serial")
-public class ForbiddenException extends Exception {
+public class ForbiddenException extends IjpException {
 
 	// Needed by GWT serialization
 	@SuppressWarnings("unused")
@@ -9,8 +11,8 @@ public class ForbiddenException extends Exception {
 		super();
 	}
 
-	public ForbiddenException(String msg) {
-		super(msg);
+	public ForbiddenException(String message) {
+		super(HttpURLConnection.HTTP_FORBIDDEN, message);
 	}
 
 }

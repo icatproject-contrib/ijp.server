@@ -4,62 +4,52 @@ import java.io.Serializable;
 import java.util.Date;
 
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
-import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
-import org.icatproject.ijp.shared.JobDTO;
-import org.icatproject.ijp.shared.PortalUtils;
-
 @SuppressWarnings("serial")
 @Entity
-@NamedQueries({
-		@NamedQuery(name = "Job.FIND_BY_USERNAME", query = "SELECT j FROM Job j WHERE j.username = :username ORDER BY j.submitDate DESC"),
-		@NamedQuery(name = "Job.FIND_INCOMPLETE", query = "SELECT j FROM Job j WHERE j.status != 'C'") })
+@NamedQuery(name = "Job.FIND_BY_USERNAME", query = "SELECT j FROM Job j WHERE j.username = :username ORDER BY j.submitDate DESC")
 public class Job implements Serializable {
 
-	public final static String FIND_BY_USERNAME = "Job.FIND_BY_USERNAME";
-	public final static String FIND_INCOMPLETE = "Job.FIND_INCOMPLETE";
-	
-	@Id
-	private String id;
+	public enum Status {
+		COMPLETED, CANCELLED, OTHER
+	}
 
-	private String status;
+	public final static String FIND_BY_USERNAME = "Job.FIND_BY_USERNAME";
+
+	private String batch;
+
+	@Enumerated(EnumType.STRING)
+	private Status status;
+
+	@Id
+	@GeneratedValue
+	private long id;
 
 	private String username;
 
-	@Temporal(TemporalType.TIMESTAMP)
+	private String jobId;
+
+	@Temporal(value = TemporalType.TIMESTAMP)
 	private Date submitDate;
 
-	private long icatJobId;
-
-	private String batchFilename;
-
-	private String workerNode;
-
-	private String comment;
-
-	public String getBatchUsername() {
-		return batchUsername;
-	}
-
-	private String batchUsername;
-
-	public String getComment() {
-		return comment;
-	}
+	private String jobType;
 
 	public Job() {
 	}
 
-	public String getId() {
-		return id;
+	public String getBatch() {
+		return batch;
 	}
 
-	public void setId(String id) {
-		this.id = id;
+	public long getId() {
+		return id;
 	}
 
 	public String getUsername() {
@@ -70,64 +60,40 @@ public class Job implements Serializable {
 		this.username = username;
 	}
 
-	public String getStatus() {
+	public Status getStatus() {
 		return status;
 	}
 
-	public void setStatus(String status) {
+	public void setStatus(Status status) {
 		this.status = status;
+	}
+
+	public void setJobId(String jobId) {
+		this.jobId = jobId;
+	}
+
+	public String getJobId() {
+		return jobId;
 	}
 
 	public Date getSubmitDate() {
 		return submitDate;
 	}
 
-	public void setSubmitDate(Date submitDate) {
-		this.submitDate = submitDate;
+	public void setSubmitDate(Date date) {
+		this.submitDate = date;
 	}
 
-	public long getIcatJobId() {
-		return icatJobId;
+	public void setBatch(String batch) {
+		this.batch = batch;
 	}
 
-	public void setIcatJobId(long icatJobId) {
-		this.icatJobId = icatJobId;
+	public void setJobType(String jobType) {
+		this.jobType = jobType;
 	}
 
-	public String getBatchFilename() {
-		return batchFilename;
+	public String getJobType() {
+		return jobType;
 	}
 
-	public void setBatchFilename(String batchFilename) {
-		this.batchFilename = batchFilename;
-	}
-
-	public String getWorkerNode() {
-		return workerNode;
-	}
-
-	public void setWorkerNode(String workerNode) {
-		this.workerNode = workerNode;
-	}
-
-	public JobDTO getJobDTO() {
-		JobDTO jobDTO = new JobDTO();
-		jobDTO.setId(id);
-		jobDTO.setUsername(username);
-		jobDTO.setSubmitDate(submitDate);
-		jobDTO.setBatchFilename(batchFilename);
-		jobDTO.setStatus(PortalUtils.JOB_STATUS_MAPPINGS.get(status));
-		jobDTO.setWorkerNode(workerNode);
-		jobDTO.setIcatJobId(icatJobId);
-		jobDTO.setComment(comment);
-		return jobDTO;
-	}
-
-	public void setComment(String comment) {
-		this.comment = comment;
-	}
-
-	public void setBatchUsername(String batchUsername) {
-		this.batchUsername = batchUsername;
-	}
 }

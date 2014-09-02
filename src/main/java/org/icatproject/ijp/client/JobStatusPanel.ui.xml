@@ -2,20 +2,22 @@
 <ui:UiBinder xmlns:ui='urn:ui:com.google.gwt.uibinder' xmlns:g='urn:import:com.google.gwt.user.client.ui' xmlns:c='urn:import:com.google.gwt.user.cellview.client'>
 
     <ui:style src="portal.css" />
-        
+    
     <g:VerticalPanel spacing='10'>
         <g:HorizontalPanel>
             <g:Button ui:field="refreshButton" text='Refresh Job Status' />
             <g:Button ui:field="jobOutputButton" text='Display Job Output' />
             <g:Button ui:field="jobErrorButton" text='Display Job Error' />
+            <g:Button ui:field="jobCancelButton" text='Cancel Job' />
+            <g:Button ui:field="jobDeleteButton" text='Delete Job' />
         </g:HorizontalPanel>
         <g:ScrollPanel ui:field='jobsScrollPanel' width='900px' height='500px' styleName='{style.scroll-panel}'>
             <c:CellTable ui:field='jobsTable' width='100%' />
         </g:ScrollPanel>
-		<g:HTMLPanel>
-			<center>
-				<g:Button ui:field="closeButton" text='Close' />
-			</center>
-		</g:HTMLPanel>
+        <g:HTMLPanel>
+            <center>
+                <g:Button ui:field="closeButton" text='Close' />
+            </center>
+        </g:HTMLPanel>
     </g:VerticalPanel>
 </ui:UiBinder>

@@ -41,7 +41,6 @@ public class PortalUtils {
 	public static final Double MINUS_TWO_TO_POWER_53_DOUBLE = -9007199254740992D;
 
 	public static HashMap<ParameterValueType, List<String>> PARAM_OPERATOR_MAPPINGS = initialiseParamOperatorMappings();
-	public static HashMap<String, String> JOB_STATUS_MAPPINGS = initialiseJobStatusMappings();
 
 	private static HashMap<ParameterValueType, List<String>> initialiseParamOperatorMappings() {
 		HashMap<ParameterValueType, List<String>> paramOperatorMappings = new HashMap<ParameterValueType, List<String>>();
@@ -52,34 +51,16 @@ public class PortalUtils {
 		return paramOperatorMappings;
 	}
 
-	/**
-	 * Set up a mappings for status strings as defined in the qstat section of the Torque
-	 * Administrator's Guide
-	 */
-	private static HashMap<String, String> initialiseJobStatusMappings() {
-		HashMap<String, String> jobStatusMappings = new HashMap<String, String>();
-		jobStatusMappings.put("C", "COMPLETED");
-		jobStatusMappings.put("E", "EXITING");
-		jobStatusMappings.put("H", "HELD");
-		jobStatusMappings.put("Q", "QUEUED");
-		jobStatusMappings.put("R", "RUNNING");
-		jobStatusMappings.put("T", "BEING MOVED");
-		jobStatusMappings.put("W", "WAITING");
-		jobStatusMappings.put("S", "SUSPENDED");
-		jobStatusMappings.put("", "UNKNOWN");
-		return jobStatusMappings;
-	}
-
 	public static String createStringFromList(List<String> stringList, String separator) {
-		if ( stringList.size() == 0 ) {
+		if (stringList.size() == 0) {
 			return "";
 		}
 		StringBuilder sb = new StringBuilder();
-		for ( String stringFromList : stringList ) {
+		for (String stringFromList : stringList) {
 			sb.append(stringFromList);
 			sb.append(separator);
 		}
-		return sb.substring(0, sb.length()-separator.length());
+		return sb.substring(0, sb.length() - separator.length());
 	}
 
 	public static String removeBackspacesFromString(String inString) {

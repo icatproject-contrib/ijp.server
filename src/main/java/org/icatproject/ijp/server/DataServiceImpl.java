@@ -1,15 +1,22 @@
 package org.icatproject.ijp.server;
 
+import java.io.StringReader;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.ejb.EJB;
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import javax.json.JsonValue;
 import javax.servlet.UnavailableException;
 
 import org.icatproject.ijp.client.service.DataService;
-import org.icatproject.ijp.server.ejb.entity.Job;
 import org.icatproject.ijp.server.ejb.session.JobManagementBean;
 import org.icatproject.ijp.server.manager.DataServiceManager;
 import org.icatproject.ijp.server.manager.XmlFileManager;
@@ -84,24 +91,41 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 		return dataServiceManager.login(plugin, credentials);
 	}
 
-	@Override
-	public List<JobDTO> getJobsForUser(String sessionId) throws SessionException {
-		List<Job> jobList = jobManagementBean.getJobsForUser(sessionId);
-		return convertJobListToJobDTOList(jobList);
-	}
+	private SimpleDateFormat dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-	private List<JobDTO> convertJobListToJobDTOList(List<Job> jobList) {
-		List<JobDTO> jobDTOList = new ArrayList<JobDTO>();
-		for (Job job : jobList) {
-			jobDTOList.add(job.getJobDTO());
+	@Override
+	public List<JobDTO> getJobsForUser(String sessionId) throws SessionException,
+			InternalException, ForbiddenException, ParameterException {
+		List<JobDTO> result = new ArrayList<>();
+		try (JsonReader jsonReader = Json.createReader(new StringReader(jobManagementBean
+				.listStatus(sessionId)))) {
+			JsonArray jobs = jsonReader.readArray();
+			synchronized (dateTimeFormat) {
+				for (JsonValue jobv : jobs) {
+					JsonObject job = (JsonObject) jobv;
+					JobDTO jobDTO = new JobDTO();
+					jobDTO.setId(job.getInt("jobId"));
+					jobDTO.setJobType(job.getString("name"));
+					try {
+						jobDTO.setStatus(JobDTO.Status.valueOf(job.getString("status")));
+					} catch (IllegalArgumentException e) {
+						throw new InternalException("Batch system returned bad status "
+								+ job.getString("status"));
+					}
+					jobDTO.setSubmitDate(dateTimeFormat.parse(job.getString("date")));
+					result.add(jobDTO);
+				}
+			}
+		} catch (ParseException e) {
+			throw new InternalException(e.getClass() + " " + e.getMessage());
 		}
-		return jobDTOList;
+		return result;
 	}
 
 	@Override
-	public String getJobOutput(String sessionId, String jobId, OutputType outputType)
-			throws SessionException, ForbiddenException, InternalException {
-		return jobManagementBean.getJobOutput(sessionId, jobId, outputType);
+	public String getJobOutput(String sessionId, long id, OutputType outputType)
+			throws SessionException, ForbiddenException, InternalException, ParameterException {
+		return jobManagementBean.getJobOutput(sessionId, id, outputType);
 	}
 
 	@Override
@@ -136,7 +160,7 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	@Override
 	public String submitBatch(String sessionId, JobType jobType, List<String> parameters)
 			throws ParameterException, SessionException, InternalException, ForbiddenException {
-		return jobManagementBean.submitBatch(sessionId, jobType, parameters);
+		return Long.toString(jobManagementBean.submitBatch(sessionId, jobType, parameters));
 	}
 
 	@Override
@@ -165,5 +189,17 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	@Override
 	public List<Authenticator> getAuthenticators() {
 		return dataServiceManager.getAuthenticators();
+	}
+
+	@Override
+	public void cancelJob(String sessionId, long id) throws SessionException, ForbiddenException,
+			InternalException, ParameterException {
+		jobManagementBean.cancel(sessionId, id);
+	}
+
+	@Override
+	public void deleteJob(String sessionId, long id) throws SessionException, ForbiddenException,
+			InternalException, ParameterException {
+		jobManagementBean.delete(sessionId, id);
 	}
 }

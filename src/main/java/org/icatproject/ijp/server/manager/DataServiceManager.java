@@ -71,8 +71,7 @@ public class DataServiceManager {
 
 	private String idsUrlString;
 
-	private List<Authenticator> authenticators = new ArrayList<>() ;
-	
+	private List<Authenticator> authenticators = new ArrayList<>();
 
 	static {
 		// list the types of fields of Dataset that should be searchable with the generic search
@@ -139,8 +138,8 @@ public class DataServiceManager {
 			String key = "authn." + authnName + ".friendly";
 			String friendlyName = authnName;
 			if (props.has(key)) {
-				friendlyName =  props.getString(key);
-				
+				friendlyName = props.getString(key);
+
 			}
 			List<CredType> credTypes = new ArrayList<CredType>();
 			ArrayList<String> authnOneList = new ArrayList<String>(Arrays.asList(props.getString(
@@ -158,7 +157,7 @@ public class DataServiceManager {
 					credTypes.add(credType);
 				}
 			}
-			
+
 			Authenticator authenticator = new Authenticator(authnName, friendlyName, credTypes);
 			logger.debug(authenticator.toString());
 			authenticators.add(authenticator);

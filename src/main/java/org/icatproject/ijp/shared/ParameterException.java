@@ -1,7 +1,9 @@
 package org.icatproject.ijp.shared;
 
+import java.net.HttpURLConnection;
+
 @SuppressWarnings("serial")
-public class ParameterException extends Exception {
+public class ParameterException extends IjpException {
 
 	// Needed by GWT serialization
 	@SuppressWarnings("unused")
@@ -9,8 +11,8 @@ public class ParameterException extends Exception {
 		super();
 	}
 
-	public ParameterException(String msg) {
-		super(msg);
+	public ParameterException(String message) {
+		super(HttpURLConnection.HTTP_BAD_REQUEST, message);
 	}
 
 }

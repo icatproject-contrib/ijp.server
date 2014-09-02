@@ -7,7 +7,7 @@ import java.util.List;
 import org.icatproject.ijp.client.service.DataService;
 import org.icatproject.ijp.client.service.DataServiceAsync;
 import org.icatproject.ijp.shared.JobDTO;
-import org.icatproject.ijp.shared.PortalUtils;
+import org.icatproject.ijp.shared.JobDTO.Status;
 import org.icatproject.ijp.shared.SessionException;
 
 import com.google.gwt.core.client.GWT;
@@ -54,14 +54,20 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 	Button jobErrorButton;
 
 	@UiField
+	Button jobCancelButton;
+
+	@UiField
+	Button jobDeleteButton;
+
+	@UiField
 	Button closeButton;
 
 	List<JobDTO> jobList = new ArrayList<JobDTO>();
 	final SingleSelectionModel<JobDTO> selectionModel = new SingleSelectionModel<JobDTO>();
-	String selectedJobId;
-	String previouslySelectedJobId;
+	long selectedJobId;
+	long previouslySelectedJobId;
 
-	private DateTimeFormat dateTimeFormat = DateTimeFormat.getFormat("dd-MM-yyyy HH:mm:ss");
+	private DateTimeFormat dateTimeFormat = DateTimeFormat.getFormat("yyyy-MM-dd HH:mm:ss");
 
 	Timer tableRefreshTimer = new Timer() {
 		public void run() {
@@ -87,28 +93,19 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 		TextColumn<JobDTO> nameColumn = new TextColumn<JobDTO>() {
 			@Override
 			public String getValue(JobDTO job) {
-				return job.getId();
+				return Long.toString(job.getId());
 			}
 		};
 		jobsTable.addColumn(nameColumn, "Job ID");
 
-		// Add a text column to show the worker node
-		TextColumn<JobDTO> workerNodeColumn = new TextColumn<JobDTO>() {
+		// Add a text column to show the executable
+		TextColumn<JobDTO> jobColumn = new TextColumn<JobDTO>() {
 			@Override
 			public String getValue(JobDTO job) {
-				return job.getWorkerNode();
+				return job.getJobType();
 			}
 		};
-		jobsTable.addColumn(workerNodeColumn, "Worker Node");
-
-		// Add a text column to show the worker node
-		TextColumn<JobDTO> batchFilenameColumn = new TextColumn<JobDTO>() {
-			@Override
-			public String getValue(JobDTO job) {
-				return job.getBatchFilename();
-			}
-		};
-		jobsTable.addColumn(batchFilenameColumn, "Batch Filename");
+		jobsTable.addColumn(jobColumn, "Name");
 
 		// Add a text column to show the Submitted timestamp
 		TextColumn<JobDTO> submittedColumn = new TextColumn<JobDTO>() {
@@ -124,7 +121,7 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 		TextColumn<JobDTO> statusColumn = new TextColumn<JobDTO>() {
 			@Override
 			public String getValue(JobDTO job) {
-				return job.getStatus();
+				return job.getStatus().name();
 			}
 		};
 		jobsTable.addColumn(statusColumn, "Status");
@@ -145,15 +142,13 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 				JobDTO selectedJob = selectionModel.getSelectedObject();
 				// check that the job status is RUNNING or COMPLETED before attempting to show the
 				// log file
-				if (selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("R"))
-						|| selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("C"))) {
-					portal.jobOutputDialog.show();
+				if (selectedJob.getStatus() == Status.Running
+						|| selectedJob.getStatus() == Status.Completed
+						|| selectedJob.getStatus() == Status.Cancelled) {
 					portal.jobStandardOutputPanel.getOutputForJob(selectedJob.getId());
 				} else {
-					Window.alert("Job output is only available when the job status is RUNNING or COMPLETED");
+					Window.alert("Job output is only available when the job status is Running, Completed or Cancelled");
 				}
-				// ensure this dialog is in front of others that are open
-				portal.jobOutputDialog.bringToFront();
 			}
 		});
 
@@ -163,12 +158,63 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 				JobDTO selectedJob = selectionModel.getSelectedObject();
 				// check that the job status is RUNNING or COMPLETED before attempting to show the
 				// log file
-				if (selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("R"))
-						|| selectedJob.getStatus().equals(PortalUtils.JOB_STATUS_MAPPINGS.get("C"))) {
-					portal.jobErrorDialog.show();
+				if (selectedJob.getStatus() == Status.Running
+						|| selectedJob.getStatus() == Status.Completed
+						|| selectedJob.getStatus() == Status.Cancelled) {
 					portal.jobErrorOutputPanel.getOutputForJob(selectedJob.getId());
 				} else {
-					Window.alert("Job output is only available when the job status is RUNNING or COMPLETED");
+					Window.alert("Job output is only available when the job status is Running, Completed or Cancelled");
+				}
+				
+			}
+		});
+
+		jobCancelButton.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				JobDTO selectedJob = selectionModel.getSelectedObject();
+				if (selectedJob.getStatus() == Status.Completed
+						|| selectedJob.getStatus() == Status.Cancelled) {
+					Window.alert("Can't cancel a job with status " + selectedJob.getStatus());
+				} else {
+					dataService.cancelJob(portal.getSessionId(), selectedJob.getId(),
+							new AsyncCallback<Void>() {
+								@Override
+								public void onFailure(Throwable caught) {
+									Window.alert(caught.getMessage());
+								}
+
+								@Override
+								public void onSuccess(Void arg0) {
+									refreshJobList();
+								}
+							});
+				}
+			}
+		});
+
+		jobDeleteButton.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				JobDTO selectedJob = selectionModel.getSelectedObject();
+				// check that the job status is RUNNING or COMPLETED before attempting to show the
+				// log file
+				if (selectedJob.getStatus() == Status.Completed
+						|| selectedJob.getStatus() == Status.Cancelled) {
+					dataService.deleteJob(portal.getSessionId(), selectedJob.getId(),
+							new AsyncCallback<Void>() {
+								@Override
+								public void onFailure(Throwable caught) {
+									Window.alert(caught.getMessage());
+								}
+
+								@Override
+								public void onSuccess(Void arg0) {
+									refreshJobList();
+								}
+							});
+				} else {
+					Window.alert("Can only delete jobs that are Completed or Cancelled");
 				}
 				// ensure this dialog is in front of others that are open
 				portal.jobErrorDialog.bringToFront();
@@ -206,19 +252,15 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 				// set the page size to the number of projects returned
 				// otherwise we only see the first 15 by default
 				jobsTable.setPageSize(jobList.size());
-				// push the data into the widget.
-				jobsTable.setRowData(0, jobList);
+				jobsTable.setRowData(jobList);
 				JobDTO requiredJob = null;
 				for (JobDTO job : portal.jobStatusPanel.jobList) {
-					if (job.getId().equals(previouslySelectedJobId)) {
+					if (job.getId() == previouslySelectedJobId) {
 						requiredJob = job;
 						break;
 					}
 				}
 				if (requiredJob == null) {
-					// this should never happen but for some reason the
-					// previously selected job is no longer in the table
-					// so just select the first job instead
 					selectionModel.setSelected(jobList.get(0), true);
 				} else {
 					selectionModel.setSelected(requiredJob, true);
@@ -227,7 +269,6 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 		};
 
 		// make the call to the server
-		System.out.println("JobStatusPanel: making call to DataService");
 		dataService.getJobsForUser(portal.getSessionId(), callback);
 
 	}

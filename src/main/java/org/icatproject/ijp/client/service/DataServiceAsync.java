@@ -48,8 +48,10 @@ public interface DataServiceAsync {
 
 	void getJobsForUser(String sessionId, AsyncCallback<List<JobDTO>> callback);
 
-	void getJobOutput(String sessionId, String jobId, OutputType outputType,
+	void getJobOutput(String sessionId, long jobId, OutputType outputType,
 			AsyncCallback<String> callback);
+	
+	void cancelJob(String sessionId, long jobId, AsyncCallback<Void> callback);
 
 	void getSearchItems(AsyncCallback<SearchItems> callback);
 
@@ -77,5 +79,7 @@ public interface DataServiceAsync {
 	void getIdsUrlString(AsyncCallback<String> asyncCallback);
 
 	void getAuthenticators(AsyncCallback<List<Authenticator>> asyncCallback);
+
+	void deleteJob(String sessionId, long jobId, AsyncCallback<Void> callback);
 
 }

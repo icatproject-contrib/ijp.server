@@ -7,6 +7,7 @@ import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -41,71 +42,23 @@ public class JobManager {
 
 	@POST
 	@Path("cancel/{jobId}")
-	public String cancel(@PathParam("jobId") String jobId, @QueryParam("sessionId") String sessionId) {
-
-		checkCredentials(sessionId);
-		try {
-			return jobManagementBean.cancel(sessionId, jobId);
-		} catch (SessionException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (ForbiddenException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (InternalException e) {
-			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(e.getMessage() + "\n").build());
-		}
-	}
-
-	private void checkCredentials(String sessionId) {
-		if (sessionId == null) {
-			throw new WebApplicationException(Response.status(Status.BAD_REQUEST)
-					.entity("No sessionId was specified\n").build());
-		}
+	public void cancel(@PathParam("jobId") long id, @FormParam("sessionId") String sessionId)
+			throws SessionException, ForbiddenException, InternalException, ParameterException {
+		jobManagementBean.cancel(sessionId, id);
 	}
 
 	@DELETE
 	@Path("delete/{jobId}")
-	public String delete(@PathParam("jobId") String jobId, @QueryParam("sessionId") String sessionId) {
-		checkCredentials(sessionId);
-		try {
-			return jobManagementBean.delete(sessionId, jobId);
-		} catch (SessionException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (ForbiddenException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (InternalException e) {
-			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(e.getMessage() + "\n").build());
-		} catch (ParameterException e) {
-			throw new WebApplicationException(Response.status(Status.BAD_REQUEST)
-					.entity(e.getMessage() + "\n").build());
-		}
-
+	public void delete(@PathParam("jobId") long id, @QueryParam("sessionId") String sessionId)
+			throws SessionException, ForbiddenException, InternalException, ParameterException {
+		jobManagementBean.delete(sessionId, id);
 	}
 
 	@GET
 	@Path("error/{jobId}")
-	public String getError(@PathParam("jobId") String jobId,
-			@QueryParam("sessionId") String sessionId) {
-
-		checkCredentials(sessionId);
-
-		try {
-			return jobManagementBean.getJobOutput(sessionId, jobId, OutputType.ERROR_OUTPUT);
-		} catch (SessionException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (ForbiddenException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (InternalException e) {
-			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(e.getMessage() + "\n").build());
-		}
+	public String getError(@PathParam("jobId") long id, @QueryParam("sessionId") String sessionId)
+			throws SessionException, ForbiddenException, InternalException, ParameterException {
+		return jobManagementBean.getJobOutput(sessionId, id, OutputType.ERROR_OUTPUT);
 	}
 
 	@GET
@@ -127,52 +80,24 @@ public class JobManager {
 
 	@GET
 	@Path("output/{jobId}")
-	public String getOutput(@PathParam("jobId") String jobId,
-			@QueryParam("sessionId") String sessionId) {
-
-		checkCredentials(sessionId);
-
-		try {
-			return jobManagementBean.getJobOutput(sessionId, jobId, OutputType.STANDARD_OUTPUT);
-		} catch (SessionException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (ForbiddenException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (InternalException e) {
-			throw new WebApplicationException(Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(e.getClass() + " reports " + e.getMessage() + "\n").build());
-		}
+	public String getOutput(@PathParam("jobId") long id, @QueryParam("sessionId") String sessionId)
+			throws SessionException, ForbiddenException, InternalException, ParameterException {
+		return jobManagementBean.getJobOutput(sessionId, id, OutputType.STANDARD_OUTPUT);
 	}
 
 	@GET
 	@Path("status")
-	public String getStatus(@QueryParam("sessionId") String sessionId) {
-		checkCredentials(sessionId);
-		try {
-			return jobManagementBean.listStatus(sessionId);
-		} catch (SessionException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		}
+	public String getStatus(@QueryParam("sessionId") String sessionId) throws SessionException,
+			InternalException, ForbiddenException, ParameterException {
+		return jobManagementBean.listStatus(sessionId);
 	}
 
 	@GET
 	@Path("status/{jobId}")
-	public String getStatus(@PathParam("jobId") String jobId,
-			@QueryParam("sessionId") String sessionId) {
-
-		checkCredentials(sessionId);
-		try {
-			return jobManagementBean.getStatus(jobId, sessionId);
-		} catch (SessionException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		} catch (ForbiddenException e) {
-			throw new WebApplicationException(Response.status(Status.FORBIDDEN)
-					.entity(e.getMessage() + "\n").build());
-		}
+	public String getStatus(@PathParam("jobId") long jobId,
+			@QueryParam("sessionId") String sessionId) throws SessionException, ForbiddenException,
+			InternalException, ParameterException {
+		return jobManagementBean.getStatus(jobId, sessionId);
 	}
 
 	@PostConstruct
@@ -180,7 +105,7 @@ public class JobManager {
 		try {
 			XmlFileManager xmlFileManager = new XmlFileManager();
 			jobTypes = xmlFileManager.getJobTypeMappings().getJobTypesMap();
-			logger.debug("Initialised JobManager");
+			logger.info("Initialised JobManager");
 		} catch (Exception e) {
 			String msg = e.getClass().getName() + " reports " + e.getMessage();
 			logger.error(msg);
@@ -190,15 +115,10 @@ public class JobManager {
 
 	@POST
 	@Path("submit")
-	public String submit(@QueryParam("jobName") String jobName,
-			@QueryParam("parameter") List<String> parameters,
-			@QueryParam("sessionId") String sessionId) throws ForbiddenException,
+	public String submit(@FormParam("jobName") String jobName,
+			@FormParam("parameter") List<String> parameters,
+			@FormParam("sessionId") String sessionId) throws ForbiddenException,
 			ParameterException, InternalException, SessionException {
-
-		checkCredentials(sessionId);
-
-		logger.debug("submit: " + jobName + " with parameters " + parameters + " under sessionId "
-				+ sessionId);
 
 		if (jobName == null) {
 			throw new ParameterException("No jobName was specified");
@@ -218,7 +138,7 @@ public class JobManager {
 			return "rdesktop -u " + accountDTO.getAccountName() + " -p " + accountDTO.getPassword()
 					+ " " + accountDTO.getHostName();
 		} else if (type.equals("batch")) {
-			return jobManagementBean.submitBatch(sessionId, jobType, parameters);
+			return Long.toString(jobManagementBean.submitBatch(sessionId, jobType, parameters));
 		} else {
 			throw new InternalException("XML describing job '" + jobName
 					+ "' has a type field with an invalid value '" + jobType.getType() + "'");

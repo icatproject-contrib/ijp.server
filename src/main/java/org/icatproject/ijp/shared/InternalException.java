@@ -1,7 +1,9 @@
 package org.icatproject.ijp.shared;
 
+import java.net.HttpURLConnection;
+
 @SuppressWarnings("serial")
-public class InternalException extends Exception {
+public class InternalException extends IjpException {
 
 	// Needed by GWT serialization
 	@SuppressWarnings("unused")
@@ -9,8 +11,8 @@ public class InternalException extends Exception {
 		super();
 	}
 
-	public InternalException(String msg) {
-		super(msg);
+	public InternalException(String message) {
+		super(HttpURLConnection.HTTP_INTERNAL_ERROR, message);
 	}
 
 }

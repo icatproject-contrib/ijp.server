@@ -36,10 +36,10 @@ public interface DataService extends RemoteService {
 	LoginResult login(String plugin, Map<String, String> credentials) throws SessionException,
 			InternalException;
 
-	List<JobDTO> getJobsForUser(String sessionId) throws SessionException;
+	List<JobDTO> getJobsForUser(String sessionId) throws SessionException, InternalException, ForbiddenException, ParameterException;
 
-	String getJobOutput(String sessionId, String jobId, OutputType outputType)
-			throws SessionException, ForbiddenException, InternalException;
+	String getJobOutput(String sessionId, long jobId, OutputType outputType)
+			throws SessionException, ForbiddenException, InternalException, ParameterException;
 
 	SearchItems getSearchItems() throws InternalException;
 
@@ -68,5 +68,9 @@ public interface DataService extends RemoteService {
 	String getIdsUrlString();
 
 	List<Authenticator> getAuthenticators();
+
+	void cancelJob(String sessionId, long jobId) throws SessionException, ForbiddenException, InternalException, ParameterException;
+
+	void deleteJob(String sessionId, long jobId) throws SessionException, ForbiddenException, InternalException, ParameterException;
 
 }
