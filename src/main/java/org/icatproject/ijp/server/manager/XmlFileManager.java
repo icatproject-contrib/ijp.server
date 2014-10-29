@@ -1,6 +1,7 @@
 package org.icatproject.ijp.server.manager;
 
 import java.io.File;
+import java.io.FilenameFilter;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -10,7 +11,6 @@ import javax.xml.transform.stream.StreamSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.icatproject.ijp.shared.Constants;
 import org.icatproject.ijp.shared.InternalException;
 import org.icatproject.ijp.shared.xmlmodel.JobDatasetMappings;
@@ -42,7 +42,16 @@ public class XmlFileManager {
 
 	public JobTypeMappings getJobTypeMappings() throws InternalException {
 		JobTypeMappings jobTypeMappings = new JobTypeMappings();
-		File[] dirListing = new File(Constants.CONFIG_SUBDIR + "/job_types").listFiles();
+		File[] dirListing = new File(Constants.CONFIG_SUBDIR + "/job_types")
+			.listFiles(new FilenameFilter() {
+			    @Override
+			    public boolean accept(File dir, String name) {
+			        return name.endsWith(".xml");
+			    }
+			});
+		if( dirListing == null ){
+			throw new InternalException("Error listing contents of job_types folder, does it exist?");
+		}
 		for (File xmlFile : dirListing) {
 			JobType jobType = getJobType(xmlFile);
 			jobTypeMappings.addJobTypeToMap(jobType);
@@ -57,7 +66,7 @@ public class XmlFileManager {
 			Unmarshaller u = context.createUnmarshaller();
 			JAXBElement<JobType> root = u.unmarshal(new StreamSource(xmlFile), JobType.class);
 			jobType = root.getValue();
-			logger.debug("JobType " + jobType.getName() + " read");
+			logger.debug("JobType " + jobType.getName() + " read: " + jobType);
 		} catch (JAXBException e) {
 			throw new InternalException("Error reading XML definition for JobType from file "
 					+ xmlFile.getAbsolutePath() + ": " + e.getMessage());
@@ -68,7 +77,15 @@ public class XmlFileManager {
 	JobDatasetMappings getJobDatasetMappings() throws InternalException {
 		JobDatasetMappings jobDatasetMappings = new JobDatasetMappings();
 		File[] dirListing = new File(Constants.CONFIG_SUBDIR + "/job_dataset_parameters")
-				.listFiles();
+				.listFiles(new FilenameFilter() {
+				    @Override
+				    public boolean accept(File dir, String name) {
+				        return name.endsWith(".xml");
+				    }
+				});
+		if( dirListing == null ){
+			throw new InternalException("Error listing contents of job_dataset_parameters folder, does it exist?");
+		}
 		for (File xmlFile : dirListing) {
 			JobDatasetType jobDatasetType = getJobDatasetType(xmlFile);
 			jobDatasetMappings.addJobDatasetTypeToMap(jobDatasetType);

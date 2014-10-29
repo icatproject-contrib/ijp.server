@@ -2,4 +2,5 @@
     <name>date</name>
     <executable>date</executable>
     <type>batch</type>
+    <datasetTypes>none (job only)</datasetTypes>
 </jobType>

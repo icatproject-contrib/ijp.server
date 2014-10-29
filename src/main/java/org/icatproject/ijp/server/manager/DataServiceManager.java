@@ -354,7 +354,7 @@ public class DataServiceManager {
 			for (String key : selectedSearchParamsMap.keySet()) {
 				logger.debug("Processing key [" + key + "]");
 				List<String> selectedParams = selectedSearchParamsMap.get(key);
-				String query = searchItemsMap.get(key).getQuery();
+				String query = searchItemsMap.get(key).getQuery().trim();
 				query = query.replace("${datasetType}", datasetType);
 				query = replaceVariableInQuery(query, "${stringValues}", selectedParams, "'");
 				query = replaceVariableInQuery(query, "${numericValues}", selectedParams, "");
