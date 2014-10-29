@@ -11,7 +11,7 @@ import java.util.Date;
 public class JobDTO implements Serializable {
 
 	public enum Status {
-		Completed, Executing, Held, Running, Queued, Cancelled, Unknown
+		Completed, Executing, Held, Queued, Cancelled, Unknown
 	}
 
 	private long id;

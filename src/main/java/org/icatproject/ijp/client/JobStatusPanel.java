@@ -140,9 +140,11 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 			@Override
 			public void onClick(ClickEvent event) {
 				JobDTO selectedJob = selectionModel.getSelectedObject();
-				// check that the job status is RUNNING or COMPLETED before attempting to show the
-				// log file
-				if (selectedJob.getStatus() == Status.Running
+				/*
+				 * check that the job status is EXECUTING, COMPLETED or CANCELLED before attempting
+				 * to show the log file
+				 */
+				if (selectedJob.getStatus() == Status.Executing
 						|| selectedJob.getStatus() == Status.Completed
 						|| selectedJob.getStatus() == Status.Cancelled) {
 					portal.jobStandardOutputPanel.getOutputForJob(selectedJob.getId());
@@ -156,16 +158,17 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 			@Override
 			public void onClick(ClickEvent event) {
 				JobDTO selectedJob = selectionModel.getSelectedObject();
-				// check that the job status is RUNNING or COMPLETED before attempting to show the
+				// check that the job status is EXECUTING, COMPLETED or CANCELLED before attempting
+				// to show the
 				// log file
-				if (selectedJob.getStatus() == Status.Running
+				if (selectedJob.getStatus() == Status.Executing
 						|| selectedJob.getStatus() == Status.Completed
 						|| selectedJob.getStatus() == Status.Cancelled) {
 					portal.jobErrorOutputPanel.getOutputForJob(selectedJob.getId());
 				} else {
 					Window.alert("Job output is only available when the job status is Running, Completed or Cancelled");
 				}
-				
+
 			}
 		});
 
