@@ -200,6 +200,10 @@ public class JobManagementBean {
 		if (lf != null && !lf.matcher(username).matches()) {
 			throw new ForbiddenException(username + " is not allowed to use family " + family);
 		}
+		
+		if( jobType.isSessionId() ){
+			parameters.add("--sessionId=" + sessionId);
+		}
 
 		Entry<String, WebTarget> bestEntry;
 		if (batchServers.size() == 1) {

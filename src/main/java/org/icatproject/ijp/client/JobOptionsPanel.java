@@ -221,6 +221,11 @@ public class JobOptionsPanel extends VerticalPanel {
 						// but we need to add one entry that is null so that the loop
 						// for submitBatch further down gets executed once
 						datasetIdsList.add(null);
+					} else if (jobType.getDatasetTypes().isEmpty()) {
+						// This should be a synonym for job-only jobs;
+						// again, need to add one entry to the datasetIdsList to
+						// execute the submission loop once
+						datasetIdsList.add(null);
 					} else if (multiJobType == MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB) {
 						// create a comma separated string from the dataset IDs
 						// empty the existing datasetIdsList and

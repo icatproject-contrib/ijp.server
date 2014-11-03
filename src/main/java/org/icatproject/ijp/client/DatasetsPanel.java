@@ -400,7 +400,10 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		if (!selectedValue.equals("")) {
 			for (String jobName : jobTypeMappings.getJobTypesMap().keySet()) {
 				JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
-				if (jobType.getDatasetTypes().contains(selectedValue)) {
+				// if "job only" is selected, add jobs that have no datasetTypes
+				if (selectedValue.equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION) && jobType.getDatasetTypes().isEmpty() ){
+					datasetActionListBox.addItem(jobType.getName());
+				} else if (jobType.getDatasetTypes().contains(selectedValue)) {
 					datasetActionListBox.addItem(jobType.getName());
 				}
 			}
