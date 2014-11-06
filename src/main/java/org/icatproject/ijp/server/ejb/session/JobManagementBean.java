@@ -119,6 +119,9 @@ public class JobManagementBean {
 	private Client client;
 
 	private Map<String, WebTarget> batchServers = new HashMap<>();
+	
+	private String icatUrl;
+	private String idsUrl;
 
 	@PostConstruct
 	private void init() {
@@ -149,6 +152,10 @@ public class JobManagementBean {
 				batchServers.put(batchserverUrlstring,
 						client.target(batchserverUrlstring + "/batch"));
 			}
+			
+			icatUrl = props.getString("icat.url");
+			idsUrl = props.getString("ids.url");
+			
 			logger.info("Initialised JobManagementBean");
 		} catch (Exception e) {
 			String msg = e.getClass().getName() + " reports " + e.getMessage();
@@ -203,6 +210,14 @@ public class JobManagementBean {
 		
 		if( jobType.isSessionId() ){
 			parameters.add("--sessionId=" + sessionId);
+		}
+		
+		if( jobType.isIcatUrlRequired() ){
+			parameters.add("--icatUrl=" + icatUrl );
+		}
+
+		if( jobType.isIdsUrlRequired() ){
+			parameters.add("--idsUrl=" + idsUrl );
 		}
 
 		Entry<String, WebTarget> bestEntry;

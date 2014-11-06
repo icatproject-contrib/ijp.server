@@ -21,6 +21,10 @@ public class JobType implements IsSerializable {
 	private String family;
 	@XmlAttribute
 	private boolean sessionId;
+	@XmlAttribute
+	private boolean icatUrlRequired;
+	@XmlAttribute
+	private boolean idsUrlRequired;
 	@XmlElement
 	private List<String> datasetTypes = new ArrayList<String>();
 	@XmlElement
@@ -91,6 +95,14 @@ public class JobType implements IsSerializable {
 
 	public boolean isSessionId() {
 		return sessionId;
+	}
+	
+	public boolean isIcatUrlRequired() {
+		return icatUrlRequired;
+	}
+
+	public boolean isIdsUrlRequired() {
+		return idsUrlRequired;
 	}
 
 }
