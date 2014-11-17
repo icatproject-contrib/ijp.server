@@ -52,6 +52,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 
 	interface MyUiBinder extends UiBinder<Widget, DatasetsPanel> {
 	}
+	
+	@UiField
+	ListBox jobTypeListBox;
 
 	@UiField
 	ListBox datasetTypeListBox;
@@ -81,7 +84,10 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	Label messageLabel;
 
 	@UiField
-	ListBox datasetActionListBox;
+	Button datasetDownloadButton;
+
+	@UiField
+	Button datasetDownloadUrlButton;
 
 	@UiField
 	Button datasetInfoButton;
@@ -94,6 +100,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	VerticalPanel verticalSplitPanelHolder;
 
 	VerticalSplitPanel verticalSplitPanel;
+	
+	@UiField
+	Button submitJobButton;
 
 	@UiField
 	FormPanel rdpForm;
@@ -117,6 +126,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	private List<DatasetOverview> datasetList = new ArrayList<DatasetOverview>();
 	final MultiSelectionModel<DatasetOverview> selectionModel = new MultiSelectionModel<DatasetOverview>();
 
+	private static final String JOB_TYPES_LIST_FIRST_OPTION = "Job types ...";
 	private static final String DATASET_TYPES_LIST_FIRST_OPTION = "Dataset types ...";
 	static final String DATASET_TYPES_LIST_JOB_ONLY_OPTION = "none (job only)";
 	private static final String OPTIONS_LIST_FIRST_OPTION = "Options ...";
@@ -161,10 +171,10 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		verticalSplitPanel.setBottomWidget(datasetInfoTable);
 		verticalSplitPanel.setSplitPosition("50%");
 		verticalSplitPanelHolder.add(verticalSplitPanel);
+		
+		jobTypeListBox.addItem(JOB_TYPES_LIST_FIRST_OPTION);
 
 		datasetTypeListBox.addItem(DATASET_TYPES_LIST_FIRST_OPTION);
-		datasetActionListBox.addItem(OPTIONS_LIST_FIRST_OPTION, "");
-		datasetActionListBox.setEnabled(false);
 
 		jobStatusButton.addClickHandler(new ClickHandler() {
 			@Override
@@ -202,6 +212,20 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			}
 		});
 
+		datasetDownloadButton.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				doDownloadForm();
+			}
+		});
+		
+		datasetDownloadUrlButton.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				showDownloadUrl();
+			}
+		});
+		
 		datasetInfoButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
@@ -314,6 +338,11 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		selectionModel.addSelectionChangeHandler(new SelectionChangeEvent.Handler() {
 			public void onSelectionChange(SelectionChangeEvent event) {
 				Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
+				if( selectedDatasets.size() == 0 ){
+					submitJobButton.setEnabled(false);
+				} else {
+					submitJobButton.setEnabled(true);
+				}
 				if (selectedDatasets.size() == 1) {
 					DatasetOverview selectedDataset = selectedDatasets.iterator().next();
 					refreshDatasetInformation(selectedDataset.getDatasetId());
@@ -349,6 +378,24 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 
 		messageLabel.setText(DEFAULT_MESSAGE);
 
+		submitJobButton.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				// check that the selected job type accepts multiple datasets
+				String jobName = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
+				JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
+				Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
+				if (selectedDatasets.size() > 1 && !jobType.getMultiple()
+						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
+					Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
+				} else {
+					// popup a form containing the options for this job
+					// with options relevant to the selected dataset
+					portal.jobOptionsPanel.populateAndShowForm();
+				}
+			}
+		});
+		
 		// for the rdpForm to request an rdp file download
 		rdpForm.setEncoding(FormPanel.ENCODING_URLENCODED);
 		rdpForm.setMethod(FormPanel.METHOD_GET);
@@ -361,16 +408,39 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		debugTextArea.setVisible(false);
 	}
 
+	@UiHandler("jobTypeListBox")
+	void handleJobTypeListBoxChange(ChangeEvent event){
+		// Re-populate the datasetTypeListBox, etc.
+		String selectedJobType = JOB_TYPES_LIST_FIRST_OPTION;
+		int selectedIndex = jobTypeListBox.getSelectedIndex();
+		if( selectedIndex > -1 ){
+			selectedJobType = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
+		}
+		if( selectedJobType == null || selectedJobType.equals(JOB_TYPES_LIST_FIRST_OPTION) ){
+			// clear and disable the selectedDataTypesBoxList
+			repopulateDatasetTypeListBox( new ArrayList<String>() );
+			datasetTypeListBox.setEnabled(false);
+			submitJobButton.setEnabled(false);
+		} else {
+			JobType jobType = jobTypeMappings.getJobTypesMap().get(selectedJobType);
+			List<String> datasetTypesList = jobType.getDatasetTypes();
+			repopulateDatasetTypeListBox(datasetTypesList);
+			// Handle job-only jobs: will either have no types or just "none (job only)"
+			// dataset list will just have the "title" item, but disable it anyway
+			// (Or should we hide it?)
+			if( datasetTypesList.isEmpty() || datasetTypesList.get(0).equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION) ){
+				datasetTypeListBox.setEnabled(false);
+				submitJobButton.setEnabled(true);
+			} else {
+				datasetTypeListBox.setEnabled(true);
+			}
+		}
+	}
+	
 	@UiHandler("datasetTypeListBox")
 	void handleDatasetTypeListBoxChange(ChangeEvent event) {
 		String selectedValue = datasetTypeListBox.getValue(datasetTypeListBox.getSelectedIndex());
 		// Window.alert("Value is:'" + selectedValue + "'");
-		datasetActionListBox.clear();
-		datasetActionListBox.addItem(OPTIONS_LIST_FIRST_OPTION, "");
-		if (!selectedValue.equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION)) {
-			datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_OPTION);
-			datasetActionListBox.addItem(OPTIONS_LIST_DOWNLOAD_URL_OPTION);
-		}
 
 		// remove any datasets listed in the Datasets Table
 		datasetList = new ArrayList<DatasetOverview>();
@@ -382,32 +452,19 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		if (selectedValue.equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION)) {
 			// enable the dataset actions box because it is not necessary
 			// (or possible) to select a dataset of this type
-			datasetActionListBox.setEnabled(true);
+			submitJobButton.setEnabled(true);
 			// disable the search button - if the user presses it
 			// the Options... box gets disabled
 			searchButton.setEnabled(false);
 		} else {
 			// disable the dataset actions box - it will be re-enabled when a search
 			// is done and a new list of datasets appears
-			datasetActionListBox.setEnabled(false);
+			submitJobButton.setEnabled(false);
 			searchButton.setEnabled(true);
 		}
 		// remove any message text ("3 datasets found" etc)
 		messageLabel.setText(DEFAULT_MESSAGE);
 
-		// the value of the first option "Dataset types..." is an empty string
-		// for this option we don't need to add any job options
-		if (!selectedValue.equals("")) {
-			for (String jobName : jobTypeMappings.getJobTypesMap().keySet()) {
-				JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
-				// if "job only" is selected, add jobs that have no datasetTypes
-				if (selectedValue.equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION) && jobType.getDatasetTypes().isEmpty() ){
-					datasetActionListBox.addItem(jobType.getName());
-				} else if (jobType.getDatasetTypes().contains(selectedValue)) {
-					datasetActionListBox.addItem(jobType.getName());
-				}
-			}
-		}
 	}
 
 	private void clearDatasetInfoTable() {
@@ -417,69 +474,130 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		datasetInfoTable.setRowCount(0);
 	}
 
-	@UiHandler("datasetActionListBox")
-	void handleDatasetActionListBoxChange(ChangeEvent event) {
-		String jobName = datasetActionListBox.getValue(datasetActionListBox.getSelectedIndex());
-		// Window.alert("jobName is:'" + jobName + "'");
-
-		if (jobName.equals("")) {
-			// do nothing - this is the list box title that has no action
-		} else if (jobName.equals(OPTIONS_LIST_DOWNLOAD_OPTION)) {
-			Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
-			if (selectedDatasets.size() > 1) {
-				Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
-			} else {
-				sessionIdField.setValue(portal.getSessionId());
-				DatasetOverview selectedDataset = selectionModel.getSelectedSet().iterator().next();
-				datasetIdsField.setValue(selectedDataset.getDatasetId().toString());
-				outnameField.setValue(selectedDataset.getName());
-				Window.alert(downloadForm.getAction());
-				downloadForm.submit();
-			}
-			datasetActionListBox.setSelectedIndex(0);
-		} else if (jobName.equals(OPTIONS_LIST_DOWNLOAD_URL_OPTION)) {
-			Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
-			if (selectedDatasets.size() > 1) {
-				Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
-			} else {
-				DatasetOverview selectedDataset = selectionModel.getSelectedSet().iterator().next();
-				List<Long> mtList = Collections.emptyList();
-				dataService.getDataUrl(portal.getSessionId(), mtList,
-						Arrays.asList(selectedDataset.getDatasetId()), mtList,
-						selectedDataset.getName(), new AsyncCallback<String>() {
-
-							@Override
-							public void onFailure(Throwable caught) {
-								if (caught.getClass() == SessionException.class) {
-									System.err.println("caught is a SessionException");
-									portal.loginPanel.setMessageText(caught.getMessage());
-									portal.loginDialog.show();
-								} else {
-									Window.alert("Server error: " + caught.getMessage());
-								}
-							}
-
-							@Override
-							public void onSuccess(String url) {
-								Window.alert(url);
-
-							}
-						});
-			}
-			datasetActionListBox.setSelectedIndex(0);
+	private void doDownloadForm(){
+		Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
+		if( selectedDatasets.size() == 0 ){
+			Window.alert("Select a dataset first");
+		} else if (selectedDatasets.size() > 1) {
+			Window.alert("'" + OPTIONS_LIST_DOWNLOAD_OPTION + "' does not allow multiple datasets to be selected");
 		} else {
-			// check that the selected job type accepts multiple datasets
-			JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
-			Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
-			if (selectedDatasets.size() > 1 && !jobType.getMultiple()
-					&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
-				Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
-				datasetActionListBox.setSelectedIndex(0);
-			} else {
-				// popup a form containing the options for this job
-				// with options relevant to the selected dataset
-				portal.jobOptionsPanel.populateAndShowForm();
+			sessionIdField.setValue(portal.getSessionId());
+			DatasetOverview selectedDataset = selectionModel.getSelectedSet().iterator().next();
+			datasetIdsField.setValue(selectedDataset.getDatasetId().toString());
+			outnameField.setValue(selectedDataset.getName());
+			Window.alert(downloadForm.getAction());
+			downloadForm.submit();
+		}		
+	}
+	
+	private void showDownloadUrl(){
+		Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
+		if( selectedDatasets.size() == 0 ){
+			Window.alert("Select a dataset first");
+		} else if (selectedDatasets.size() > 1) {
+			Window.alert("'" + OPTIONS_LIST_DOWNLOAD_URL_OPTION + "' does not allow multiple datasets to be selected");
+		} else {
+			DatasetOverview selectedDataset = selectionModel.getSelectedSet().iterator().next();
+			List<Long> mtList = Collections.emptyList();
+			dataService.getDataUrl(portal.getSessionId(), mtList,
+					Arrays.asList(selectedDataset.getDatasetId()), mtList,
+					selectedDataset.getName(), new AsyncCallback<String>() {
+
+						@Override
+						public void onFailure(Throwable caught) {
+							if (caught.getClass() == SessionException.class) {
+								System.err.println("caught is a SessionException");
+								portal.loginPanel.setMessageText(caught.getMessage());
+								portal.loginDialog.show();
+							} else {
+								Window.alert("Server error: " + caught.getMessage());
+							}
+						}
+
+						@Override
+						public void onSuccess(String url) {
+							Window.alert(url);
+
+						}
+					});
+		}		
+	}
+	
+	/**
+	 * Add job types from jobTypeMappings (which must be populated previously)
+	 * to the jobTypesListBox.
+	 */
+	void populateJobTypesListBox() {
+		
+		// TODO debugging - remove later
+		String debugStr = "Pop JobTypes: ";
+		
+		// Text never appears in the debugTextArea; but I'm sure this method is being called!
+		debugTextArea.setText(debugStr);
+		// In extremis: see if this appears;
+		// It does, and *then* the GUI updates itself properly.  But why do I need it? It wasn't needed in populateDatasetTypeListBox.
+		Window.alert("Select a JobType, then a DatasetType (if required by the JobType)");
+		
+		// Store the currently selected value (if any) so it can be re-selected
+		// when the list box is repopulated
+		String selectedJobType = JOB_TYPES_LIST_FIRST_OPTION;
+		int selectedIndex = jobTypeListBox.getSelectedIndex();
+		if( selectedIndex > -1 ){
+			selectedJobType = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
+		}
+		jobTypeListBox.clear();
+		jobTypeListBox.addItem(JOB_TYPES_LIST_FIRST_OPTION);
+		int selectedItemIndex = 0;
+		int itemCount = 1;
+		for (String jobName : jobTypeMappings.getJobTypesMap().keySet()) {
+			debugStr = debugStr + " " + jobName;
+			jobTypeListBox.addItem(jobName);
+			if( jobName.equals(selectedJobType)){
+				selectedItemIndex = itemCount;
+				debugStr = debugStr + " (sel)";
 			}
+			itemCount++;
+		}
+		debugTextArea.setText(debugStr);
+		if (selectedItemIndex == 0) {
+			// May need to explicitly select the first option?
+			jobTypeListBox.setSelectedIndex(selectedItemIndex);
+			// leave the first option selected in the list box but
+			// force the datasets table etc to update accordingly as
+			// this event does not seem to be fired automatically
+			handleJobTypeListBoxChange(null);
+		} else {
+			jobTypeListBox.setSelectedIndex(selectedItemIndex);
+		}
+		// Somehow, need to kick the UI into displaying these changes.  Will this do it? No!
+		// jobTypeListBox.setVisible(true);
+		// OK, how about this? Nope, no good either.  What the heck?
+		// handleJobTypeListBoxChange(null);
+	}
+	
+	private void repopulateDatasetTypeListBox( List<String> datasetTypesList ) {
+		// store the currently selected value in the datasetTypeListBox so
+		// that it can be re-selected when the list box is re-populated
+		String selectedDsType = datasetTypeListBox.getValue(datasetTypeListBox
+				.getSelectedIndex());
+		datasetTypeListBox.clear();
+		datasetTypeListBox.addItem(DATASET_TYPES_LIST_FIRST_OPTION);
+		int itemCount = 1;
+		int selectedItemIndex = 0;
+		for (String datasetType : datasetTypesList) {
+			datasetTypeListBox.addItem(datasetType);
+			if (datasetType.equals(selectedDsType)) {
+				selectedItemIndex = itemCount;
+			}
+			itemCount++;
+		}
+		if (selectedItemIndex == 0) {
+			// leave the first option selected in the list box but
+			// force the datasets table etc to update accordingly as
+			// this event does not seem to be fired automatically
+			handleDatasetTypeListBoxChange(null);
+		} else {
+			datasetTypeListBox.setSelectedIndex(selectedItemIndex);
 		}
 	}
 
@@ -535,6 +653,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			@Override
 			public void onSuccess(JobTypeMappings jobTypeMappings) {
 				setJobTypeMappings(jobTypeMappings);
+				// BR not convinced the method after this is being called from LoginPanel!
+				debugTextArea.setText(jobTypeMappings.toString());
 			}
 		});
 	}
@@ -585,9 +705,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			@Override
 			public void onSuccess(SearchItems searchItems) {
 				if (searchItems == null) {
-					debugTextArea.setText("searchItems is null");
+					// debugTextArea.setText("searchItems is null");
 				} else {
-					debugTextArea.setText(searchItems.toString());
+					// debugTextArea.setText(searchItems.toString());
 					for (SearchItem searchItem : searchItems.getSearchItemList()) {
 						ListBox listBox = new ListBox(searchItem.isMultipleSelect());
 						// listBox.setName(searchItem.paramName);
@@ -691,12 +811,10 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 					List<DatasetInfoItem> infoItemList = new ArrayList<DatasetInfoItem>();
 					// TODO - should I show a list of parameter names with blank values???
 					datasetInfoTable.setRowData(infoItemList);
-					datasetActionListBox.setEnabled(false);
 				} else {
 					// set the first item in the list to selected
 					// so that the DatasetOverview information pane gets populated
 					selectionModel.setSelected(datasetList.get(0), true);
-					datasetActionListBox.setEnabled(true);
 				}
 			}
 		};
@@ -708,7 +826,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				sb.append(genericSearchSelections.toString());
 				sb.append("\n");
 			}
-			debugTextArea.setText(sb.toString());
+			// debugTextArea.setText(sb.toString());
 			// Window.alert(sb.toString());
 		}
 

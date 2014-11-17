@@ -74,7 +74,6 @@ public class JobOptionsPanel extends VerticalPanel {
 			@Override
 			public void onClick(ClickEvent event) {
 				dialogBox.hide();
-				portal.datasetsPanel.datasetActionListBox.setSelectedIndex(0);
 			}
 		});
 
@@ -95,8 +94,8 @@ public class JobOptionsPanel extends VerticalPanel {
 				// most jobs are of this type - change it further down in specific cases
 				PortalUtils.MultiJobTypes multiJobType = MultiJobTypes.ONE_DATASET_PER_JOB;
 
-				String jobName = portal.datasetsPanel.datasetActionListBox
-						.getValue(portal.datasetsPanel.datasetActionListBox.getSelectedIndex());
+				String jobName = portal.datasetsPanel.jobTypeListBox
+						.getValue(portal.datasetsPanel.jobTypeListBox.getSelectedIndex());
 				JobType jobType = portal.datasetsPanel.jobTypeMappings.getJobTypesMap()
 						.get(jobName);
 				int numSelectedDatasets = portal.datasetsPanel.selectionModel.getSelectedSet()
@@ -364,8 +363,8 @@ public class JobOptionsPanel extends VerticalPanel {
 					@Override
 					public void onSuccess(
 							Map<Long, Map<String, Object>> jobDatasetParametersForDatasets) {
-						String jobName = portal.datasetsPanel.datasetActionListBox
-								.getValue(portal.datasetsPanel.datasetActionListBox
+						String jobName = portal.datasetsPanel.jobTypeListBox
+								.getValue(portal.datasetsPanel.jobTypeListBox
 										.getSelectedIndex());
 						jobOptionToFormWidgetMap = new LinkedHashMap<JobOption, Widget>();
 						Map<String, HorizontalPanel> nameToPanelMap = new LinkedHashMap<String, HorizontalPanel>();
