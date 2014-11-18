@@ -338,7 +338,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		selectionModel.addSelectionChangeHandler(new SelectionChangeEvent.Handler() {
 			public void onSelectionChange(SelectionChangeEvent event) {
 				Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
-				if( selectedDatasets.size() == 0 ){
+				// It's OK to have no datasets selected if the job doesn't need them
+				if( selectedDatasets.size() == 0 && ! jobOnlyJobSelected() ){
 					submitJobButton.setEnabled(false);
 				} else {
 					submitJobButton.setEnabled(true);
@@ -402,10 +403,36 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		rdpForm.setAction(GWT.getHostPageBaseURL() + "rdp");
 
 		addSearchBoxesAndPopulateTextArea();
+		
+		// Hide search boxes until they are enabled
+		setSearchesEnabled(false);
 
 		// TODO - remove these later - just for development purposes
 		doStuffButton.setVisible(false);
 		debugTextArea.setVisible(false);
+	}
+
+	/**
+	 * @return true if a job type is selected and specifies no dataset types.
+	 */
+	protected boolean jobOnlyJobSelected() {
+		
+		String selectedJobType = JOB_TYPES_LIST_FIRST_OPTION;
+		int selectedIndex = jobTypeListBox.getSelectedIndex();
+		if( selectedIndex > -1 ){
+			selectedJobType = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
+		}
+		if( selectedJobType == null || selectedJobType.equals(JOB_TYPES_LIST_FIRST_OPTION) ){
+			return false;
+		} else {
+			JobType jobType = jobTypeMappings.getJobTypesMap().get(selectedJobType);
+			List<String> datasetTypesList = jobType.getDatasetTypes();
+			if( datasetTypesList.isEmpty() || datasetTypesList.get(0).equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION) ){
+				return true;
+			} else {
+				return false;
+			}
+		}
 	}
 
 	@UiHandler("jobTypeListBox")
@@ -420,7 +447,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			// clear and disable the selectedDataTypesBoxList
 			repopulateDatasetTypeListBox( new ArrayList<String>() );
 			datasetTypeListBox.setEnabled(false);
+			setSearchesEnabled(false);
 			submitJobButton.setEnabled(false);
+			messageLabel.setText("Select a Job Type");
 		} else {
 			JobType jobType = jobTypeMappings.getJobTypesMap().get(selectedJobType);
 			List<String> datasetTypesList = jobType.getDatasetTypes();
@@ -430,13 +459,37 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			// (Or should we hide it?)
 			if( datasetTypesList.isEmpty() || datasetTypesList.get(0).equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION) ){
 				datasetTypeListBox.setEnabled(false);
+				setSearchesEnabled(false);
 				submitJobButton.setEnabled(true);
+				messageLabel.setText("No need to select dataset(s) to submit jobs of this type"); 
 			} else {
 				datasetTypeListBox.setEnabled(true);
+				// Nudge the dataset type list change handler - will decide whether to enable or disable search inputs
+				handleDatasetTypeListBoxChange(null);
+				messageLabel.setText(DEFAULT_MESSAGE);
 			}
 		}
 	}
 	
+	private void setSearchesEnabled(boolean b) {
+		// Actually, hide the inputs, don't just disable them.
+		searchButton.setVisible(b);
+		addGenericSearchButton.setVisible(b);
+		searchListsPanel.setVisible(b);
+		// Enable or disable the search filters too
+		for( int i=0; i < searchListsPanel.getWidgetCount(); i++ ){
+			ListBox listBox = (ListBox)(searchListsPanel.getWidget(i));
+			listBox.setEnabled(b);
+		}
+		// Show/hide the datasets results panels, and buttons
+		verticalSplitPanel.setVisible(b);
+		// Following seems to get lost when panel is hidden then shown again
+		verticalSplitPanel.setSplitPosition("50%");
+		datasetDownloadButton.setVisible(b);
+		datasetDownloadUrlButton.setVisible(b);
+		datasetInfoButton.setVisible(b);
+	}
+
 	@UiHandler("datasetTypeListBox")
 	void handleDatasetTypeListBoxChange(ChangeEvent event) {
 		String selectedValue = datasetTypeListBox.getValue(datasetTypeListBox.getSelectedIndex());
@@ -455,12 +508,16 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			submitJobButton.setEnabled(true);
 			// disable the search button - if the user presses it
 			// the Options... box gets disabled
-			searchButton.setEnabled(false);
+			setSearchesEnabled(false);
+		} else if (selectedValue.equals(DATASET_TYPES_LIST_FIRST_OPTION)) {
+			// No dataset type selected yet, but should be
+			submitJobButton.setEnabled(false);
+			setSearchesEnabled(false);
 		} else {
 			// disable the dataset actions box - it will be re-enabled when a search
 			// is done and a new list of datasets appears
 			submitJobButton.setEnabled(false);
-			searchButton.setEnabled(true);
+			setSearchesEnabled(true);
 		}
 		// remove any message text ("3 datasets found" etc)
 		messageLabel.setText(DEFAULT_MESSAGE);

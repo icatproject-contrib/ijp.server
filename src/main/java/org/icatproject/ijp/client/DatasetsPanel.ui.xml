@@ -6,16 +6,22 @@
         
     <g:VerticalPanel spacing='5' width='100%' height='100%'>
          <g:HorizontalPanel width='100%'>
-            <g:cell width='50%' horizontalAlignment='ALIGN_LEFT'>
+            <g:cell width='9%' horizontalAlignment='ALIGN_LEFT'>
+              <g:Label>Job Type</g:Label>
+            </g:cell>
+            <g:cell width='150px' horizontalAlignment='ALIGN_LEFT'>
                 <g:ListBox ui:field="jobTypeListBox" />
+            </g:cell>
+            <g:cell width='100%' horizontalAlignment='ALIGN_RIGHT'>
+                <g:Button ui:field="jobStatusButton" text='Show job status panel' />
             </g:cell>
         </g:HorizontalPanel>
         <g:HorizontalPanel width='100%'>
-            <g:cell width='50%' horizontalAlignment='ALIGN_LEFT'>
-                <g:ListBox ui:field="datasetTypeListBox" />
+            <g:cell width='8%' horizontalAlignment='ALIGN_LEFT'>
+              <g:Label>Dataset Type</g:Label>
             </g:cell>
-            <g:cell width='50%' horizontalAlignment='ALIGN_RIGHT'>
-                <g:Button ui:field="jobStatusButton" text='Show job status panel' />
+            <g:cell width='150px' horizontalAlignment='ALIGN_LEFT'>
+                <g:ListBox ui:field="datasetTypeListBox" />
             </g:cell>
         </g:HorizontalPanel>
         <g:HorizontalPanel>
@@ -31,18 +37,20 @@
             <g:VerticalPanel ui:field="genericSearchesVerticalPanel" />
         </g:HorizontalPanel>
         <g:HorizontalPanel width='100%'>
-            <g:cell width='20%' horizontalAlignment='ALIGN_LEFT'>
+            <g:cell width='60%' horizontalAlignment='ALIGN_LEFT'>
                 <g:Label ui:field='messageLabel' height='20px' styleName='{style.red}'></g:Label>
             </g:cell>
-            <g:cell width='20%' horizontalAlignment='ALIGN_RIGHT'>
-                <g:Button ui:field="datasetDownloadButton" text='Download dataset' />
-            </g:cell>
-            <g:cell width='20%' horizontalAlignment='ALIGN_RIGHT'>
-                <g:Button ui:field="datasetDownloadUrlButton" text='Show Download url' />
-            </g:cell>
-            <g:cell width='20%' horizontalAlignment='ALIGN_RIGHT'>
-                <g:Button ui:field="datasetInfoButton" text='Show dataset info' />
-            </g:cell>
+            <g:HorizontalPanel width='100%' horizontalAlignment='ALIGN_RIGHT'>
+	            <g:cell width='30%' horizontalAlignment='ALIGN_RIGHT'>
+	                <g:Button ui:field="datasetDownloadButton" text='Download dataset' />
+	            </g:cell>
+	            <g:cell width='30%' horizontalAlignment='ALIGN_RIGHT'>
+	                <g:Button ui:field="datasetDownloadUrlButton" text='Show Download url' />
+	            </g:cell>
+	            <g:cell width='30%' horizontalAlignment='ALIGN_RIGHT'>
+	                <g:Button ui:field="datasetInfoButton" text='Show dataset info' />
+	            </g:cell>
+            </g:HorizontalPanel>
         </g:HorizontalPanel>
 
         <g:VerticalPanel ui:field='verticalSplitPanelHolder' width='100%' />
