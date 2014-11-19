@@ -41,6 +41,7 @@ import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.RequiresResize;
+import com.google.gwt.user.client.ui.SplitLayoutPanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.VerticalSplitPanel;
@@ -98,9 +99,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 
 	@UiField
 	VerticalPanel verticalSplitPanelHolder;
-
-	VerticalSplitPanel verticalSplitPanel;
 	
+	SplitLayoutPanel datasetSplitPanel;
+
 	@UiField
 	Button submitJobButton;
 
@@ -165,12 +166,11 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		datasetInfoTable = new CellTable<DatasetInfoItem>();
 		datasetsTable.setWidth("100%");
 		datasetInfoTable.setWidth("100%");
-		verticalSplitPanel = new VerticalSplitPanel();
-		verticalSplitPanel.addStyleName(IjpResources.INSTANCE.css().scrollPanel());
-		verticalSplitPanel.setTopWidget(datasetsTable);
-		verticalSplitPanel.setBottomWidget(datasetInfoTable);
-		verticalSplitPanel.setSplitPosition("50%");
-		verticalSplitPanelHolder.add(verticalSplitPanel);
+		datasetSplitPanel = new SplitLayoutPanel();
+		datasetSplitPanel.addStyleName(IjpResources.INSTANCE.css().scrollPanel());
+		datasetSplitPanel.addNorth(datasetsTable, 384);
+		datasetSplitPanel.add(datasetInfoTable);
+		verticalSplitPanelHolder.add(datasetSplitPanel);
 		
 		jobTypeListBox.addItem(JOB_TYPES_LIST_FIRST_OPTION);
 
@@ -476,15 +476,14 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		searchButton.setVisible(b);
 		addGenericSearchButton.setVisible(b);
 		searchListsPanel.setVisible(b);
+		genericSearchesVerticalPanel.setVisible(b);
 		// Enable or disable the search filters too
 		for( int i=0; i < searchListsPanel.getWidgetCount(); i++ ){
 			ListBox listBox = (ListBox)(searchListsPanel.getWidget(i));
 			listBox.setEnabled(b);
 		}
 		// Show/hide the datasets results panels, and buttons
-		verticalSplitPanel.setVisible(b);
-		// Following seems to get lost when panel is hidden then shown again
-		verticalSplitPanel.setSplitPosition("50%");
+		datasetSplitPanel.setVisible(b);
 		datasetDownloadButton.setVisible(b);
 		datasetDownloadUrlButton.setVisible(b);
 		datasetInfoButton.setVisible(b);
@@ -626,7 +625,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		} else {
 			jobTypeListBox.setSelectedIndex(selectedItemIndex);
 		}
-		// Somehow, need to kick the UI into displaying these changes.  Will this do it? No!
+		// TODO Somehow, need to kick the UI into displaying these changes.  Will this do it? No!
 		// jobTypeListBox.setVisible(true);
 		// OK, how about this? Nope, no good either.  What the heck?
 		// handleJobTypeListBoxChange(null);
@@ -933,8 +932,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		int parentWidth = Window.getClientWidth();
 		int splitPanelHeight = (int) (parentHeight * 0.7);
 		int splitPanelWidth = parentWidth - 40;
-		verticalSplitPanel.setSize(splitPanelWidth + "px", splitPanelHeight + "px");
-		verticalSplitPanel.setSplitPosition("50%");
+		datasetSplitPanel.setSize(splitPanelWidth + "px", splitPanelHeight + "px");
 	}
 
 }
