@@ -152,9 +152,9 @@ public class LoginPanel extends Composite {
 				messageLabel.setText("");
 				portal.setSessionId(loginResult.getSessionId());
 				portal.setUsername(loginResult.getUserName());
-				portal.loginDialog.hide();
+				// Get the job types, and populate the job types list from them
 				portal.datasetsPanel.getJobTypesFromServer();
-				portal.datasetsPanel.populateJobTypesListBox();
+				portal.loginDialog.hide();
 				getMergedDatasetParameterTypeMappings();
 			}
 

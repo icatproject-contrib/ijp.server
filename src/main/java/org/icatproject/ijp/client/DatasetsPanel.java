@@ -456,7 +456,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			repopulateDatasetTypeListBox(datasetTypesList);
 			// Handle job-only jobs: will either have no types or just "none (job only)"
 			// dataset list will just have the "title" item, but disable it anyway
-			// (Or should we hide it?)
+			// (Or should we hide it? If so, would have to absorb the "Dataset Types" label and hide that too.)
 			if( datasetTypesList.isEmpty() || datasetTypesList.get(0).equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION) ){
 				datasetTypeListBox.setEnabled(false);
 				setSearchesEnabled(false);
@@ -472,16 +472,12 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	}
 	
 	private void setSearchesEnabled(boolean b) {
-		// Actually, hide the inputs, don't just disable them.
+		// Hide the inputs, don't just disable them.
+		// (This means we don't have to enable/disable each search filter, just show/hide the container panels)
 		searchButton.setVisible(b);
 		addGenericSearchButton.setVisible(b);
 		searchListsPanel.setVisible(b);
 		genericSearchesVerticalPanel.setVisible(b);
-		// Enable or disable the search filters too
-		for( int i=0; i < searchListsPanel.getWidgetCount(); i++ ){
-			ListBox listBox = (ListBox)(searchListsPanel.getWidget(i));
-			listBox.setEnabled(b);
-		}
 		// Show/hide the datasets results panels, and buttons
 		datasetSplitPanel.setVisible(b);
 		datasetDownloadButton.setVisible(b);
@@ -583,16 +579,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	 * Add job types from jobTypeMappings (which must be populated previously)
 	 * to the jobTypesListBox.
 	 */
-	void populateJobTypesListBox() {
-		
-		// TODO debugging - remove later
-		String debugStr = "Pop JobTypes: ";
-		
-		// Text never appears in the debugTextArea; but I'm sure this method is being called!
-		debugTextArea.setText(debugStr);
-		// In extremis: see if this appears;
-		// It does, and *then* the GUI updates itself properly.  But why do I need it? It wasn't needed in populateDatasetTypeListBox.
-		Window.alert("Select a JobType, then a DatasetType (if required by the JobType)");
+	private void populateJobTypesListBox() {
 		
 		// Store the currently selected value (if any) so it can be re-selected
 		// when the list box is repopulated
@@ -606,29 +593,23 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		int selectedItemIndex = 0;
 		int itemCount = 1;
 		for (String jobName : jobTypeMappings.getJobTypesMap().keySet()) {
-			debugStr = debugStr + " " + jobName;
 			jobTypeListBox.addItem(jobName);
 			if( jobName.equals(selectedJobType)){
 				selectedItemIndex = itemCount;
-				debugStr = debugStr + " (sel)";
 			}
 			itemCount++;
 		}
-		debugTextArea.setText(debugStr);
 		if (selectedItemIndex == 0) {
 			// May need to explicitly select the first option?
 			jobTypeListBox.setSelectedIndex(selectedItemIndex);
 			// leave the first option selected in the list box but
 			// force the datasets table etc to update accordingly as
 			// this event does not seem to be fired automatically
+			// (Without this, the Submit Job button is not disabled.)
 			handleJobTypeListBoxChange(null);
 		} else {
 			jobTypeListBox.setSelectedIndex(selectedItemIndex);
 		}
-		// TODO Somehow, need to kick the UI into displaying these changes.  Will this do it? No!
-		// jobTypeListBox.setVisible(true);
-		// OK, how about this? Nope, no good either.  What the heck?
-		// handleJobTypeListBoxChange(null);
 	}
 	
 	private void repopulateDatasetTypeListBox( List<String> datasetTypesList ) {
@@ -657,49 +638,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		}
 	}
 
-	/**
-	 * Retrieve a list of dataset types from the server then clear the dataset types list box and
-	 * populate it with the new list just retrieved
-	 */
-	void populateDatasetTypeListBox() {
-		dataService.getDatasetTypesList(portal.getSessionId(), new AsyncCallback<List<String>>() {
-			@Override
-			public void onFailure(Throwable caught) {
-				Window.alert("Server error: " + caught.getMessage());
-			}
-
-			@Override
-			public void onSuccess(List<String> datasetTypesList) {
-				// store the currently selected value in the datasetTypeListBox so
-				// that it can be re-selected when the list box is re-populated
-				String selectedDsType = datasetTypeListBox.getValue(datasetTypeListBox
-						.getSelectedIndex());
-				datasetTypeListBox.clear();
-				datasetTypeListBox.addItem(DATASET_TYPES_LIST_FIRST_OPTION);
-				datasetTypeListBox.addItem(DATASET_TYPES_LIST_JOB_ONLY_OPTION);
-				int itemCount = 1;
-				int selectedItemIndex = 0;
-				for (String datasetType : datasetTypesList) {
-					datasetTypeListBox.addItem(datasetType);
-					if (datasetType.equals(selectedDsType)) {
-						selectedItemIndex = itemCount;
-					}
-					itemCount++;
-				}
-				if (selectedItemIndex == 0) {
-					// leave the first option selected in the list box but
-					// force the datasets table etc to update accordingly as
-					// this event does not seem to be fired automatically
-					handleDatasetTypeListBoxChange(null);
-				} else {
-					datasetTypeListBox.setSelectedIndex(selectedItemIndex);
-				}
-			}
-		});
-	}
-
 	protected void getJobTypesFromServer() {
 		// put the JobTypes looked up from XML on the server into a variable
+		// and populate the Job Types list from them.
 		dataService.getJobTypeMappings(new AsyncCallback<JobTypeMappings>() {
 			@Override
 			public void onFailure(Throwable caught) {
@@ -709,8 +650,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			@Override
 			public void onSuccess(JobTypeMappings jobTypeMappings) {
 				setJobTypeMappings(jobTypeMappings);
-				// BR not convinced the method after this is being called from LoginPanel!
-				debugTextArea.setText(jobTypeMappings.toString());
+				populateJobTypesListBox();
 			}
 		});
 	}
