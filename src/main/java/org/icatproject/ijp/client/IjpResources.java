@@ -23,6 +23,11 @@ public interface IjpResources extends ClientBundle {
 		String red();
 
 		String black();
+		
+		String important();
+		
+		@ClassName("selectionTable")
+		String selectionTable();
 
 	}
 

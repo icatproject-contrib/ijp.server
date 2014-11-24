@@ -101,8 +101,16 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	
 	SplitLayoutPanel datasetSplitPanel;
 
+	// This button will be used to Submit the job for the current selection in the Matching Datasets panel only;
+	// The Accept button in the datasetsCartPanel will submit for the shopping cart
 	@UiField
 	Button submitJobButton;
+	
+	@UiField
+	Button addDatasetsToCartButton;
+	
+	@UiField
+	SelectionListPanel datasetsCartPanel;
 
 	@UiField
 	FormPanel rdpForm;
@@ -125,6 +133,10 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 
 	private List<DatasetOverview> datasetList = new ArrayList<DatasetOverview>();
 	final MultiSelectionModel<DatasetOverview> selectionModel = new MultiSelectionModel<DatasetOverview>();
+	
+	// We now have more than one Submit button; each needs to set up its own set of selected DatasetOverviews,
+	// and this - rather than just the selectionModel for the Matching Datasets panel - is what the JobOptionsPanel etc. need to access.
+	final List<DatasetOverview> selectedDatasets = new ArrayList<DatasetOverview>();
 
 	private static final String JOB_TYPES_LIST_FIRST_OPTION = "Job types ...";
 	private static final String DATASET_TYPES_LIST_FIRST_OPTION = "Dataset types ...";
@@ -133,6 +145,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	private static final String OPTIONS_LIST_DOWNLOAD_OPTION = "Download";
 	private static final String OPTIONS_LIST_DOWNLOAD_URL_OPTION = "Show Download URL";
 	private static final String DEFAULT_MESSAGE = "Select a Dataset Type and do a Search";
+	private static final String SUBMIT_BUTTON_TITLE_DEFAULT = "Submit Job";
+	private static final String SUBMIT_BUTTON_TITLE_WHEN_SEARCH_VISIBLE = "Submit Job for above selection";
 
 	Portal portal;
 	Map<String, ListBox> searchItemsListBoxMap = new HashMap<String, ListBox>();
@@ -343,6 +357,11 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				} else {
 					submitJobButton.setEnabled(true);
 				}
+				if( selectedDatasets.size() == 0 ){
+					addDatasetsToCartButton.setEnabled(false);
+				} else {
+					addDatasetsToCartButton.setEnabled(true);
+				}
 				if (selectedDatasets.size() == 1) {
 					DatasetOverview selectedDataset = selectedDatasets.iterator().next();
 					refreshDatasetInformation(selectedDataset.getDatasetId());
@@ -384,7 +403,65 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				// check that the selected job type accepts multiple datasets
 				String jobName = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
 				JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
+				selectedDatasets.clear();
+				selectedDatasets.addAll(selectionModel.getSelectedSet());
+				if (selectedDatasets.size() > 1 && !jobType.getMultiple()
+						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
+					Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
+				} else {
+					// popup a form containing the options for this job
+					// with options relevant to the selected dataset
+					portal.jobOptionsPanel.populateAndShowForm();
+				}
+			}
+		});
+		
+		addDatasetsToCartButton.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
 				Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
+				if( selectedDatasets.size() == 0 ){
+					Window.alert("No datasets selected");
+				} else {
+					List<SelectionListContent> listContents = new ArrayList<SelectionListContent>();
+					for( DatasetOverview item : selectedDatasets ){
+						listContents.add(new DatasetListContent(item));
+					}
+					datasetsCartPanel.addContent(listContents);
+					datasetsCartPanel.setVisible(true);
+				}
+			}
+		});
+		
+		// Datasets cart panel - work in progress
+		datasetsCartPanel.setTitle("Datasets Cart" );
+		datasetsCartPanel.setColumnsFrom( new DatasetListContent(null) );
+		
+		// TODO remove later - added for debugging appearance
+		List<SelectionListContent> listContents = new ArrayList<SelectionListContent>();
+		for( int i=1; i < 20; i++ ){
+			DatasetOverview datasetOverview = new DatasetOverview();
+			datasetOverview.setDatasetId((long) 0);
+			datasetOverview.setName("Dataset " + i);
+			datasetOverview.setSampleDescription("Sample Description " + i);
+			datasetOverview.setUsers("Users " + i);
+			DatasetListContent datasetListContent = new DatasetListContent(datasetOverview);
+			listContents.add(datasetListContent);
+		}
+		datasetsCartPanel.setContent(listContents);
+		
+		datasetsCartPanel.setAcceptButtonText("Submit Job for these Datasets");
+		datasetsCartPanel.addAcceptHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				// check that the selected job type accepts multiple datasets
+				String jobName = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
+				JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
+				selectedDatasets.clear();
+				// Note: we want the full contents of the datasets cart, not just the current selection!
+				for( SelectionListContent item : datasetsCartPanel.getEverything() ){
+					selectedDatasets.add( ((DatasetListContent)item).getDatasetOverview() );
+				}
 				if (selectedDatasets.size() > 1 && !jobType.getMultiple()
 						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
 					Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
@@ -449,6 +526,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			setSearchesEnabled(false);
 			submitJobButton.setEnabled(false);
 			messageLabel.setText("Select a Job Type");
+			datasetsCartPanel.clear();
+			datasetsCartPanel.setVisible(false);
 		} else {
 			JobType jobType = jobTypeMappings.getJobTypesMap().get(selectedJobType);
 			List<String> datasetTypesList = jobType.getDatasetTypes();
@@ -461,6 +540,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				setSearchesEnabled(false);
 				submitJobButton.setEnabled(true);
 				messageLabel.setText("No need to select dataset(s) to submit jobs of this type"); 
+				datasetsCartPanel.clear();
+				datasetsCartPanel.setVisible(false);
 			} else {
 				datasetTypeListBox.setEnabled(true);
 				// Nudge the dataset type list change handler - will decide whether to enable or disable search inputs
@@ -482,6 +563,13 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		datasetDownloadButton.setVisible(b);
 		datasetDownloadUrlButton.setVisible(b);
 		datasetInfoButton.setVisible(b);
+		addDatasetsToCartButton.setVisible(b);
+		// Set the Submit Job button's title appropriately
+		if (b){
+			submitJobButton.setText(SUBMIT_BUTTON_TITLE_WHEN_SEARCH_VISIBLE);
+		} else {
+			submitJobButton.setText(SUBMIT_BUTTON_TITLE_DEFAULT);
+		}
 	}
 
 	@UiHandler("datasetTypeListBox")

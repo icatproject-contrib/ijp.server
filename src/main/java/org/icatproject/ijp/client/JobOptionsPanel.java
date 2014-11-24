@@ -98,7 +98,7 @@ public class JobOptionsPanel extends VerticalPanel {
 						.getValue(portal.datasetsPanel.jobTypeListBox.getSelectedIndex());
 				JobType jobType = portal.datasetsPanel.jobTypeMappings.getJobTypesMap()
 						.get(jobName);
-				int numSelectedDatasets = portal.datasetsPanel.selectionModel.getSelectedSet()
+				int numSelectedDatasets = portal.datasetsPanel.selectedDatasets
 						.size();
 				if (numSelectedDatasets > 1) {
 					if (jobType.getType().equalsIgnoreCase("interactive")) {
@@ -209,8 +209,7 @@ public class JobOptionsPanel extends VerticalPanel {
 					Window.alert(formErrorsMessage.toString());
 				} else {
 					List<String> datasetIdsList = new ArrayList<String>();
-					for (DatasetOverview selectedDataset : portal.datasetsPanel.selectionModel
-							.getSelectedSet()) {
+					for (DatasetOverview selectedDataset : portal.datasetsPanel.selectedDatasets) {
 						String datasetId = Long.toString(selectedDataset.getDatasetId());
 						datasetIdsList.add(datasetId);
 					}
@@ -347,7 +346,7 @@ public class JobOptionsPanel extends VerticalPanel {
 
 		// get a list of selected dataset ids
 		List<Long> selectedDatasetIds = new ArrayList<Long>();
-		for (DatasetOverview selectedDataset : portal.datasetsPanel.selectionModel.getSelectedSet()) {
+		for (DatasetOverview selectedDataset : portal.datasetsPanel.selectedDatasets) {
 			selectedDatasetIds.add(selectedDataset.getDatasetId());
 		}
 		String datasetType = portal.datasetsPanel.datasetTypeListBox
@@ -495,8 +494,7 @@ public class JobOptionsPanel extends VerticalPanel {
 							}
 						}
 
-						int numSelectedDatasets = portal.datasetsPanel.selectionModel
-								.getSelectedSet().size();
+						int numSelectedDatasets = portal.datasetsPanel.selectedDatasets.size();
 						if (jobType.getType().equalsIgnoreCase("batch") && numSelectedDatasets > 1) {
 							HorizontalPanel warningPanel = new HorizontalPanel();
 							if (jobType.getMultiple() == false) {
