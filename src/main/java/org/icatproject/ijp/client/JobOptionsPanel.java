@@ -65,9 +65,9 @@ public class JobOptionsPanel extends VerticalPanel {
 		IjpResources.INSTANCE.css().ensureInjected();
 
 		multipleDatasetsOptionListBox.addItem("Please select...", "");
-		multipleDatasetsOptionListBox.addItem("Submit multiple datasets to one job",
+		multipleDatasetsOptionListBox.addItem("Submit multiple datasets/datafiles to one job",
 				MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB.name());
-		multipleDatasetsOptionListBox.addItem("Run multiple jobs - one dataset per job",
+		multipleDatasetsOptionListBox.addItem("Run multiple jobs - one dataset/datafile per job",
 				MultiJobTypes.ONE_DATASET_PER_JOB.name());
 
 		closeButton.addClickHandler(new ClickHandler() {
@@ -100,7 +100,8 @@ public class JobOptionsPanel extends VerticalPanel {
 						.get(jobName);
 				int numSelectedDatasets = portal.datasetsPanel.selectedDatasets
 						.size();
-				if (numSelectedDatasets > 1) {
+				int numSelectedDatafiles = portal.datasetsPanel.selectedDatafiles.size();
+				if (numSelectedDatasets + numSelectedDatafiles > 1) {
 					if (jobType.getType().equalsIgnoreCase("interactive")) {
 						multiJobType = MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB;
 					} else if (jobType.getType().equalsIgnoreCase("batch")) {
@@ -208,21 +209,23 @@ public class JobOptionsPanel extends VerticalPanel {
 					}
 					Window.alert(formErrorsMessage.toString());
 				} else {
+					// The job is "job-only" (takes no datasets or datafiles as inputs) if it explicitly says so,
+					// or if it contains no datasetTypes at all
+					boolean isJobOnlyJob = jobType.getDatasetTypes().contains(DatasetsPanel.DATASET_TYPES_LIST_JOB_ONLY_OPTION)
+							|| jobType.getDatasetTypes().isEmpty();
 					List<String> datasetIdsList = new ArrayList<String>();
+					List<String> datafileIdsList = new ArrayList<String>();
 					for (DatasetOverview selectedDataset : portal.datasetsPanel.selectedDatasets) {
 						String datasetId = Long.toString(selectedDataset.getDatasetId());
 						datasetIdsList.add(datasetId);
 					}
-					if (jobType.getDatasetTypes().contains(
-							DatasetsPanel.DATASET_TYPES_LIST_JOB_ONLY_OPTION)) {
+					for( DatafileListContent selectedDatafile : portal.datasetsPanel.selectedDatafiles ){
+						datafileIdsList.add( Long.toString(selectedDatafile.getId()) );
+					}
+					if (isJobOnlyJob) {
 						// there can be no datasets selected for this type of job
 						// but we need to add one entry that is null so that the loop
 						// for submitBatch further down gets executed once
-						datasetIdsList.add(null);
-					} else if (jobType.getDatasetTypes().isEmpty()) {
-						// This should be a synonym for job-only jobs;
-						// again, need to add one entry to the datasetIdsList to
-						// execute the submission loop once
 						datasetIdsList.add(null);
 					} else if (multiJobType == MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB) {
 						// create a comma separated string from the dataset IDs
@@ -232,6 +235,11 @@ public class JobOptionsPanel extends VerticalPanel {
 								",");
 						datasetIdsList = new ArrayList<String>();
 						datasetIdsList.add(datasetIdsString);
+						// Do the same for the datafileIds
+						String datafileIdsString = PortalUtils.createStringFromList(datafileIdsList,
+								",");
+						datafileIdsList = new ArrayList<String>();
+						datafileIdsList.add(datafileIdsString);
 					}
 
 					// just display the job name, options string and dataset ids in an alert for now
@@ -250,9 +258,14 @@ public class JobOptionsPanel extends VerticalPanel {
 						List<String> parameters = new ArrayList<String>();
 						// add any dataset IDs as the first item in the parameters list
 						// but only do this if the job type is not "job only" (no datasets required)
-						if (!jobType.getDatasetTypes().contains(
-								DatasetsPanel.DATASET_TYPES_LIST_JOB_ONLY_OPTION)) {
-							parameters.add(PortalUtils.createStringFromList(datasetIdsList, ","));
+						if (! isJobOnlyJob) {
+							// We may have only datafileIds or only datasetIds, so need to test for empty lists
+							if( datasetIdsList.size() > 0 ){
+								parameters.add( "--datasetIds=" + PortalUtils.createStringFromList(datasetIdsList, ","));
+							}
+							if( datafileIdsList.size() > 0 ){
+								parameters.add( "--datafileIds=" + PortalUtils.createStringFromList(datafileIdsList, ","));
+							}
 						}
 						parameters.addAll(optionsList);
 
@@ -292,11 +305,20 @@ public class JobOptionsPanel extends VerticalPanel {
 									}
 								});
 					} else if (jobType.getType().equalsIgnoreCase("batch")) {
+						
 						jobIdCounter = 0;
 						submittedJobsTable.setVisible(true);
 						submittedJobsList = new ArrayList<String>();
 						for (String datasetId : datasetIdsList) {
+							// If we are running one job for all datasets/datafiles,
+							// we only need one entry, and we will get it from the single value in datasetIdsList
 							submittedJobsList.add("Waiting for job ID...");
+						}
+						if (multiJobType != MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB) {
+							// Will need a separate entry for each datafile too
+							for (String datafileId : datafileIdsList) {
+								submittedJobsList.add("Waiting for job ID...");
+							}
 						}
 						submittedJobsTable.setRowData(0, submittedJobsList);
 						submittedJobsTable.setRowCount(submittedJobsList.size());
@@ -304,11 +326,14 @@ public class JobOptionsPanel extends VerticalPanel {
 						for (String datasetId : datasetIdsList) {
 							// add the dataset ID as the first item in the parameters list
 							List<String> parameters = new ArrayList<String>();
-							// only add a dataset ID if the job type is not "job only" (no datasets
-							// required)
-							if (!jobType.getDatasetTypes().contains(
-									DatasetsPanel.DATASET_TYPES_LIST_JOB_ONLY_OPTION)) {
-								parameters.add(datasetId);
+							// only add a dataset ID if the job type is not "job only" (no datasets/datafiles required)
+							if (! isJobOnlyJob) {
+								parameters.add( "--datasetIds=" + datasetId);
+								// If we're running a single job for all datasets/datafiles, then this is it,
+								// and we need to add the comma-separated list of datafileIds too, if there is one
+								if (multiJobType == MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB && datafileIdsList.size() > 0) {
+									parameters.add( "--datafileIds=" + datafileIdsList.get(0));
+								}
 							}
 							parameters.addAll(optionsList);
 
@@ -329,6 +354,32 @@ public class JobOptionsPanel extends VerticalPanel {
 										}
 									});
 						}
+						// If we're running separate jobs, will need to repeat for the datafileIds as well
+						if (multiJobType != MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB) {
+							for (String datafileId : datafileIdsList) {
+								// add the datafile ID as the first item in the parameters list
+								List<String> parameters = new ArrayList<String>();
+								parameters.add( "--datafileIds=" + datafileId);
+								parameters.addAll(optionsList);
+
+								dataService.submitBatch(portal.getSessionId(), jobType, parameters,
+										new AsyncCallback<String>() {
+
+											@Override
+											public void onFailure(Throwable caught) {
+												Window.alert("Server error: " + caught.getMessage());
+											}
+
+											@Override
+											public void onSuccess(String message) {
+												// Window.alert(message);
+												submittedJobsList.set(jobIdCounter, message);
+												submittedJobsTable.setRowData(0, submittedJobsList);
+												jobIdCounter++;
+											}
+										});
+							}
+						}
 					} else {
 						Window.alert("Error: job '" + jobName + "' is of an unrecognised type - '"
 								+ jobType.getType() + "'");
@@ -345,6 +396,7 @@ public class JobOptionsPanel extends VerticalPanel {
 		multipleDatasetsOptionListBox.setSelectedIndex(0);
 
 		// get a list of selected dataset ids
+		// TODO modify dataService to take datafileIds too?
 		List<Long> selectedDatasetIds = new ArrayList<Long>();
 		for (DatasetOverview selectedDataset : portal.datasetsPanel.selectedDatasets) {
 			selectedDatasetIds.add(selectedDataset.getDatasetId());
@@ -495,7 +547,9 @@ public class JobOptionsPanel extends VerticalPanel {
 						}
 
 						int numSelectedDatasets = portal.datasetsPanel.selectedDatasets.size();
-						if (jobType.getType().equalsIgnoreCase("batch") && numSelectedDatasets > 1) {
+						int numSelectedDatafiles = portal.datasetsPanel.selectedDatafiles.size();
+						int numSelectedSetsOrFiles = numSelectedDatasets + numSelectedDatafiles;
+						if (jobType.getType().equalsIgnoreCase("batch") && numSelectedSetsOrFiles > 1) {
 							HorizontalPanel warningPanel = new HorizontalPanel();
 							if (jobType.getMultiple() == false) {
 								// warn user that they are submitting multiple jobs
@@ -504,10 +558,10 @@ public class JobOptionsPanel extends VerticalPanel {
 										.add(new HTML(
 												"<font color='red'><b>"
 														+ "Please tick the box to confirm that you are intending to run <br> "
-														+ numSelectedDatasets
+														+ numSelectedSetsOrFiles
 														+ " '"
 														+ jobType.getName()
-														+ "' jobs - one job per selected dataset  &nbsp;</b></font>"));
+														+ "' jobs - one job per selected dataset/datafile  &nbsp;</b></font>"));
 								warningPanel.add(confirmMultipleCheckBox);
 							} else {
 								// warn the user and offer the following two options

@@ -6,6 +6,7 @@ import java.util.Set;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.cellview.client.CellTable;
@@ -72,6 +73,10 @@ public class SelectionListPanel extends Composite {
 	// Perhaps this should be called selectionSelectionModel by analogy with selectionListModel :-)
 	final MultiSelectionModel<SelectionListContent> selectionModel = new MultiSelectionModel<SelectionListContent>();
 
+	private HandlerRegistration removeSelectedButtonHandler;
+
+	private com.google.web.bindery.event.shared.HandlerRegistration removeAllButtonHandler;
+
 	public SelectionListPanel(String title) {
 		
 		initWidget(uiBinder.createAndBindUi(this));
@@ -99,7 +104,9 @@ public class SelectionListPanel extends Composite {
 		
 		selectionTableHolder.add(selectionTable);
 
-		removeSelectedButton.addClickHandler(new ClickHandler() {
+		// Store the HandlerRegistration of these buttons in case we replace the handler later
+		
+		removeSelectedButtonHandler = removeSelectedButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
 				// Remove each selected element from the table
@@ -123,7 +130,7 @@ public class SelectionListPanel extends Composite {
 			}
 		});
 
-		removeAllButton.addClickHandler(new ClickHandler() {
+		removeAllButtonHandler = removeAllButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
 				clear();
@@ -187,6 +194,7 @@ public class SelectionListPanel extends Composite {
 		if( ! selectionListModel.getList().contains(contentItem) ){
 			selectionListModel.getList().add(contentItem);
 			selectionListModel.refresh();
+			selectionTable.setPageSize(selectionListModel.getList().size());
 			acceptButton.setEnabled(true);
 			removeAllButton.setEnabled(true);
 		}
@@ -207,6 +215,7 @@ public class SelectionListPanel extends Composite {
 			}
 		}
 		if( atLeastOneAdded ){
+			selectionTable.setPageSize(selectionListModel.getList().size());
 			selectionListModel.refresh();
 			checkAcceptButtonEnabled();
 			removeAllButton.setEnabled(true);
@@ -242,6 +251,48 @@ public class SelectionListPanel extends Composite {
 		cancelButton.setVisible(true);
 	}
 	
+	/**
+	 * Change the name and handler for the Remove Selected button.
+	 * This removes any previous click handler.
+	 * Passing a null for ClickHandler will remove the button.
+	 * 
+	 * @param name
+	 * @param clickHandler
+	 */
+	public void changeRemoveSelectedButton( String name, ClickHandler clickHandler ){
+		if( removeSelectedButtonHandler != null ){
+			removeSelectedButtonHandler.removeHandler();
+		}
+		removeSelectedButton.setText(name);
+		if( clickHandler != null ){
+			removeSelectedButtonHandler = removeSelectedButton.addClickHandler(clickHandler);
+		} else {
+			removeSelectedButtonHandler = null;
+			removeSelectedButton.setVisible(false);
+		}
+	}
+	
+	/**
+	 * Change the name and handler for the Remove All button.
+	 * This removes any previous click handler.
+	 * Passing a null for ClickHandler will remove the button.
+	 * 
+	 * @param name
+	 * @param clickHandler
+	 */
+	public void changeRemoveAllButton( String name, ClickHandler clickHandler ){
+		if( removeAllButtonHandler != null ){
+			removeAllButtonHandler.removeHandler();
+		}
+		removeAllButton.setText(name);
+		if( clickHandler != null ){
+			removeAllButtonHandler = removeAllButton.addClickHandler(clickHandler);
+		} else {
+			removeAllButtonHandler = null;
+			removeAllButton.setVisible(false);
+		}
+	}
+	
 	public void setAcceptButtonText(String title){
 		acceptButton.setText(title);
 	}
@@ -257,8 +308,9 @@ public class SelectionListPanel extends Composite {
 	public void setVisible(boolean b){
 		titleLabel.setVisible(b);
 		selectionTableHolder.setVisible(b);
-		removeSelectedButton.setVisible(b);
-		removeAllButton.setVisible(b);
+		// The Remove Selected / All buttons should only be shown if they have defined handlers
+		removeSelectedButton.setVisible( (removeSelectedButtonHandler != null) && b);
+		removeAllButton.setVisible( (removeAllButtonHandler != null) && b);
 		acceptButton.setVisible(b);
 		// Only show the cancel button if it has a handler defined
 		cancelButton.setVisible(cancelButtonHasHandler && b);
@@ -274,5 +326,5 @@ public class SelectionListPanel extends Composite {
 		selectionModel.clear();
 		acceptButton.setEnabled(false);
 	}
-
+	
 }

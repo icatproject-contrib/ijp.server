@@ -12,7 +12,10 @@
             <g:cell width='150px' horizontalAlignment='ALIGN_LEFT'>
                 <g:ListBox ui:field="jobTypeListBox" />
             </g:cell>
-            <g:cell width='100%' horizontalAlignment='ALIGN_RIGHT'>
+            <g:cell width='200px' horizontalAlignment='ALIGN_LEFT'>
+              <g:Label ui:field="jobDetails"/>
+            </g:cell>
+            <g:cell width='50%' horizontalAlignment='ALIGN_RIGHT'>
                 <g:Button ui:field="jobStatusButton" text='Show job status panel' />
             </g:cell>
         </g:HorizontalPanel>
@@ -55,18 +58,30 @@
 
         <g:VerticalPanel ui:field='verticalSplitPanelHolder' width='100%' />
 
-         <g:HorizontalPanel width='100%'>
+        <g:HorizontalPanel width='100%'>
             <g:cell width='50%' horizontalAlignment='ALIGN_LEFT'>
                 <g:Button ui:field="addDatasetsToCartButton" text="Add selected datasets to cart"/>
             </g:cell>
             <g:cell width='50%' horizontalAlignment='ALIGN_RIGHT'>
-                <g:Button ui:field="submitJobButton" text="Submit Job"/>
+                <g:Button ui:field="submitJobForMatchingDatasetsButton" text="Submit Job"/>
             </g:cell>
         </g:HorizontalPanel>
 
-         <g:HorizontalPanel width='100%'>
+        <g:HorizontalPanel width='100%'>
             <g:cell width='50%' horizontalAlignment='ALIGN_CENTER'>
-                <ijp:SelectionListPanel ui:field="datasetsCartPanel" title="Title set from UI.XML"/>
+                <ijp:SelectionListPanel ui:field="datasetsCartPanel" title="Datasets Cart - Title set from UI.XML"/>
+            </g:cell>
+        </g:HorizontalPanel>
+
+        <g:HorizontalPanel width='100%'>
+            <g:cell width='50%' horizontalAlignment='ALIGN_CENTER'>
+                <ijp:SelectionListPanel ui:field="datafilesCartPanel" title="Datafiles Cart - Title set from UI.XML"/>
+            </g:cell>
+        </g:HorizontalPanel>
+
+        <g:HorizontalPanel width='100%'>
+            <g:cell width='50%' horizontalAlignment='ALIGN_CENTER'>
+                <g:Button ui:field="submitJobForCartButton" text="Submit Job for Cart (datasets and datafiles)"/>
             </g:cell>
         </g:HorizontalPanel>
 

@@ -46,8 +46,8 @@ public class DatasetListContent implements SelectionListContent {
 		return this.datasetOverview;
 	}
 	
-	// Override equals to use the DatasetOverviews
-	// We could use the IDs, but this is closer to the reimplementation of hashCode()
+	// Override equals to use the IDs
+	// (Using DatasetOverview.equals() does not work - uses object identity)
 	
 	@Override
 	public boolean equals(Object obj){
@@ -58,12 +58,13 @@ public class DatasetListContent implements SelectionListContent {
 			return true;
 		}
 		DatasetListContent dlc = (DatasetListContent) obj;
-		return getDatasetOverview().equals(dlc.getDatasetOverview());
+		return getId().equals(dlc.getId());
 	}
 	
+	// HashCode should be based on the ID.
 	@Override
 	public int hashCode(){
-		return datasetOverview.hashCode();
+		return Long.valueOf(getId()).hashCode();
 	}
 
 }

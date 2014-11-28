@@ -22,6 +22,8 @@ import org.icatproject.ijp.shared.xmlmodel.ListOption;
 import org.icatproject.ijp.shared.xmlmodel.SearchItem;
 import org.icatproject.ijp.shared.xmlmodel.SearchItems;
 
+import com.google.gwt.cell.client.ButtonCell;
+import com.google.gwt.cell.client.FieldUpdater;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -30,6 +32,7 @@ import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.cellview.client.CellTable;
+import com.google.gwt.user.cellview.client.Column;
 import com.google.gwt.user.cellview.client.TextColumn;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -58,6 +61,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 
 	@UiField
 	ListBox datasetTypeListBox;
+	
+	@UiField
+	Label jobDetails;
 
 	@UiField
 	Button jobStatusButton;
@@ -93,6 +99,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	Button datasetInfoButton;
 
 	CellTable<DatasetOverview> datasetsTable;
+	
+	ButtonCell datafilesButtonCell;
+	Column<DatasetOverview,String> datafilesButtonColumn;
 
 	CellTable<DatasetInfoItem> datasetInfoTable;
 
@@ -104,13 +113,20 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	// This button will be used to Submit the job for the current selection in the Matching Datasets panel only;
 	// The Accept button in the datasetsCartPanel will submit for the shopping cart
 	@UiField
-	Button submitJobButton;
+	Button submitJobForMatchingDatasetsButton;
 	
 	@UiField
 	Button addDatasetsToCartButton;
 	
 	@UiField
 	SelectionListPanel datasetsCartPanel;
+	
+	@UiField
+	SelectionListPanel datafilesCartPanel;
+	
+	// Button to submit the job for the entire cart contents (datasets + datafiles)
+	@UiField
+	Button submitJobForCartButton;
 
 	@UiField
 	FormPanel rdpForm;
@@ -137,7 +153,11 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	// We now have more than one Submit button; each needs to set up its own set of selected DatasetOverviews,
 	// and this - rather than just the selectionModel for the Matching Datasets panel - is what the JobOptionsPanel etc. need to access.
 	final List<DatasetOverview> selectedDatasets = new ArrayList<DatasetOverview>();
+	
+	// Similar list for datafiles
+	final List<DatafileListContent> selectedDatafiles = new ArrayList<DatafileListContent>();
 
+	private static final String JOB_DETAILS_DEFAULT = "Select a job type from the list";
 	private static final String JOB_TYPES_LIST_FIRST_OPTION = "Job types ...";
 	private static final String DATASET_TYPES_LIST_FIRST_OPTION = "Dataset types ...";
 	static final String DATASET_TYPES_LIST_JOB_ONLY_OPTION = "none (job only)";
@@ -186,6 +206,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		verticalSplitPanelHolder.add(datasetSplitPanel);
 		
 		jobTypeListBox.addItem(JOB_TYPES_LIST_FIRST_OPTION);
+		
+		jobDetails.setText(JOB_DETAILS_DEFAULT);
 
 		datasetTypeListBox.addItem(DATASET_TYPES_LIST_FIRST_OPTION);
 
@@ -345,6 +367,25 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			}
 		};
 		datasetsTable.addColumn(usersColumn, "Users");
+		
+		// Define the datafilesButtonColumn, but don't add it yet
+		datafilesButtonCell = new ButtonCell();
+		datafilesButtonColumn = new Column<DatasetOverview, String>(datafilesButtonCell) {
+		      @Override
+		      public String getValue(DatasetOverview datasetOverview) {
+		        // The value to display in the button.
+		        // Ha! See below.
+		        return "Change (" + getSelectedDatafilesCountFor(datasetOverview) + " selected)";
+		      }
+		};
+
+		datafilesButtonColumn.setFieldUpdater(new FieldUpdater<DatasetOverview, String>() {
+		        public void update(int index, DatasetOverview datasetOverview, String value) {
+		          // Value is the button value.  Object is the row object.
+		          // Window.alert("You clicked: " + value + " on " + datasetOverview.getName());
+		          portal.datafilesPanel.openForDatasetOverview(datasetOverview);
+		        }
+		      });
 
 		// configure the selection model to handle user selection of datasets
 		datasetsTable.setSelectionModel(selectionModel);
@@ -353,11 +394,16 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
 				// It's OK to have no datasets selected if the job doesn't need them
 				if( selectedDatasets.size() == 0 && ! jobOnlyJobSelected() ){
-					submitJobButton.setEnabled(false);
+					submitJobForMatchingDatasetsButton.setEnabled(false);
+				} else if( jobOnlyJobSelected() ){
+					// In case selecting a job-only job can trigger this change handler
+					submitJobForMatchingDatasetsButton.setEnabled(true);
+				} else if( ! selectedJobAcceptsDatasets() ){
+					submitJobForMatchingDatasetsButton.setEnabled(false);
 				} else {
-					submitJobButton.setEnabled(true);
+					submitJobForMatchingDatasetsButton.setEnabled(true);
 				}
-				if( selectedDatasets.size() == 0 ){
+				if( selectedDatasets.size() == 0 || (! selectedJobAcceptsDatasets()) ){
 					addDatasetsToCartButton.setEnabled(false);
 				} else {
 					addDatasetsToCartButton.setEnabled(true);
@@ -397,7 +443,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 
 		messageLabel.setText(DEFAULT_MESSAGE);
 
-		submitJobButton.addClickHandler(new ClickHandler() {
+		submitJobForMatchingDatasetsButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
 				// check that the selected job type accepts multiple datasets
@@ -419,36 +465,29 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		addDatasetsToCartButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				Set<DatasetOverview> selectedDatasets = selectionModel.getSelectedSet();
-				if( selectedDatasets.size() == 0 ){
+				Set<DatasetOverview> selectedMatchingDatasets = selectionModel.getSelectedSet();
+				if( selectedMatchingDatasets.size() == 0 ){
 					Window.alert("No datasets selected");
 				} else {
 					List<SelectionListContent> listContents = new ArrayList<SelectionListContent>();
-					for( DatasetOverview item : selectedDatasets ){
+					for( DatasetOverview item : selectedMatchingDatasets ){
 						listContents.add(new DatasetListContent(item));
 					}
 					datasetsCartPanel.addContent(listContents);
 					datasetsCartPanel.setVisible(true);
+					// Check visibility of datafilesCartPanel and submitCartButton
+					if( selectedJobAcceptsDatafiles() && (! datafilesCartPanel.getEverything().isEmpty())){
+						datafilesCartPanel.setVisible(true);
+						submitJobForCartButton.setEnabled(true);
+						submitJobForCartButton.setVisible(true);
+					}
 				}
 			}
 		});
 		
-		// Datasets cart panel - work in progress
+		// Datasets cart panel
 		datasetsCartPanel.setTitle("Datasets Cart" );
 		datasetsCartPanel.setColumnsFrom( new DatasetListContent(null) );
-		
-		// TODO remove later - added for debugging appearance
-		List<SelectionListContent> listContents = new ArrayList<SelectionListContent>();
-		for( int i=1; i < 20; i++ ){
-			DatasetOverview datasetOverview = new DatasetOverview();
-			datasetOverview.setDatasetId((long) 0);
-			datasetOverview.setName("Dataset " + i);
-			datasetOverview.setSampleDescription("Sample Description " + i);
-			datasetOverview.setUsers("Users " + i);
-			DatasetListContent datasetListContent = new DatasetListContent(datasetOverview);
-			listContents.add(datasetListContent);
-		}
-		datasetsCartPanel.setContent(listContents);
 		
 		datasetsCartPanel.setAcceptButtonText("Submit Job for these Datasets");
 		datasetsCartPanel.addAcceptHandler(new ClickHandler() {
@@ -458,6 +497,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				String jobName = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
 				JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
 				selectedDatasets.clear();
+				// Need to clear selectedDatafiles as well as datasets as we only want to pass the latter to jobOptionsPanel
+				selectedDatafiles.clear();
 				// Note: we want the full contents of the datasets cart, not just the current selection!
 				for( SelectionListContent item : datasetsCartPanel.getEverything() ){
 					selectedDatasets.add( ((DatasetListContent)item).getDatasetOverview() );
@@ -465,6 +506,71 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				if (selectedDatasets.size() > 1 && !jobType.getMultiple()
 						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
 					Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
+				} else {
+					// popup a form containing the options for this job
+					// with options relevant to the selected dataset
+					portal.jobOptionsPanel.populateAndShowForm();
+				}
+			}
+		});
+		
+		// Datafiles cart panel
+		datafilesCartPanel.setTitle("Datafiles Cart");
+		datafilesCartPanel.setColumnsFrom( new DatafileListContent(null, null, null, null, null, null) );
+		
+		datafilesCartPanel.setAcceptButtonText("Submit Job for these Datafiles");
+		datafilesCartPanel.addAcceptHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				// Gather file (IDs) into a field from which JobOptionsPanel will read them
+				// check that the selected job type accepts multiple datafiles
+				String jobName = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
+				JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
+				// Need to clear selectedDatasets as well as datafiles as we only want to pass the latter to jobOptionsPanel
+				selectedDatasets.clear();
+				selectedDatafiles.clear();
+				// Note: we want the full contents of the datasets cart, not just the current selection!
+				for( SelectionListContent item : datafilesCartPanel.getEverything() ){
+					selectedDatafiles.add( (DatafileListContent)item );
+				}
+				if (selectedDatafiles.size() > 1 && !jobType.getMultiple()
+						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
+					Window.alert("'" + jobName + "' does not allow multiple datafiles to be selected");
+				} else {
+					// popup a form containing the options for this job
+					// with options relevant to the selected dataset
+					portal.jobOptionsPanel.populateAndShowForm();
+				}
+				// For now, just pop up a message
+				// Window.alert( datafilesCartPanel.getEverything().size() + " datafiles would be passed to the job");
+			}
+		});
+		
+		// Hide the datasets and datafiles panels initially
+		
+		datasetsCartPanel.setVisible(false);
+		datafilesCartPanel.setVisible(false);
+		submitJobForCartButton.setVisible(false);
+		
+		submitJobForCartButton.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				// Gather both datasets and datafiles from the cart and submit job for them
+				String jobName = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
+				JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
+				selectedDatasets.clear();
+				// Note: we want the full contents of the datasets cart, not just the current selection!
+				for( SelectionListContent item : datasetsCartPanel.getEverything() ){
+					selectedDatasets.add( ((DatasetListContent)item).getDatasetOverview() );
+				}
+				selectedDatafiles.clear();
+				// Note: we want the full contents of the datasets cart, not just the current selection!
+				for( SelectionListContent item : datafilesCartPanel.getEverything() ){
+					selectedDatafiles.add( (DatafileListContent)item );
+				}
+				if (selectedDatafiles.size() + selectedDatasets.size() > 1 && !jobType.getMultiple()
+						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
+					Window.alert("'" + jobName + "' does not allow multiple datasets/datafiles to be selected");
 				} else {
 					// popup a form containing the options for this job
 					// with options relevant to the selected dataset
@@ -486,6 +592,39 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		// TODO - remove these later - just for development purposes
 		doStuffButton.setVisible(false);
 		debugTextArea.setVisible(false);
+	}
+
+	protected boolean selectedJobAcceptsDatasets() {
+		String selectedJobType = JOB_TYPES_LIST_FIRST_OPTION;
+		int selectedIndex = jobTypeListBox.getSelectedIndex();
+		if( selectedIndex > -1 ){
+			selectedJobType = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
+		}
+		if( selectedJobType == null || selectedJobType.equals(JOB_TYPES_LIST_FIRST_OPTION) ){
+			return false;
+		} else {
+			JobType jobType = jobTypeMappings.getJobTypesMap().get(selectedJobType);
+			return jobType.isAcceptsDatasets();
+		}
+	}
+
+	protected boolean selectedJobAcceptsDatafiles() {
+		String selectedJobType = JOB_TYPES_LIST_FIRST_OPTION;
+		int selectedIndex = jobTypeListBox.getSelectedIndex();
+		if( selectedIndex > -1 ){
+			selectedJobType = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
+		}
+		if( selectedJobType == null || selectedJobType.equals(JOB_TYPES_LIST_FIRST_OPTION) ){
+			return false;
+		} else {
+			JobType jobType = jobTypeMappings.getJobTypesMap().get(selectedJobType);
+			return jobType.isAcceptsDatafiles();
+		}
+	}
+
+	protected int getSelectedDatafilesCountFor(DatasetOverview datasetOverview) {
+		// TODO Implement this dummy method
+		return 0;
 	}
 
 	/**
@@ -515,6 +654,18 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	void handleJobTypeListBoxChange(ChangeEvent event){
 		// Re-populate the datasetTypeListBox, etc.
 		String selectedJobType = JOB_TYPES_LIST_FIRST_OPTION;
+		
+		// Considering all the permutations, it is too difficult to determine
+		// when it would be OK to preserve previous contents of the datasets / datafiles carts
+		// (the new job would have to accept all of their dataset types)
+		// so it is safest just to clear the cart entirely whenever the job type changes
+		
+		datasetsCartPanel.clear();
+		datasetsCartPanel.setVisible(false);
+		datafilesCartPanel.clear();
+		datafilesCartPanel.setVisible(false);
+		submitJobForCartButton.setVisible(false);
+
 		int selectedIndex = jobTypeListBox.getSelectedIndex();
 		if( selectedIndex > -1 ){
 			selectedJobType = jobTypeListBox.getValue(jobTypeListBox.getSelectedIndex());
@@ -524,12 +675,13 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			repopulateDatasetTypeListBox( new ArrayList<String>() );
 			datasetTypeListBox.setEnabled(false);
 			setSearchesEnabled(false);
-			submitJobButton.setEnabled(false);
-			messageLabel.setText("Select a Job Type");
-			datasetsCartPanel.clear();
-			datasetsCartPanel.setVisible(false);
+			submitJobForMatchingDatasetsButton.setEnabled(false);
+			jobDetails.setText(JOB_DETAILS_DEFAULT);
+			messageLabel.setText("Select a Job Type, then a Dataset Type");
+			removeDatasetsButtonColumn();
 		} else {
 			JobType jobType = jobTypeMappings.getJobTypesMap().get(selectedJobType);
+			jobDetails.setText(getJobDetailsString(jobType));
 			List<String> datasetTypesList = jobType.getDatasetTypes();
 			repopulateDatasetTypeListBox(datasetTypesList);
 			// Handle job-only jobs: will either have no types or just "none (job only)"
@@ -538,16 +690,77 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			if( datasetTypesList.isEmpty() || datasetTypesList.get(0).equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION) ){
 				datasetTypeListBox.setEnabled(false);
 				setSearchesEnabled(false);
-				submitJobButton.setEnabled(true);
+				submitJobForMatchingDatasetsButton.setEnabled(true);
 				messageLabel.setText("No need to select dataset(s) to submit jobs of this type"); 
-				datasetsCartPanel.clear();
-				datasetsCartPanel.setVisible(false);
+				removeDatasetsButtonColumn();
 			} else {
 				datasetTypeListBox.setEnabled(true);
 				// Nudge the dataset type list change handler - will decide whether to enable or disable search inputs
 				handleDatasetTypeListBoxChange(null);
 				messageLabel.setText(DEFAULT_MESSAGE);
+				// Disable the buttons to add them to the cart, or to run for them
+				// - even if the job accepts datasets, there will be none there at the moment anyway
+				submitJobForMatchingDatasetsButton.setEnabled(false);
+				addDatasetsToCartButton.setEnabled(false); 
+				
+				// Considered leaving the datafiles cart alone here when the job doesn't accept datasets,
+				// but would at least have to remove datafiles from datasets whose
+				// datatypes are not accepted by the new job type.  Too fiddly!
+				
+				// Should only show datasets button column if jobtype accepts datafiles
+				if( jobType.isAcceptsDatafiles() ){
+					addDatasetsButtonColumn();
+				} else {
+					removeDatasetsButtonColumn();
+					// Considered leaving the datasets cart alone,
+					// but would at least have to remove datafiles from datasets whose
+					// datatypes are not accepted by the new job type.  Too fiddly!
+				}
 			}
+		}
+	}
+	
+	private String getJobDetailsString(JobType jobType) {
+		String details;
+		List<String> datasetTypesList = jobType.getDatasetTypes();
+		if( datasetTypesList.isEmpty() || datasetTypesList.get(0).equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION) ){
+			// job-only job
+			details = "runs without datasets or datafiles";
+		} else {
+			String joiner;
+			String plurality;
+			if( jobType.getMultiple() ){
+				details = "runs for multiple ";
+				joiner = " and ";
+				plurality = "s";
+			} else {
+				details = "runs separate jobs for each ";
+				joiner = " or ";
+				plurality = "";
+			}
+			if( jobType.isAcceptsDatasets() ){
+				details += "dataset" + plurality;
+			}
+			if( jobType.isAcceptsDatasets() && jobType.isAcceptsDatafiles() ){
+				details += joiner;
+			}
+			if( jobType.isAcceptsDatafiles() ){
+				details += "datafile" + plurality;
+			}
+		}
+		return details;
+	}
+
+	private void addDatasetsButtonColumn(){
+		if( datasetsTable.getColumnIndex(datafilesButtonColumn) == -1 ){
+			datasetsTable.addColumn(datafilesButtonColumn, "Datafiles Selection");
+		}
+	}
+	
+	private void removeDatasetsButtonColumn(){
+		int index = datasetsTable.getColumnIndex(datafilesButtonColumn);
+		if( index != -1 ){
+			datasetsTable.removeColumn(index);
 		}
 	}
 	
@@ -566,9 +779,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		addDatasetsToCartButton.setVisible(b);
 		// Set the Submit Job button's title appropriately
 		if (b){
-			submitJobButton.setText(SUBMIT_BUTTON_TITLE_WHEN_SEARCH_VISIBLE);
+			submitJobForMatchingDatasetsButton.setText(SUBMIT_BUTTON_TITLE_WHEN_SEARCH_VISIBLE);
 		} else {
-			submitJobButton.setText(SUBMIT_BUTTON_TITLE_DEFAULT);
+			submitJobForMatchingDatasetsButton.setText(SUBMIT_BUTTON_TITLE_DEFAULT);
 		}
 	}
 
@@ -587,18 +800,18 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		if (selectedValue.equals(DATASET_TYPES_LIST_JOB_ONLY_OPTION)) {
 			// enable the dataset actions box because it is not necessary
 			// (or possible) to select a dataset of this type
-			submitJobButton.setEnabled(true);
+			submitJobForMatchingDatasetsButton.setEnabled(true);
 			// disable the search button - if the user presses it
 			// the Options... box gets disabled
 			setSearchesEnabled(false);
 		} else if (selectedValue.equals(DATASET_TYPES_LIST_FIRST_OPTION)) {
 			// No dataset type selected yet, but should be
-			submitJobButton.setEnabled(false);
+			submitJobForMatchingDatasetsButton.setEnabled(false);
 			setSearchesEnabled(false);
 		} else {
 			// disable the dataset actions box - it will be re-enabled when a search
 			// is done and a new list of datasets appears
-			submitJobButton.setEnabled(false);
+			submitJobForMatchingDatasetsButton.setEnabled(false);
 			setSearchesEnabled(true);
 		}
 		// remove any message text ("3 datasets found" etc)

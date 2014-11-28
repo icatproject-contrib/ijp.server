@@ -35,6 +35,9 @@ public class Portal implements EntryPoint {
 
 	PortalDialogBox jobOptionsDialog = new PortalDialogBox(this, false, true);
 	JobOptionsPanel jobOptionsPanel;
+	
+	PortalDialogBox datafilesDialog = new PortalDialogBox(this, false, true);
+	DatafilesPanel datafilesPanel;
 
 	private String username;
 	private String sessionId;
@@ -68,6 +71,8 @@ public class Portal implements EntryPoint {
 
 		jobOptionsPanel = new JobOptionsPanel(this, jobOptionsDialog);
 
+	    datafilesPanel = new DatafilesPanel( this, datafilesDialog );
+
 		loginDialog = new DialogBox();
 		loginDialog.setText("Login");
 		loginDialog.setGlassEnabled(true);
@@ -85,11 +90,20 @@ public class Portal implements EntryPoint {
 		jobOptionsDialog.setWidget(jobOptionsPanel);
 		jobOptionsDialog.hide();
 
-		datasetsPanel.onResize();
+		// datafilesDialog needs to be wider than the default
+		// but setting width to "100%" (to dialog or panel) doesn't appear to be helpful.
+		// Arrived at current approach after much experimentation!
+	    datafilesDialog.setGlassEnabled(true);
+	    datafilesDialog.setWidget(datafilesPanel);
+	    datafilesPanel.setWidth(String.valueOf(Window.getClientWidth()-50)+"px");
+	    datafilesDialog.hide();
+
+	    datasetsPanel.onResize();
 
 		portalDialogBoxes.add(jobStatusDialog);
 		portalDialogBoxes.add(jobOutputDialog);
 		portalDialogBoxes.add(jobErrorDialog);
+		portalDialogBoxes.add(datafilesDialog);
 	}
 
 	public String getSessionId() {

@@ -25,6 +25,10 @@ public class JobType implements IsSerializable {
 	private boolean icatUrlRequired;
 	@XmlAttribute
 	private boolean idsUrlRequired;
+	@XmlAttribute
+	private boolean acceptsDatasets;
+	@XmlAttribute
+	private boolean acceptsDatafiles;
 	@XmlElement
 	private List<String> datasetTypes = new ArrayList<String>();
 	@XmlElement
@@ -103,6 +107,14 @@ public class JobType implements IsSerializable {
 
 	public boolean isIdsUrlRequired() {
 		return idsUrlRequired;
+	}
+	
+	public boolean isAcceptsDatasets(){
+		return acceptsDatasets;
+	}
+
+	public boolean isAcceptsDatafiles(){
+		return acceptsDatafiles;
 	}
 
 }
