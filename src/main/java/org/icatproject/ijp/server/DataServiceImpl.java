@@ -16,6 +16,7 @@ import javax.json.JsonReader;
 import javax.json.JsonValue;
 import javax.servlet.UnavailableException;
 
+import org.icatproject.ijp.client.DatafileListContent;
 import org.icatproject.ijp.client.service.DataService;
 import org.icatproject.ijp.server.ejb.session.JobManagementBean;
 import org.icatproject.ijp.server.manager.DataServiceManager;
@@ -77,6 +78,14 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 			InternalException {
 		return dataServiceManager.getDatasetList(sessionId, datasetType, selectedSearchParamsMap,
 				genericSearchSelectionsList);
+	}
+	
+	@Override
+	public List<DatafileListContent> getDatafileList(String sessionId, String datasetType, Long datasetId,
+			Map<String, List<String>> selectedSearchParamsMap,
+			List<GenericSearchSelections> genericSearchSelectionsList) throws SessionException,
+			InternalException {
+		return dataServiceManager.getDatafileList(sessionId, datasetType, datasetId, selectedSearchParamsMap, genericSearchSelectionsList);
 	}
 
 	@Override

@@ -18,6 +18,8 @@ import java.util.Set;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 
+import org.icatproject.Datafile;
+import org.icatproject.DatafileParameter;
 import org.icatproject.Dataset;
 import org.icatproject.DatasetParameter;
 import org.icatproject.EntityField;
@@ -31,6 +33,7 @@ import org.icatproject.ParameterType;
 import org.icatproject.ids.client.DataSelection;
 import org.icatproject.ids.client.IdsClient;
 import org.icatproject.ids.client.IdsClient.Flag;
+import org.icatproject.ijp.client.DatafileListContent;
 import org.icatproject.ijp.server.Icat;
 import org.icatproject.ijp.shared.Authenticator;
 import org.icatproject.ijp.shared.Constants;
@@ -326,6 +329,77 @@ public class DataServiceManager {
 		return paramValueAsString;
 	}
 
+	// Same as getParameterValueAsString, but for DatafileParameters.
+	// TODO OK to reuse/share mergedDatasetParameterTypeMappings?
+	//
+	private String getFileParameterValueAsString(DatafileParameter datafileParameter) {
+		String paramName = datafileParameter.getType().getName();
+		String paramValueAsString = "";
+		if (mergedDatasetParameterTypeMappings.get(paramName) == null) {
+			// return null for parameters not in the mappings table so we can ignore them
+			return null;
+		} else if (mergedDatasetParameterTypeMappings.get(paramName) == ParameterValueType.STRING) {
+			String paramValueString = datafileParameter.getStringValue();
+			if (paramValueString != null) {
+				paramValueAsString = paramValueString;
+			}
+		} else if (mergedDatasetParameterTypeMappings.get(paramName) == ParameterValueType.NUMERIC) {
+			Double paramValueDouble = datafileParameter.getNumericValue();
+			if (paramValueDouble != null) {
+				// all numeric values are stored in ICAT as Doubles
+				// the basic idea here is that if we have a Double value that does not have a
+				// fractional part
+				// then the value is likely to be an "integer" value and the user does not want to
+				// see values
+				// like 1, 2, 3 presented as 1.0, 2.0, 3.0 etc
+				// "integer" values between 9007199254740992 and -9007199254740992 can be
+				// represented exactly
+				// in a Double so we will only attempt to convert values in this range
+				// see: http://mindprod.com/applet/converter.html
+
+				// TODO - investigate if BigDecimal longValueExact will work here and simplify the
+				// code
+
+				BigDecimal paramValueBigDecimal = new BigDecimal(paramValueDouble);
+
+				BigDecimal twoToPower53BigDecimal = new BigDecimal(
+						PortalUtils.TWO_TO_POWER_53_DOUBLE);
+				BigDecimal minusTwoToPower53BigDecimal = new BigDecimal(
+						PortalUtils.MINUS_TWO_TO_POWER_53_DOUBLE);
+
+				int compareMaxInt = paramValueBigDecimal.compareTo(twoToPower53BigDecimal);
+				int compareMinInt = paramValueBigDecimal.compareTo(minusTwoToPower53BigDecimal);
+
+				// use this simple conversion unless the conditions below are met
+				// use a string representation of this BigDecimal using engineering notation if an
+				// exponent is needed.
+				paramValueAsString = paramValueBigDecimal.toEngineeringString();
+
+				// if the number is less than or equal to the maximum safe "integer" value and
+				// the number is greater than or equal to the minimum safe "integer" value
+				if ((compareMaxInt == -1 || compareMaxInt == 0)
+						&& (compareMinInt == 0 || compareMinInt == 1)) {
+					try {
+						BigInteger bigInt = paramValueBigDecimal.toBigIntegerExact();
+						// if the conversion on the line above worked then we now
+						// have a number that looks like an "integer" - no decimal point etc
+						paramValueAsString = bigInt.toString();
+					} catch (ArithmeticException e) {
+						// myDoubleBigDecimal has a non-zero fractional part
+						// so use the simple conversion done previously
+					}
+				}
+			}
+		} else if (mergedDatasetParameterTypeMappings.get(paramName) == ParameterValueType.DATE_AND_TIME) {
+			// TODO - this needs testing when we have a date parameter
+			XMLGregorianCalendar paramValueDate = datafileParameter.getDateTimeValue();
+			if (paramValueDate != null) {
+				paramValueAsString = paramValueDate.toString();
+			}
+		}
+		return paramValueAsString;
+	}
+
 	public List<DatasetOverview> getDatasetList(String sessionId, String datasetType,
 			Map<String, List<String>> selectedSearchParamsMap,
 			List<GenericSearchSelections> genericSearchSelectionsList) throws SessionException,
@@ -441,6 +515,138 @@ public class DataServiceManager {
 		return datasetOverviews;
 	}
 
+	public List<DatafileListContent> getDatafileList(String sessionId, String datasetType, Long datasetId,
+			Map<String, List<String>> selectedSearchParamsMap,
+			List<GenericSearchSelections> genericSearchSelectionsList) throws SessionException,
+			InternalException {
+		
+		List<DatafileListContent> datafileList = new ArrayList<DatafileListContent>();
+		
+		List<String> queriesToRun = new ArrayList<String>();
+		
+		// TODO add initial query to restrict to datafiles in the given dataset
+		// Datafile.id [dataset_id = <datasetId>] ?
+		// Is this the best way? ID-set from this query could be very large...
+		// Or better to add this to finalQuery?
+		// queriesToRun.add("Datafile.id [dataset_id = " + datasetId + "]");
+		
+		// TODO adapt handling of selectedSearchParams for datafiles - may not need/want datasetType
+		
+		if (selectedSearchParamsMap.isEmpty()) {
+			logger.debug("Contents of selectedSearchParamsMap: <EMPTY>");
+			// do a query that returns all datafiles in this dataset
+			// leave queriesToRun as an empty list to achieve this
+		} else {
+			logger.debug("Contents of selectedSearchParamsMap:");
+			for (String key : selectedSearchParamsMap.keySet()) {
+				String debugLine = key + " : ";
+				List<String> selectedParams = selectedSearchParamsMap.get(key);
+				for (String selectedParam : selectedParams) {
+					debugLine += "[" + selectedParam + "]";
+				}
+				logger.debug(debugLine);
+			}
+
+			Map<String, SearchItem> searchItemsMap = xmlFileManager.getSearchItems().toMap();
+			logger.debug("About to loop through keys again...");
+			for (String key : selectedSearchParamsMap.keySet()) {
+				logger.debug("Processing key [" + key + "]");
+				List<String> selectedParams = selectedSearchParamsMap.get(key);
+				String query = searchItemsMap.get(key).getQuery().trim();
+				query = query.replace("${datasetType}", datasetType);
+				query = replaceVariableInQuery(query, "${stringValues}", selectedParams, "'");
+				query = replaceVariableInQuery(query, "${numericValues}", selectedParams, "");
+				query = replaceVariableInQuery(query, "${dateValues}", selectedParams, "");
+				queriesToRun.add(query);
+			}
+		}
+
+		// generate the generic search queries strings
+		List<String> genericQueryStrings = createGenericSearchQueriesList(datasetType,
+				genericSearchSelectionsList);
+		logger.debug("Contents of genericQueryStrings:");
+		for (String genericQuery : genericQueryStrings) {
+			logger.debug("genericQuery='" + genericQuery + "'");
+		}
+		// add genericQueryStrings to queriesToRun
+		queriesToRun.addAll(genericQueryStrings);
+
+		logger.debug("Contents of queriesToRun:");
+		for (String query : queriesToRun) {
+			logger.debug("query='" + query + "'");
+		}
+
+		try {
+			// Despite the method name, it should work just the same for datafileIds!
+			Set<Object> matchingDatafileIds = getMatchingDatasetIdObjectsList(sessionId,
+					queriesToRun);
+			String finalQuery = null;
+			if (matchingDatafileIds == null) {
+				// one of the queries returned no results, so we need to return no results
+				return new ArrayList<DatafileListContent>();
+			} else if (matchingDatafileIds.size() == 0) {
+				// return all datafiles in this dataset
+				// though if queriesToRun has done its stuff, this query will be redundant
+				// TODO determine the CORRECT query!
+				finalQuery = "0," + PortalUtils.MAX_RESULTS
+						+ " Datafile [dataset.id = " + datasetId + "]";
+			} else {
+				// create a query listing the datafile ids to look up
+				logger.debug("Compiling datafileIdListString from cumulativeDatafileIdObjects "
+						+ "containing " + matchingDatafileIds.size() + " IDs");
+				String datafileIdListString = "";
+				for (Object datafileIdObject : matchingDatafileIds) {
+					datafileIdListString += datafileIdObject + ",";
+				}
+				if (datafileIdListString.length() > 0) {
+					// remove the last comma
+					datafileIdListString = datafileIdListString.substring(0,
+							datafileIdListString.length() - 1);
+					// logger.debug(datasetIdListString);
+					// TODO determine the CORRECT query!
+					finalQuery = "0," + PortalUtils.MAX_RESULTS
+							+ " Datafile [id IN (" + datafileIdListString + ")]";
+				}
+			}
+
+			// execute the final query
+			logger.debug("finalQuery=[" + finalQuery + "]");
+			List<Object> datafilesFromIcat;
+			datafilesFromIcat = icat.search(sessionId, finalQuery);
+			for (Object o : datafilesFromIcat) {
+				Datafile datafileFromIcat = (Datafile) o;
+				DatafileListContent datafileListContent = new DatafileListContent();
+				
+				// TODO How use DatafileParameters? Following is built but ignored.
+				
+				List<DatafileParameter> dsParams = datafileFromIcat.getParameters();
+				HashMap<String, String> dsParamsMap = new HashMap<String, String>();
+				for (DatafileParameter dsParam : dsParams) {
+					String paramName = dsParam.getType().getName();
+					String paramValueAsString = getFileParameterValueAsString(dsParam);
+					if (paramValueAsString != null) {
+						dsParamsMap.put(paramName, paramValueAsString);
+					}
+				}
+				
+				// set the id (the most important value to identify a datafile)
+				datafileListContent.setId(datafileFromIcat.getId());
+				// populate the fields required in the datafiles table
+				datafileListContent.setName(datafileFromIcat.getName());
+				datafileListContent.setCreateTime(datafileFromIcat.getCreateTime().toString());
+				datafileListContent.setModTime(datafileFromIcat.getModTime().toString());
+				// TODO What are the units in the filesize?
+				datafileListContent.setSize(datafileFromIcat.getFileSize().toString());
+
+				datafileList.add(datafileListContent);
+			}
+		} catch (IcatException_Exception e) {
+			processIcatException(e);
+			return null; // Can't get here
+		}
+		return datafileList;
+	}
+	
 	public Map<Long, Map<String, Object>> getJobDatasetParametersForDatasets(String sessionId,
 			String datasetType, List<Long> datasetIds) throws SessionException, InternalException {
 		Map<Long, Map<String, Object>> datasetToJobDatasetParametersMap = new HashMap<Long, Map<String, Object>>();

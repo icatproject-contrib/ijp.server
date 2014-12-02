@@ -206,7 +206,7 @@ public class SelectionListPanel extends Composite {
 	 * 
 	 * @param contents
 	 */
-	public void addContent( List<SelectionListContent> contents ){
+	public void addContent( List<? extends SelectionListContent> contents ){
 		boolean atLeastOneAdded = false;
 		for( SelectionListContent item : contents ){
 			if( ! selectionListModel.getList().contains(item) ){
@@ -229,7 +229,7 @@ public class SelectionListPanel extends Composite {
 	 * 
 	 * @param contents
 	 */
-	public void setContent( List<SelectionListContent> contents ){
+	public void setContent( List<? extends SelectionListContent> contents ){
 		selectionListModel.getList().clear();
 		this.addContent(contents);
 		if( contents.size() > 0 ){

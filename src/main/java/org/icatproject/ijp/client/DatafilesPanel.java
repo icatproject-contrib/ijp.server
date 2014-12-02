@@ -1,9 +1,15 @@
 package org.icatproject.ijp.client;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.icatproject.ijp.client.service.DataServiceAsync;
 import org.icatproject.ijp.shared.DatasetOverview;
+import org.icatproject.ijp.shared.GenericSearchSelections;
+import org.icatproject.ijp.shared.PortalUtils;
+import org.icatproject.ijp.shared.SessionException;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -13,6 +19,7 @@ import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.cellview.client.CellTable;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DialogBox;
@@ -57,6 +64,8 @@ public class DatafilesPanel extends Composite {
 	@UiField
 	SelectionListPanel datafilesCartPanel;
 	
+	private DataServiceAsync dataService = DataServiceAsync.Util.getInstance();
+
 	Portal portal;
 	DialogBox dialogBox;
 	
@@ -156,22 +165,68 @@ public class DatafilesPanel extends Composite {
 	
 	protected void refreshDatafilesList() {
 		// TODO Implement this properly
-		Window.alert("Search not yet implemented - generating dummy results");
-		// Build a dummy set of "datafiles" to exercise rest of GUI
-		List<SelectionListContent> datafileListContents = new ArrayList<SelectionListContent>();
-		for( int i=20; i < 30; i++ ){
-			DatafileListContent datafileListContent = new DatafileListContent(
-					(long) i,
-					"Datafile " + i,
-					"Description of datafile " + i,
-					i*10 + "MB",
-					"24 Nov 2014 15:28",
-					"24 Nov 2014 15:28"
-					);
-			datafileListContents.add(datafileListContent);
-		}
-		matchingDatafilesPanel.setContent(datafileListContents);
-	}
+		Window.alert("Search filtering not yet implemented - will return all datafiles in the dataset (unless there are too many!)");
+		
+		// Real code - attempt - below
+		
+		// set up the callback object
+		AsyncCallback<List<DatafileListContent>> callback = new AsyncCallback<List<DatafileListContent>>() {
+			public void onFailure(Throwable caught) {
+				// deal with possible exceptions
+				System.err.println("DatasetsPanel.refreshDatasetsList(): " + caught.getMessage());
+				if (caught.getClass() == SessionException.class) {
+					System.err.println("caught is a SessionException");
+					portal.loginPanel.setMessageText(caught.getMessage());
+					portal.loginDialog.show();
+				} else {
+					Window.alert("Server error: " + caught.getMessage());
+				}
+			}
 
+			public void onSuccess(List<DatafileListContent> result) {
+				// if ( result == null ) {
+				// System.out.println("Result is null");
+				// } else {
+				int resultSize = result.size();
+				System.out.println("Result size: " + resultSize);
+				if (resultSize == PortalUtils.MAX_RESULTS) {
+					// TODO - get the colour of the message changing to work
+					messageLabel.setText("Results limit of " + PortalUtils.MAX_RESULTS
+							+ " reached. Please refine your search.");
+				} else {
+					messageLabel.setText(resultSize + " datafiles found.");
+				}
+				// }
+				
+				matchingDatafilesPanel.setContent(result);				
+			}
+		};
+
+		List<GenericSearchSelections> genSearchSelectionsList = new ArrayList<GenericSearchSelections>();
+		
+		// Original code from DatasetsPanel - may want to do something similar in the long run
+		/*
+		List<GenericSearchSelections> genSearchSelectionsList = getGenericSearchSelectionsList();
+		if (genSearchSelectionsList != null) {
+			StringBuilder sb = new StringBuilder("genSearchSelectionsList:\n");
+			for (GenericSearchSelections genericSearchSelections : genSearchSelectionsList) {
+				sb.append(genericSearchSelections.toString());
+				sb.append("\n");
+			}
+			// debugTextArea.setText(sb.toString());
+			// Window.alert(sb.toString());
+		}
+		*/
+		
+		// TODO Either grab the datasetType or remove it from the interface - do we really need it?
+		String datasetType = "unknown";
+
+		// TODO Support selected search parameters
+		Map<String, List<String>> selectedSearchParamsMap = new HashMap<String,List<String>>();
+
+		// make the call to the server
+		System.out.println("DatasetsPanel: making call to DataService");
+		dataService.getDatafileList(portal.getSessionId(), datasetType, datasetOverview.getDatasetId(), selectedSearchParamsMap, genSearchSelectionsList, callback);
+	}
 
 }

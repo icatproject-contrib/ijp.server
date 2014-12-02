@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.icatproject.ijp.client.DatafileListContent;
 import org.icatproject.ijp.shared.AccountDTO;
 import org.icatproject.ijp.shared.Authenticator;
 import org.icatproject.ijp.shared.DatasetOverview;
@@ -40,6 +41,11 @@ public interface DataServiceAsync {
 			List<GenericSearchSelections> genericSearchSelectionsList,
 			AsyncCallback<List<DatasetOverview>> callback);
 
+	void getDatafileList(String sessionId, String datasetType, Long datasetId,
+			Map<String, List<String>> selectedSearchParamsMap,
+			List<GenericSearchSelections> genericSearchSelectionsList,
+			AsyncCallback<List<DatafileListContent>> callback);
+	
 	void getDatasetParameters(String sessionId, Long datasetId,
 			AsyncCallback<LinkedHashMap<String, String>> callback);
 

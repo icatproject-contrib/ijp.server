@@ -1,10 +1,13 @@
 package org.icatproject.ijp.client;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class DatafileListContent implements SelectionListContent {
+public class DatafileListContent implements SelectionListContent, Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	private static final String COL_TITLE_NAME = "Name";
 	private static final String COL_TITLE_DESC = "Description";
@@ -22,6 +25,10 @@ public class DatafileListContent implements SelectionListContent {
 	
 	private static final List<String> availableColumnsList 
 		= new ArrayList<String>(Arrays.asList(COL_TITLE_NAME,COL_TITLE_DESC,COL_TITLE_SIZE,COL_TITLE_CREATE_TIME,COL_TITLE_MOD_TIME));
+	
+	public DatafileListContent() {
+		
+	}
 	
 	public DatafileListContent( Long id, String name, String description, String size, String createTime, String modTime ){
 		this.id = id;
@@ -56,6 +63,26 @@ public class DatafileListContent implements SelectionListContent {
 	@Override
 	public Long getId() {
 		return id;
+	}
+	
+	public void setId( Long id ){
+		this.id = id;
+	}
+	
+	public void setName( String name ){
+		this.name = name;
+	}
+	
+	public void setSize( String size ){
+		this.size = size;
+	}
+	
+	public void setCreateTime( String createTime ){
+		this.createTime = createTime;
+	}
+	
+	public void setModTime( String modTime ){
+		this.modTime = modTime;
 	}
 
 	// Override equals to use the IDs
