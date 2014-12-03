@@ -59,13 +59,18 @@ public interface DataServiceAsync {
 	
 	void cancelJob(String sessionId, long jobId, AsyncCallback<Void> callback);
 
-	void getSearchItems(AsyncCallback<SearchItems> callback);
+	void getDatasetSearchItems(AsyncCallback<SearchItems> callback);
+
+	void getDatafileSearchItems(AsyncCallback<SearchItems> callback);
 
 	void getJobTypeMappings(AsyncCallback<JobTypeMappings> callback);
 
 	void getDatasetTypesList(String sessionId, AsyncCallback<List<String>> callback);
 
 	void getDatasetParameterTypesMap(String sessionId,
+			AsyncCallback<LinkedHashMap<String, ParameterValueType>> callback);
+
+	void getDatafileParameterTypesMap(String sessionId,
 			AsyncCallback<LinkedHashMap<String, ParameterValueType>> callback);
 
 	void getJobDatasetParametersForDatasets(String sessionId, String datasetType,

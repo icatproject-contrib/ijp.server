@@ -156,6 +156,7 @@ public class LoginPanel extends Composite {
 				portal.datasetsPanel.getJobTypesFromServer();
 				portal.loginDialog.hide();
 				getMergedDatasetParameterTypeMappings();
+				getMergedDatafileParameterTypeMappings();
 			}
 
 		});
@@ -173,6 +174,23 @@ public class LoginPanel extends Composite {
 					public void onSuccess(
 							LinkedHashMap<String, ParameterValueType> datasetParameterTypesMap) {
 						portal.setMergedDatasetParameterTypeMappings(datasetParameterTypesMap);
+					}
+				});
+
+	}
+
+	protected void getMergedDatafileParameterTypeMappings() {
+		dataService.getDatafileParameterTypesMap(portal.getSessionId(),
+				new AsyncCallback<LinkedHashMap<String, ParameterValueType>>() {
+					@Override
+					public void onFailure(Throwable caught) {
+						Window.alert("Server error: " + caught.getMessage());
+					}
+
+					@Override
+					public void onSuccess(
+							LinkedHashMap<String, ParameterValueType> datafileParameterTypesMap) {
+						portal.setMergedDatafileParameterTypeMappings(datafileParameterTypesMap);
 					}
 				});
 

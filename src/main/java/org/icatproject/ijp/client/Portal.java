@@ -44,6 +44,8 @@ public class Portal implements EntryPoint {
 
 	private LinkedHashMap<String, ParameterValueType> mergedDatasetParameterTypeMappings = null;
 
+	private LinkedHashMap<String, ParameterValueType> mergedDatafileParameterTypeMappings = null;
+
 	DataServiceAsync dataService = DataServiceAsync.Util.getInstance();
 
 	// private static MyUiBinder uiBinder = GWT.create(MyUiBinder.class);
@@ -129,6 +131,15 @@ public class Portal implements EntryPoint {
 	public void setMergedDatasetParameterTypeMappings(
 			LinkedHashMap<String, ParameterValueType> mergedDatasetParameterTypeMappings) {
 		this.mergedDatasetParameterTypeMappings = mergedDatasetParameterTypeMappings;
+	}
+
+	public LinkedHashMap<String, ParameterValueType> getMergedDatafileParameterTypeMappings() {
+		return mergedDatafileParameterTypeMappings;
+	}
+
+	public void setMergedDatafileParameterTypeMappings(
+			LinkedHashMap<String, ParameterValueType> mergedDatafileParameterTypeMappings) {
+		this.mergedDatafileParameterTypeMappings = mergedDatafileParameterTypeMappings;
 	}
 
 }

@@ -23,9 +23,17 @@ public class XmlFileManager {
 
 	final static Logger logger = LoggerFactory.getLogger(XmlFileManager.class);
 
-	public SearchItems getSearchItems() throws InternalException {
+	public SearchItems getDatasetSearchItems() throws InternalException {
+		return getSearchItems("dataset_search_items");
+	}
+
+	public SearchItems getDatafileSearchItems() throws InternalException {
+		return getSearchItems("datafile_search_items");
+	}
+
+	private SearchItems getSearchItems(String fileName) throws InternalException {
 		SearchItems searchItems = null;
-		File xmlFile = new File(Constants.CONFIG_SUBDIR + "/search_items.xml");
+		File xmlFile = new File(Constants.CONFIG_SUBDIR + "/" + fileName + ".xml");
 		try {
 			JAXBContext context = JAXBContext.newInstance(SearchItems.class);
 			Unmarshaller u = context.createUnmarshaller();

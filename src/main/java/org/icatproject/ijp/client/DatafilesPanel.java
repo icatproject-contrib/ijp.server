@@ -10,6 +10,9 @@ import org.icatproject.ijp.shared.DatasetOverview;
 import org.icatproject.ijp.shared.GenericSearchSelections;
 import org.icatproject.ijp.shared.PortalUtils;
 import org.icatproject.ijp.shared.SessionException;
+import org.icatproject.ijp.shared.xmlmodel.ListOption;
+import org.icatproject.ijp.shared.xmlmodel.SearchItem;
+import org.icatproject.ijp.shared.xmlmodel.SearchItems;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -26,6 +29,7 @@ import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.HasText;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.VerticalPanel;
@@ -71,6 +75,8 @@ public class DatafilesPanel extends Composite {
 	
 	DatasetOverview datasetOverview;
 
+	Map<String, ListBox> searchItemsListBoxMap = new HashMap<String, ListBox>();
+
 	public DatafilesPanel(final Portal portal, final DialogBox dialogBox) {
 		initWidget(uiBinder.createAndBindUi(this));
 		
@@ -87,8 +93,7 @@ public class DatafilesPanel extends Composite {
 		addGenericSearchButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				// TODO Still using generic data*sets* search panel
-				genericSearchesVerticalPanel.add(new GenericSearchPanel(portal));
+				genericSearchesVerticalPanel.add(new GenericSearchPanel(portal.getMergedDatafileParameterTypeMappings()));
 			}
 		});
 
@@ -124,7 +129,7 @@ public class DatafilesPanel extends Composite {
 			public void onClick(ClickEvent event) {
 				// Add all datafiles to the global cart
 				List<SelectionListContent> datafiles = datafilesCartPanel.getEverything();
-				// TODO remove this alert
+				// TODO remove this alert?
 				Window.alert( datafiles.size() + " datafiles added to the global cart");
 				portal.datasetsPanel.datafilesCartPanel.addContent(datafiles);
 				// Ensure that the global datafiles cart is visible.
@@ -145,12 +150,12 @@ public class DatafilesPanel extends Composite {
 			@Override
 			public void onClick(ClickEvent event) {
 				// Cancel and close the dialog, changing nothing
-				// TODO remove this alert?
-				Window.alert( "Selection cancelled");
 				dialogBox.hide();
 			}
 		});
 
+		addSearchBoxesAndPopulateTextArea();
+		
 	}
 
 	protected void openForDatasetOverview( DatasetOverview datasetOverview ){
@@ -164,10 +169,6 @@ public class DatafilesPanel extends Composite {
 	}
 	
 	protected void refreshDatafilesList() {
-		// TODO Implement this properly
-		Window.alert("Search filtering not yet implemented - will return all datafiles in the dataset (unless there are too many!)");
-		
-		// Real code - attempt - below
 		
 		// set up the callback object
 		AsyncCallback<List<DatafileListContent>> callback = new AsyncCallback<List<DatafileListContent>>() {
@@ -202,10 +203,6 @@ public class DatafilesPanel extends Composite {
 			}
 		};
 
-		List<GenericSearchSelections> genSearchSelectionsList = new ArrayList<GenericSearchSelections>();
-		
-		// Original code from DatasetsPanel - may want to do something similar in the long run
-		/*
 		List<GenericSearchSelections> genSearchSelectionsList = getGenericSearchSelectionsList();
 		if (genSearchSelectionsList != null) {
 			StringBuilder sb = new StringBuilder("genSearchSelectionsList:\n");
@@ -216,17 +213,80 @@ public class DatafilesPanel extends Composite {
 			// debugTextArea.setText(sb.toString());
 			// Window.alert(sb.toString());
 		}
-		*/
 		
 		// TODO Either grab the datasetType or remove it from the interface - do we really need it?
 		String datasetType = "unknown";
 
-		// TODO Support selected search parameters
-		Map<String, List<String>> selectedSearchParamsMap = new HashMap<String,List<String>>();
+		Map<String, List<String>> selectedSearchParamsMap = getSearchParamsMap();
 
 		// make the call to the server
 		System.out.println("DatasetsPanel: making call to DataService");
 		dataService.getDatafileList(portal.getSessionId(), datasetType, datasetOverview.getDatasetId(), selectedSearchParamsMap, genSearchSelectionsList, callback);
+	}
+
+	private List<GenericSearchSelections> getGenericSearchSelectionsList() {
+		List<GenericSearchSelections> genSearchSelectionsList = new ArrayList<GenericSearchSelections>();
+		for (int i = 0; i < genericSearchesVerticalPanel.getWidgetCount(); i++) {
+			try {
+				GenericSearchPanel genSearchPanel = (GenericSearchPanel) genericSearchesVerticalPanel
+						.getWidget(i);
+				genSearchSelectionsList.add(genSearchPanel.validateAndGetGenericSearchSelections());
+			} catch (Exception e) {
+				Window.alert(e.getMessage());
+				return null;
+			}
+		}
+		return genSearchSelectionsList;
+	}
+
+	private void addSearchBoxesAndPopulateTextArea() {
+		// put the SearchItems looked up from XML into a TextArea
+		dataService.getDatafileSearchItems(new AsyncCallback<SearchItems>() {
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert("Server error: " + caught.getMessage());
+			}
+
+			@Override
+			public void onSuccess(SearchItems searchItems) {
+				if (searchItems == null) {
+					// debugTextArea.setText("searchItems is null");
+				} else {
+					// debugTextArea.setText(searchItems.toString());
+					for (SearchItem searchItem : searchItems.getSearchItemList()) {
+						ListBox listBox = new ListBox(searchItem.isMultipleSelect());
+						// listBox.setName(searchItem.paramName);
+						for (ListOption listOption : searchItem.getListOptions()) {
+							listBox.addItem(listOption.getDisplayValue(),
+									listOption.getSubmitValue());
+						}
+						listBox.setVisibleItemCount(searchItem.getVisibleItemCount());
+						listBox.setSelectedIndex(0);
+						searchListsPanel.add(listBox);
+						searchItemsListBoxMap.put(searchItem.getParamName(), listBox);
+					}
+				}
+			}
+		});
+	}
+
+	private Map<String, List<String>> getSearchParamsMap() {
+		Map<String, List<String>> searchParamsMap = new HashMap<String, List<String>>();
+		for (String key : searchItemsListBoxMap.keySet()) {
+			List<String> selectedItemsList = new ArrayList<String>();
+			ListBox listBox = searchItemsListBoxMap.get(key);
+			for (int i = 0; i < listBox.getItemCount(); i++) {
+				// add selected items whose values are not empty strings
+				// ie. ignore the "title" option at the top
+				if (listBox.isItemSelected(i) && !listBox.getValue(i).equals("")) {
+					selectedItemsList.add(listBox.getValue(i));
+				}
+			}
+			if (selectedItemsList.size() > 0) {
+				searchParamsMap.put(key, selectedItemsList);
+			}
+		}
+		return searchParamsMap;
 	}
 
 }

@@ -233,7 +233,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		addGenericSearchButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				genericSearchesVerticalPanel.add(new GenericSearchPanel(portal));
+				genericSearchesVerticalPanel.add(new GenericSearchPanel(portal.getMergedDatasetParameterTypeMappings()));
 			}
 		});
 
@@ -992,7 +992,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 
 	private void addSearchBoxesAndPopulateTextArea() {
 		// put the SearchItems looked up from XML into a TextArea
-		dataService.getSearchItems(new AsyncCallback<SearchItems>() {
+		dataService.getDatasetSearchItems(new AsyncCallback<SearchItems>() {
 			@Override
 			public void onFailure(Throwable caught) {
 				Window.alert("Server error: " + caught.getMessage());

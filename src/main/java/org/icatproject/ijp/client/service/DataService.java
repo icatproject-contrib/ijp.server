@@ -47,13 +47,18 @@ public interface DataService extends RemoteService {
 	String getJobOutput(String sessionId, long jobId, OutputType outputType)
 			throws SessionException, ForbiddenException, InternalException, ParameterException;
 
-	SearchItems getSearchItems() throws InternalException;
+	SearchItems getDatasetSearchItems() throws InternalException;
+
+	SearchItems getDatafileSearchItems() throws InternalException;
 
 	List<String> getDatasetTypesList(String sessionId) throws SessionException, InternalException;
 
 	JobTypeMappings getJobTypeMappings() throws InternalException;
 
 	LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(String sessionId)
+			throws SessionException, InternalException;
+
+	LinkedHashMap<String, ParameterValueType> getDatafileParameterTypesMap(String sessionId)
 			throws SessionException, InternalException;
 
 	Map<Long, Map<String, Object>> getJobDatasetParametersForDatasets(String sessionId,

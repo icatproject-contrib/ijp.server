@@ -21,8 +21,6 @@ import com.google.gwt.user.datepicker.client.DateBox;
 
 public class GenericSearchPanel extends Composite {
 
-	Portal portal;
-	
 	HorizontalPanel horizontalPanel = new HorizontalPanel();
 
 	ListBox paramSelectListBox = new ListBox();
@@ -44,9 +42,11 @@ public class GenericSearchPanel extends Composite {
 		PARAM_OPERATOR_MAPPINGS.put(ParameterValueType.NUMERIC,	Arrays.asList("=", "!=", "<", "<=", ">", ">=", "BETWEEN"));
 		PARAM_OPERATOR_MAPPINGS.put(ParameterValueType.DATE_AND_TIME, Arrays.asList("BETWEEN"));
 	}
+	
+	private HashMap<String,ParameterValueType> parameterTypeMappings;
 
-	public GenericSearchPanel(Portal portal) {
-		this.portal = portal;
+	public GenericSearchPanel(HashMap<String,ParameterValueType> parameterTypeMappings) {
+		this.parameterTypeMappings = parameterTypeMappings;
 		
 		removeButton.setText("X");
 		removeButton.setWidth("2em");
@@ -63,7 +63,7 @@ public class GenericSearchPanel extends Composite {
 			}
 		});
 
-		for (String paramName : portal.getMergedDatasetParameterTypeMappings().keySet()) {
+		for (String paramName : parameterTypeMappings.keySet()) {
 			paramSelectListBox.addItem(paramName);
 		}
 		paramSelectListBox.addChangeHandler(new ChangeHandler()
@@ -90,7 +90,7 @@ public class GenericSearchPanel extends Composite {
 	private void setOperatorsListBoxValues() {
 		int selectedIndex = paramSelectListBox.getSelectedIndex();
 		String selectedValue = paramSelectListBox.getValue(selectedIndex);
-		ParameterValueType paramType = portal.getMergedDatasetParameterTypeMappings().get(selectedValue);
+		ParameterValueType paramType = parameterTypeMappings.get(selectedValue);
 		List<String> operatorListBoxValues = PARAM_OPERATOR_MAPPINGS.get(paramType);
 		operatorSelectListBox.clear();
 		for (String newListBoxValue : operatorListBoxValues) {
@@ -112,7 +112,7 @@ public class GenericSearchPanel extends Composite {
 		String paramSelectedValue = paramSelectListBox.getValue(paramSelectedIndex);
 		int operatorSelectedIndex = operatorSelectListBox.getSelectedIndex();
 		String operatorSelectedValue = operatorSelectListBox.getValue(operatorSelectedIndex);
-		ParameterValueType paramType = portal.getMergedDatasetParameterTypeMappings().get(paramSelectedValue);
+		ParameterValueType paramType = parameterTypeMappings.get(paramSelectedValue);
 		// reset the tool tip on the text box in case LIKE was selected previously 
 		paramValueTextBox.setTitle("");
 		if (paramType == ParameterValueType.NUMERIC) {
@@ -175,13 +175,13 @@ public class GenericSearchPanel extends Composite {
 		}
 		genSearchSelections.setFromDate(fromDateBox.getValue());
 		genSearchSelections.setToDate(toDateBox.getValue());
-		if ( portal.getMergedDatasetParameterTypeMappings().get(selectedParamName) == ParameterValueType.NUMERIC ) {
+		if ( parameterTypeMappings.get(selectedParamName) == ParameterValueType.NUMERIC ) {
 			if ( (genSearchSelections.getFromValueNumeric() != null && genSearchSelections.getToValueNumeric() == null) ||
 				 (genSearchSelections.getFromValueNumeric() == null && genSearchSelections.getToValueNumeric() != null) ) {
 				throw new Exception("Parameter: " + selectedParamName + " - Both fields must contain a value when BETWEEN is selected");
 			}
 		}
-		if ( portal.getMergedDatasetParameterTypeMappings().get(selectedParamName) == ParameterValueType.DATE_AND_TIME ) {
+		if ( parameterTypeMappings.get(selectedParamName) == ParameterValueType.DATE_AND_TIME ) {
 			if ( (genSearchSelections.getFromDate() != null && genSearchSelections.getToDate() == null) ||
 			     (genSearchSelections.getFromDate() == null && genSearchSelections.getToDate() != null) ) {
 				throw new Exception("Parameter: " + selectedParamName + " - Both date fields must be completed");

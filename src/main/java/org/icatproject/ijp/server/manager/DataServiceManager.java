@@ -71,6 +71,11 @@ public class DataServiceManager {
 	private Map<String, ParameterValueType> datasetParameterTypeMappings = null;
 	private LinkedHashMap<String, ParameterValueType> mergedDatasetParameterTypeMappings = null;
 	private Map<String, Method> datasetFieldMethodMappings = new HashMap<String, Method>();
+	// Parallel set for Datafile
+	private Map<String, ParameterValueType> datafileFieldTypeMappings = new HashMap<String, ParameterValueType>();
+	private Map<String, ParameterValueType> datafileParameterTypeMappings = null;
+	private LinkedHashMap<String, ParameterValueType> mergedDatafileParameterTypeMappings = null;
+	private Map<String, Method> datafileFieldMethodMappings = new HashMap<String, Method>();
 
 	private String idsUrlString;
 
@@ -78,6 +83,7 @@ public class DataServiceManager {
 
 	static {
 		// list the types of fields of Dataset that should be searchable with the generic search
+		// BR: assume the same types can be applied to Datafile
 		DATASET_FIELDS_TO_USE = new ArrayList<String>();
 		DATASET_FIELDS_TO_USE.add("String"); // description, name, doi, location
 		DATASET_FIELDS_TO_USE.add("Date"); // startDate, endDate
@@ -119,6 +125,10 @@ public class DataServiceManager {
 		populateDatasetFieldTypeAndMethodMappings();
 		populateDatasetParameterTypesMap(sessionId);
 		populateMergedDatasetParameterTypesMap();
+
+		populateDatafileFieldTypeAndMethodMappings();
+		populateDatafileParameterTypesMap(sessionId);
+		populateMergedDatafileParameterTypesMap();
 
 		URL idsUrl = props.getURL("ids.url");
 		ids = new IdsClient(idsUrl);
@@ -223,6 +233,59 @@ public class DataServiceManager {
 		// to be returned in this order
 		for (String paramName : keysAsList) {
 			mergedDatasetParameterTypeMappings.put(paramName, combinedMap.get(paramName));
+		}
+
+	}
+	
+	// Corresponding methods for Datafiles
+
+	private void populateDatafileFieldTypeAndMethodMappings()
+			throws InternalException, IcatException_Exception {
+		EntityInfo ei = icat.getEntityInfo("Datafile");
+		for (EntityField field : ei.getFields()) {
+			/*
+			 * For each field (of the types we are interested in) put an entry
+			 * in a field name to param value type map and an entry in a field
+			 * name to get method map
+			 */
+			if (DATASET_FIELDS_TO_USE.contains(field.getType())) {
+				datafileFieldTypeMappings.put(field.getName(),
+						DATASET_FIELD_TYPE_TO_PARAMVALUETYPE_MAPPINGS.get(field
+								.getType()));
+				datafileFieldMethodMappings.put(field.getName(),
+						getMethod(Datafile.class, field.getName()));
+			}
+		}
+	}
+
+	private void populateDatafileParameterTypesMap(String sessionId)
+			throws IcatException_Exception {
+		datafileParameterTypeMappings = new HashMap<String, ParameterValueType>();
+		List<Object> resultsFromIcat = icat.search(sessionId,
+				"ParameterType [applicableToDatafile = True]");
+		for (Object resultFromIcat : resultsFromIcat) {
+			ParameterType paramType = (ParameterType) resultFromIcat;
+			// convert ICAT ParameterValueTypes to PortalUtils
+			// ParameterValueTypes so they can be
+			// sent back to the client
+			datafileParameterTypeMappings.put(paramType.getName(),
+					ParameterValueType.valueOf(ParameterValueType.class,
+							paramType.getValueType().name()));
+		}
+	}
+
+	private void populateMergedDatafileParameterTypesMap() {
+		Map<String, ParameterValueType> combinedMap = new HashMap<String, ParameterValueType>();
+		combinedMap.putAll(datafileFieldTypeMappings);
+		combinedMap.putAll(datafileParameterTypeMappings);
+		List<String> keysAsList = new ArrayList<String>(combinedMap.keySet());
+		Collections.sort(keysAsList);
+		mergedDatafileParameterTypeMappings = new LinkedHashMap<String, ParameterValueType>();
+		// loop through the ordered keys inserting them into the LinkedHashMap
+		// to be returned in this order
+		for (String paramName : keysAsList) {
+			mergedDatafileParameterTypeMappings.put(paramName,
+					combinedMap.get(paramName));
 		}
 
 	}
@@ -423,7 +486,7 @@ public class DataServiceManager {
 				logger.debug(debugLine);
 			}
 
-			Map<String, SearchItem> searchItemsMap = xmlFileManager.getSearchItems().toMap();
+			Map<String, SearchItem> searchItemsMap = xmlFileManager.getDatasetSearchItems().toMap();
 			logger.debug("About to loop through keys again...");
 			for (String key : selectedSearchParamsMap.keySet()) {
 				logger.debug("Processing key [" + key + "]");
@@ -438,7 +501,7 @@ public class DataServiceManager {
 		}
 
 		// generate the generic search queries strings
-		List<String> genericQueryStrings = createGenericSearchQueriesList(datasetType,
+		List<String> genericQueryStrings = createGenericDatasetSearchQueriesList(datasetType,
 				genericSearchSelectionsList);
 		logger.debug("Contents of genericQueryStrings:");
 		for (String genericQuery : genericQueryStrings) {
@@ -547,13 +610,15 @@ public class DataServiceManager {
 				logger.debug(debugLine);
 			}
 
-			Map<String, SearchItem> searchItemsMap = xmlFileManager.getSearchItems().toMap();
+			Map<String, SearchItem> searchItemsMap = xmlFileManager.getDatafileSearchItems().toMap();
 			logger.debug("About to loop through keys again...");
 			for (String key : selectedSearchParamsMap.keySet()) {
 				logger.debug("Processing key [" + key + "]");
 				List<String> selectedParams = selectedSearchParamsMap.get(key);
 				String query = searchItemsMap.get(key).getQuery().trim();
+				// TODO are we ever going to need datasetType in Datafile queries?
 				query = query.replace("${datasetType}", datasetType);
+				query = query.replace("${datasetId}", datasetId.toString());
 				query = replaceVariableInQuery(query, "${stringValues}", selectedParams, "'");
 				query = replaceVariableInQuery(query, "${numericValues}", selectedParams, "");
 				query = replaceVariableInQuery(query, "${dateValues}", selectedParams, "");
@@ -562,7 +627,7 @@ public class DataServiceManager {
 		}
 
 		// generate the generic search queries strings
-		List<String> genericQueryStrings = createGenericSearchQueriesList(datasetType,
+		List<String> genericQueryStrings = createGenericDatafileSearchQueriesList(datasetId,
 				genericSearchSelectionsList);
 		logger.debug("Contents of genericQueryStrings:");
 		for (String genericQuery : genericQueryStrings) {
@@ -703,7 +768,7 @@ public class DataServiceManager {
 		return datasetToJobDatasetParametersMap;
 	}
 
-	private List<String> createGenericSearchQueriesList(String datasetType,
+	private List<String> createGenericDatasetSearchQueriesList(String datasetType,
 			List<GenericSearchSelections> genericSearchSelectionsList) {
 		List<String> genericSearchQueriesList = new ArrayList<String>();
 		for (GenericSearchSelections genericSearchSelection : genericSearchSelectionsList) {
@@ -719,6 +784,90 @@ public class DataServiceManager {
 				// this is a dataset field level search
 				paramLevelType = ParameterLevelType.DATASET_PARAMETER;
 				query += " <-> DatasetParameter [";
+			} else {
+				// something has gone wrong - a parameter has been submitted to search on
+				// but it is not in either of the maps - this should never happen
+				logger.error("Unable to process generic search for unknown parameter '" + paramName
+						+ "'");
+				continue;
+			}
+
+			switch (paramLevelType) {
+			case DATASET:
+				query += "(" + paramName + " ";
+				break;
+			case DATASET_PARAMETER:
+				query += "(type.name = '" + paramName + "' AND ${valueType} ";
+				break;
+			}
+			query += genericSearchSelection.getSearchOperator();
+
+			if (paramValueType == ParameterValueType.STRING) {
+				// check there is a value to search for
+				if (!genericSearchSelection.getSearchValueString().equals("")) {
+					query = query.replace("${valueType}", "stringValue");
+					query += " '" + genericSearchSelection.getSearchValueString() + "'";
+				} else {
+					// there was no value entered to search on so skip this one
+					continue;
+				}
+			} else if (paramValueType == ParameterValueType.NUMERIC) {
+				if (genericSearchSelection.getSearchValueNumeric() != null
+						|| genericSearchSelection.getFromValueNumeric() != null
+						|| genericSearchSelection.getToValueNumeric() != null) {
+					query = query.replace("${valueType}", "numericValue");
+					if (genericSearchSelection.getSearchOperator().equals("BETWEEN")) {
+						query += " " + genericSearchSelection.getFromValueNumeric() + " AND "
+								+ genericSearchSelection.getToValueNumeric();
+					} else {
+						query += " " + genericSearchSelection.getSearchValueNumeric();
+					}
+				} else {
+					// there was no value entered to search on so skip this one
+					continue;
+				}
+			} else if (paramValueType == ParameterValueType.DATE_AND_TIME) {
+				if (genericSearchSelection.getFromDate() != null
+						&& genericSearchSelection.getToDate() != null) {
+					query = query.replace("${valueType}", "dateTimeValue");
+					SimpleDateFormat dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					query += " {ts ";
+					query += dateTimeFormat.format(genericSearchSelection.getFromDate());
+					query += "} AND {ts ";
+					query += dateTimeFormat.format(genericSearchSelection.getToDate());
+					query += "}";
+				} else {
+					// there was no value entered to search on so skip this one
+					continue;
+				}
+			} else {
+				// this must be a new ParameterValueType in a future version of ICAT
+				// add some new code here to deal with it!
+				continue;
+			}
+			query += ")]";
+			genericSearchQueriesList.add(query);
+		}
+		return genericSearchQueriesList;
+	}
+
+	private List<String> createGenericDatafileSearchQueriesList(Long datasetId,
+			List<GenericSearchSelections> genericSearchSelectionsList) {
+		List<String> genericSearchQueriesList = new ArrayList<String>();
+		for (GenericSearchSelections genericSearchSelection : genericSearchSelectionsList) {
+			String paramName = genericSearchSelection.getSearchParamName();
+			String query = "Datafile.id [dataset.id = " + datasetId + "]";  // TODO do we have to INCLUDE Dataset to compare the dataset ID?
+			ParameterValueType paramValueType = null;
+			ParameterLevelType paramLevelType = null;
+			if ((paramValueType = datafileFieldTypeMappings.get(paramName)) != null) {
+				// TODO OK to reuse ParameterLevelType, treating DATASET for Datafile-level, etc?
+				// this is a datafile field level search
+				paramLevelType = ParameterLevelType.DATASET;
+				query += " <-> Datafile [";
+			} else if ((paramValueType = datafileParameterTypeMappings.get(paramName)) != null) {
+				// this is a datafile parameter field level search
+				paramLevelType = ParameterLevelType.DATASET_PARAMETER;
+				query += " <-> DatafileParameter [";
 			} else {
 				// something has gone wrong - a parameter has been submitted to search on
 				// but it is not in either of the maps - this should never happen
@@ -907,6 +1056,10 @@ public class DataServiceManager {
 
 	public LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(String sessionId) {
 		return mergedDatasetParameterTypeMappings;
+	}
+
+	public LinkedHashMap<String, ParameterValueType> getDatafileParameterTypesMap(String sessionId) {
+		return mergedDatafileParameterTypeMappings;
 	}
 
 	public String getDataUrl(String sessionId, List<Long> investigationIds, List<Long> datasetIds,

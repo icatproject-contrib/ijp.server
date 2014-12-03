@@ -138,8 +138,13 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 
 	@Override
-	public SearchItems getSearchItems() throws InternalException {
-		return xmlFileManager.getSearchItems();
+	public SearchItems getDatasetSearchItems() throws InternalException {
+		return xmlFileManager.getDatasetSearchItems();
+	}
+
+	@Override
+	public SearchItems getDatafileSearchItems() throws InternalException {
+		return xmlFileManager.getDatafileSearchItems();
 	}
 
 	@Override
@@ -152,6 +157,12 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	public LinkedHashMap<String, ParameterValueType> getDatasetParameterTypesMap(String sessionId)
 			throws SessionException {
 		return dataServiceManager.getDatasetParameterTypesMap(sessionId);
+	}
+
+	@Override
+	public LinkedHashMap<String, ParameterValueType> getDatafileParameterTypesMap(String sessionId)
+			throws SessionException {
+		return dataServiceManager.getDatafileParameterTypesMap(sessionId);
 	}
 
 	@Override
