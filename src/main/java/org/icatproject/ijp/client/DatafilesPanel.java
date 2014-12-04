@@ -98,7 +98,7 @@ public class DatafilesPanel extends Composite {
 		});
 
 		matchingDatafilesPanel.setTitle("Matching datafiles");
-		matchingDatafilesPanel.setColumnsFrom( new DatafileListContent(null, null, null, null, null, null) );
+		matchingDatafilesPanel.setColumnsFrom( new DatafileListContent() );
 		
 		// Define/redefine button names / handlers:
 		// Remove Selected --> gone
@@ -117,7 +117,7 @@ public class DatafilesPanel extends Composite {
 		});
 
 		datafilesCartPanel.setTitle("Current Selection");
-		datafilesCartPanel.setColumnsFrom( new DatafileListContent(null, null, null, null, null, null) );
+		datafilesCartPanel.setColumnsFrom( new DatafileListContent() );
 		
 		// Define buttons:
 		// Accept --> Use This Selection
@@ -132,6 +132,8 @@ public class DatafilesPanel extends Composite {
 				// TODO remove this alert?
 				Window.alert( datafiles.size() + " datafiles added to the global cart");
 				portal.datasetsPanel.datafilesCartPanel.addContent(datafiles);
+				// Update the button counts in the Matching Datasets table - will this trigger the recalculation?
+				portal.datasetsPanel.datasetsTable.redraw();
 				// Ensure that the global datafiles cart is visible.
 				if( datafiles.size() > 0 ){
 					portal.datasetsPanel.datafilesCartPanel.setVisible(true);

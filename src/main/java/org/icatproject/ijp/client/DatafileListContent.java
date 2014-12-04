@@ -15,28 +15,19 @@ public class DatafileListContent implements SelectionListContent, Serializable {
 	private static final String COL_TITLE_CREATE_TIME = "Created";
 	private static final String COL_TITLE_MOD_TIME = "Modified";
 	
-	// For now, use local fields. TODO define DatafileOverview ?
 	private Long id;
 	private String name;
 	private String description;
 	private String size;
 	private String createTime;
 	private String modTime;
+	private Long datasetId;
 	
 	private static final List<String> availableColumnsList 
 		= new ArrayList<String>(Arrays.asList(COL_TITLE_NAME,COL_TITLE_DESC,COL_TITLE_SIZE,COL_TITLE_CREATE_TIME,COL_TITLE_MOD_TIME));
 	
 	public DatafileListContent() {
 		
-	}
-	
-	public DatafileListContent( Long id, String name, String description, String size, String createTime, String modTime ){
-		this.id = id;
-		this.name = name;
-		this.description = description;
-		this.size = size;
-		this.createTime = createTime;
-		this.modTime = modTime;
 	}
 	
 	@Override
@@ -83,6 +74,14 @@ public class DatafileListContent implements SelectionListContent, Serializable {
 	
 	public void setModTime( String modTime ){
 		this.modTime = modTime;
+	}
+	
+	public Long getDatasetId(){
+		return datasetId;
+	}
+	
+	public void setDatasetId( Long datasetId ){
+		this.datasetId = datasetId;
 	}
 
 	// Override equals to use the IDs

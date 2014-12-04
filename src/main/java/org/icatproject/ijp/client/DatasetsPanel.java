@@ -375,7 +375,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		      public String getValue(DatasetOverview datasetOverview) {
 		        // The value to display in the button.
 		        // Ha! See below.
-		        return "Change (" + getSelectedDatafilesCountFor(datasetOverview) + " selected)";
+		        return "Add (" + getSelectedDatafilesCountFor(datasetOverview) + " in cart)";
 		      }
 		};
 
@@ -516,7 +516,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		
 		// Datafiles cart panel
 		datafilesCartPanel.setTitle("Datafiles Cart");
-		datafilesCartPanel.setColumnsFrom( new DatafileListContent(null, null, null, null, null, null) );
+		datafilesCartPanel.setColumnsFrom( new DatafileListContent() );
 		
 		datafilesCartPanel.setAcceptButtonText("Submit Job for these Datafiles");
 		datafilesCartPanel.addAcceptHandler(new ClickHandler() {
@@ -623,8 +623,15 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	}
 
 	protected int getSelectedDatafilesCountFor(DatasetOverview datasetOverview) {
-		// TODO Implement this dummy method
-		return 0;
+		// Count the datafiles in the (global) cart that are from this dataset
+		Long datasetId = datasetOverview.getDatasetId();
+		int count = 0;
+		for( SelectionListContent cartItem : datafilesCartPanel.getEverything() ){
+			if( datasetId.equals( ((DatafileListContent)cartItem).getDatasetId() ) ){
+				count++;
+			}
+		}
+		return count;
 	}
 
 	/**

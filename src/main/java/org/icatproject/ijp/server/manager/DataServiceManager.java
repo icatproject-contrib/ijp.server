@@ -702,6 +702,7 @@ public class DataServiceManager {
 				datafileListContent.setModTime(datafileFromIcat.getModTime().toString());
 				// TODO What are the units in the filesize?
 				datafileListContent.setSize(datafileFromIcat.getFileSize().toString());
+				datafileListContent.setDatasetId(datasetId);
 
 				datafileList.add(datafileListContent);
 			}
