@@ -180,7 +180,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	          @Override
 	          public void onSelectionListChanged(SelectionListChangeEvent selectionListChangeEvent) {
 	              // SelectionList changed - do something
-	        	  onDatafilesCartChange( selectionListChangeEvent );
+	        	  onCartChange( selectionListChangeEvent );
 	          }
 	    });
 
@@ -498,6 +498,10 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		datasetsCartPanel.setTitle("Datasets Cart" );
 		datasetsCartPanel.setColumnsFrom( new DatasetListContent(null) );
 		
+		// Set the event bus in the datasetsCartPanel, so we can check for it being emptied (or filled, indeed)
+		//
+		datasetsCartPanel.setEventBus( Portal.EVENT_BUS );
+		
 		datasetsCartPanel.setAcceptButtonText("Submit Job for these Datasets");
 		datasetsCartPanel.addAcceptHandler(new ClickHandler() {
 			@Override
@@ -508,7 +512,6 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				selectedDatasets.clear();
 				// Need to clear selectedDatafiles as well as datasets as we only want to pass the latter to jobOptionsPanel
 				selectedDatafiles.clear();
-				// Note: we want the full contents of the datasets cart, not just the current selection!
 				for( SelectionListContent item : datasetsCartPanel.getEverything() ){
 					selectedDatasets.add( ((DatasetListContent)item).getDatasetOverview() );
 				}
@@ -528,8 +531,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		datafilesCartPanel.setColumnsFrom( new DatafileListContent() );
 		
 		// We want changes to the datafiles cart to update the button counts in the datasetsTable,
-		// so set the event bus so that change events will be fired from it
-		// (but not - yet - from the datasetsCartPanel)
+		// so set the event bus so that change events will be fired from it;
+		// also to spot whether or not it is empty
 		//
 		datafilesCartPanel.setEventBus( Portal.EVENT_BUS );
 		
@@ -544,7 +547,6 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				// Need to clear selectedDatasets as well as datafiles as we only want to pass the latter to jobOptionsPanel
 				selectedDatasets.clear();
 				selectedDatafiles.clear();
-				// Note: we want the full contents of the datasets cart, not just the current selection!
 				for( SelectionListContent item : datafilesCartPanel.getEverything() ){
 					selectedDatafiles.add( (DatafileListContent)item );
 				}
@@ -649,7 +651,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		return count;
 	}
 
-	void onDatafilesCartChange(SelectionListChangeEvent selectionListChangeEvent) {
+	void onCartChange(SelectionListChangeEvent selectionListChangeEvent) {
 		
 		SelectionListPanel changedPanel = selectionListChangeEvent.getSelectionListPanel();
 		
@@ -658,6 +660,19 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			// Not the most efficient way, but unlikely to be a performance bottleneck!
 			datasetsTable.redraw();
 		}
+		
+		// Always check for empty carts and control visibility accordingly
+		
+		boolean datasetsCartEmpty = datasetsCartPanel.getEverything().isEmpty();
+		boolean datafilesCartEmpty = datafilesCartPanel.getEverything()
+				.isEmpty();
+				
+		datasetsCartPanel.setVisible(!datasetsCartEmpty);
+		datafilesCartPanel.setVisible(!datafilesCartEmpty);
+		boolean bothCartsNonEmpty = (!datasetsCartEmpty)
+				&& (!datafilesCartEmpty);
+		submitJobForCartButton.setEnabled(bothCartsNonEmpty);
+		submitJobForCartButton.setVisible(bothCartsNonEmpty);
 	}
 
 	/**

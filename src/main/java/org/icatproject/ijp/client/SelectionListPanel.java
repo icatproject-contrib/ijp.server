@@ -141,12 +141,12 @@ public class SelectionListPanel extends Composite {
 		removeAllButtonHandler = removeAllButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				clear();
 				removeAllButton.setEnabled(false);
 				removeSelectedButton.setEnabled(false);
 				// Note: will it ever make sense to Accept an empty cart? This assumes that it won't.
 				acceptButton.setEnabled(false);
-				fireChangeEventIfEnabled();
+				// Clear will fire a change event if enabled, so no need to fire one here
+				clear();
 			}
 		});
 		
