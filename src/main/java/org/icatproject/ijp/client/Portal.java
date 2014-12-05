@@ -9,14 +9,19 @@ import org.icatproject.ijp.shared.PortalUtils.OutputType;
 import org.icatproject.ijp.shared.PortalUtils.ParameterValueType;
 
 import com.google.gwt.core.client.EntryPoint;
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
+import com.google.gwt.event.shared.EventBus;
+import com.google.gwt.event.shared.SimpleEventBus;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.RootPanel;
 
 public class Portal implements EntryPoint {
 
+	static EventBus EVENT_BUS = GWT.create(SimpleEventBus.class);
+	
 	DatasetsPanel datasetsPanel;
 
 	DialogBox loginDialog;

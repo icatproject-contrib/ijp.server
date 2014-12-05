@@ -175,6 +175,15 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	public DatasetsPanel(final Portal portal) {
 		initWidget(uiBinder.createAndBindUi(this));
 
+		// Register datafiles cart change event handler with the event bus
+		Portal.EVENT_BUS.addHandler(SelectionListChangeEvent.TYPE, new SelectionListChangeEventHandler()     {
+	          @Override
+	          public void onSelectionListChanged(SelectionListChangeEvent selectionListChangeEvent) {
+	              // SelectionList changed - do something
+	        	  onDatafilesCartChange( selectionListChangeEvent );
+	          }
+	    });
+
 		dataService.getIdsUrlString(new AsyncCallback<String>() {
 
 			@Override
@@ -518,6 +527,12 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		datafilesCartPanel.setTitle("Datafiles Cart");
 		datafilesCartPanel.setColumnsFrom( new DatafileListContent() );
 		
+		// We want changes to the datafiles cart to update the button counts in the datasetsTable,
+		// so set the event bus so that change events will be fired from it
+		// (but not - yet - from the datasetsCartPanel)
+		//
+		datafilesCartPanel.setEventBus( Portal.EVENT_BUS );
+		
 		datafilesCartPanel.setAcceptButtonText("Submit Job for these Datafiles");
 		datafilesCartPanel.addAcceptHandler(new ClickHandler() {
 			@Override
@@ -632,6 +647,17 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 			}
 		}
 		return count;
+	}
+
+	void onDatafilesCartChange(SelectionListChangeEvent selectionListChangeEvent) {
+		
+		SelectionListPanel changedPanel = selectionListChangeEvent.getSelectionListPanel();
+		
+		if( changedPanel == datafilesCartPanel ){
+			// Redrawing the datasetsTable will force re-calculation of the button counts
+			// Not the most efficient way, but unlikely to be a performance bottleneck!
+			datasetsTable.redraw();
+		}
 	}
 
 	/**

@@ -6,6 +6,7 @@ import java.util.Set;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
@@ -75,11 +76,17 @@ public class SelectionListPanel extends Composite {
 
 	private HandlerRegistration removeSelectedButtonHandler;
 
-	private com.google.web.bindery.event.shared.HandlerRegistration removeAllButtonHandler;
+	private HandlerRegistration removeAllButtonHandler;
+	
+	private EventBus eventBus;
 
 	public SelectionListPanel(String title) {
 		
 		initWidget(uiBinder.createAndBindUi(this));
+		
+	    // Explicit: leave the event bus unset unless by setEventBus(...)
+		eventBus = null;
+		
 		selectionTable = new CellTable<SelectionListContent>();
 		selectionTable.setWidth("100%");
 		
@@ -126,6 +133,7 @@ public class SelectionListPanel extends Composite {
 					if( selectionListModel.getList().size() == 0 ){
 						removeAllButton.setEnabled(false);
 					}
+					fireChangeEventIfEnabled();
 				}
 			}
 		});
@@ -138,6 +146,7 @@ public class SelectionListPanel extends Composite {
 				removeSelectedButton.setEnabled(false);
 				// Note: will it ever make sense to Accept an empty cart? This assumes that it won't.
 				acceptButton.setEnabled(false);
+				fireChangeEventIfEnabled();
 			}
 		});
 		
@@ -162,6 +171,18 @@ public class SelectionListPanel extends Composite {
 
 	public String getTitle() {
 		return titleLabel.getText();
+	}
+	
+	public void setEventBus( EventBus eventBus ){
+		this.eventBus = eventBus;
+	}
+	
+	// Expose the firing mechanism so it can be used in replacement button handlers
+	//
+	public void fireChangeEventIfEnabled(){
+		if( eventBus != null ){
+			eventBus.fireEvent( new SelectionListChangeEvent( this ));
+		}
 	}
 	
 	public void setColumnsFrom( SelectionListContent sampleContent ){
@@ -197,6 +218,7 @@ public class SelectionListPanel extends Composite {
 			selectionTable.setPageSize(selectionListModel.getList().size());
 			acceptButton.setEnabled(true);
 			removeAllButton.setEnabled(true);
+			fireChangeEventIfEnabled();
 		}
 	}
 	
@@ -219,6 +241,7 @@ public class SelectionListPanel extends Composite {
 			selectionListModel.refresh();
 			checkAcceptButtonEnabled();
 			removeAllButton.setEnabled(true);
+			fireChangeEventIfEnabled();
 		}
 	}
 	
@@ -237,6 +260,7 @@ public class SelectionListPanel extends Composite {
 		}
 		selectionModel.clear();
 		checkAcceptButtonEnabled();
+		fireChangeEventIfEnabled();
 	}
 	
 	public void addAcceptHandler( ClickHandler clickHandler ){
@@ -325,6 +349,7 @@ public class SelectionListPanel extends Composite {
 		selectionListModel.refresh();
 		selectionModel.clear();
 		acceptButton.setEnabled(false);
+		fireChangeEventIfEnabled();
 	}
 	
 }
