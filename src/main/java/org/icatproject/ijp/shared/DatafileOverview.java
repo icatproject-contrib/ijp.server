@@ -1,11 +1,13 @@
-package org.icatproject.ijp.client;
+package org.icatproject.ijp.shared;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class DatafileListContent implements SelectionListContent, Serializable {
+import org.icatproject.ijp.client.SelectionListContent;
+
+public class DatafileOverview implements SelectionListContent, Serializable {
 
 	private static final long serialVersionUID = 1L;
 
@@ -26,13 +28,13 @@ public class DatafileListContent implements SelectionListContent, Serializable {
 	private static final List<String> availableColumnsList 
 		= new ArrayList<String>(Arrays.asList(COL_TITLE_NAME,COL_TITLE_DESC,COL_TITLE_SIZE,COL_TITLE_CREATE_TIME,COL_TITLE_MOD_TIME));
 	
-	public DatafileListContent() {
+	public DatafileOverview() {
 		
 	}
 	
 	@Override
 	public List<String> availableColumns() {
-		return DatafileListContent.availableColumnsList;
+		return DatafileOverview.availableColumnsList;
 	}
 
 	@Override
@@ -88,13 +90,13 @@ public class DatafileListContent implements SelectionListContent, Serializable {
 	
 	@Override
 	public boolean equals(Object obj){
-		if( !(obj instanceof DatafileListContent) ){
+		if( !(obj instanceof DatafileOverview) ){
 			return false;
 		}
 		if( obj == this ){
 			return true;
 		}
-		DatafileListContent dlc = (DatafileListContent) obj;
+		DatafileOverview dlc = (DatafileOverview) obj;
 		return getId().equals(dlc.getId());
 	}
 	

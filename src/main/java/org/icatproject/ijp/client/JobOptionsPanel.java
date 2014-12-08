@@ -10,6 +10,7 @@ import org.icatproject.ijp.client.parser.ParserException;
 import org.icatproject.ijp.client.service.DataService;
 import org.icatproject.ijp.client.service.DataServiceAsync;
 import org.icatproject.ijp.shared.AccountDTO;
+import org.icatproject.ijp.shared.DatafileOverview;
 import org.icatproject.ijp.shared.DatasetOverview;
 import org.icatproject.ijp.shared.PortalUtils;
 import org.icatproject.ijp.shared.PortalUtils.MultiJobTypes;
@@ -219,7 +220,7 @@ public class JobOptionsPanel extends VerticalPanel {
 						String datasetId = Long.toString(selectedDataset.getDatasetId());
 						datasetIdsList.add(datasetId);
 					}
-					for( DatafileListContent selectedDatafile : portal.datasetsPanel.selectedDatafiles ){
+					for( DatafileOverview selectedDatafile : portal.datasetsPanel.selectedDatafiles ){
 						datafileIdsList.add( Long.toString(selectedDatafile.getId()) );
 					}
 					if (isJobOnlyJob) {

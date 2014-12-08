@@ -33,13 +33,13 @@ import org.icatproject.ParameterType;
 import org.icatproject.ids.client.DataSelection;
 import org.icatproject.ids.client.IdsClient;
 import org.icatproject.ids.client.IdsClient.Flag;
-import org.icatproject.ijp.client.DatafileListContent;
 import org.icatproject.ijp.server.Icat;
 import org.icatproject.ijp.shared.Authenticator;
 import org.icatproject.ijp.shared.Constants;
 import org.icatproject.ijp.shared.CredType;
 import org.icatproject.ijp.shared.CredType.Type;
 import org.icatproject.ijp.shared.CredType.Visibility;
+import org.icatproject.ijp.shared.DatafileOverview;
 import org.icatproject.ijp.shared.DatasetOverview;
 import org.icatproject.ijp.shared.GenericSearchSelections;
 import org.icatproject.ijp.shared.InternalException;
@@ -578,12 +578,12 @@ public class DataServiceManager {
 		return datasetOverviews;
 	}
 
-	public List<DatafileListContent> getDatafileList(String sessionId, String datasetType, Long datasetId,
+	public List<DatafileOverview> getDatafileList(String sessionId, String datasetType, Long datasetId,
 			Map<String, List<String>> selectedSearchParamsMap,
 			List<GenericSearchSelections> genericSearchSelectionsList) throws SessionException,
 			InternalException {
 		
-		List<DatafileListContent> datafileList = new ArrayList<DatafileListContent>();
+		List<DatafileOverview> datafileList = new ArrayList<DatafileOverview>();
 		
 		List<String> queriesToRun = new ArrayList<String>();
 		
@@ -648,7 +648,7 @@ public class DataServiceManager {
 			String finalQuery = null;
 			if (matchingDatafileIds == null) {
 				// one of the queries returned no results, so we need to return no results
-				return new ArrayList<DatafileListContent>();
+				return new ArrayList<DatafileOverview>();
 			} else if (matchingDatafileIds.size() == 0) {
 				// return all datafiles in this dataset
 				// though if queriesToRun has done its stuff, this query will be redundant
@@ -680,7 +680,7 @@ public class DataServiceManager {
 			datafilesFromIcat = icat.search(sessionId, finalQuery);
 			for (Object o : datafilesFromIcat) {
 				Datafile datafileFromIcat = (Datafile) o;
-				DatafileListContent datafileListContent = new DatafileListContent();
+				DatafileOverview datafileListContent = new DatafileOverview();
 				
 				// TODO How use DatafileParameters? Following is built but ignored.
 				

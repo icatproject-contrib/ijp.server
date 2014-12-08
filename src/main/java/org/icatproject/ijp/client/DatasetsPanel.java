@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.icatproject.ijp.client.service.DataServiceAsync;
+import org.icatproject.ijp.shared.DatafileOverview;
 import org.icatproject.ijp.shared.DatasetOverview;
 import org.icatproject.ijp.shared.GenericSearchSelections;
 import org.icatproject.ijp.shared.PortalUtils;
@@ -155,7 +156,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	final List<DatasetOverview> selectedDatasets = new ArrayList<DatasetOverview>();
 	
 	// Similar list for datafiles
-	final List<DatafileListContent> selectedDatafiles = new ArrayList<DatafileListContent>();
+	final List<DatafileOverview> selectedDatafiles = new ArrayList<DatafileOverview>();
 
 	private static final String JOB_DETAILS_DEFAULT = "Select a job type from the list";
 	private static final String JOB_TYPES_LIST_FIRST_OPTION = "Job types ...";
@@ -528,7 +529,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		
 		// Datafiles cart panel
 		datafilesCartPanel.setTitle("Datafiles Cart");
-		datafilesCartPanel.setColumnsFrom( new DatafileListContent() );
+		datafilesCartPanel.setColumnsFrom( new DatafileOverview() );
 		
 		// We want changes to the datafiles cart to update the button counts in the datasetsTable,
 		// so set the event bus so that change events will be fired from it;
@@ -548,7 +549,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				selectedDatasets.clear();
 				selectedDatafiles.clear();
 				for( SelectionListContent item : datafilesCartPanel.getEverything() ){
-					selectedDatafiles.add( (DatafileListContent)item );
+					selectedDatafiles.add( (DatafileOverview)item );
 				}
 				if (selectedDatafiles.size() > 1 && !jobType.getMultiple()
 						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
@@ -583,7 +584,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				selectedDatafiles.clear();
 				// Note: we want the full contents of the datasets cart, not just the current selection!
 				for( SelectionListContent item : datafilesCartPanel.getEverything() ){
-					selectedDatafiles.add( (DatafileListContent)item );
+					selectedDatafiles.add( (DatafileOverview)item );
 				}
 				if (selectedDatafiles.size() + selectedDatasets.size() > 1 && !jobType.getMultiple()
 						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
@@ -644,7 +645,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		Long datasetId = datasetOverview.getDatasetId();
 		int count = 0;
 		for( SelectionListContent cartItem : datafilesCartPanel.getEverything() ){
-			if( datasetId.equals( ((DatafileListContent)cartItem).getDatasetId() ) ){
+			if( datasetId.equals( ((DatafileOverview)cartItem).getDatasetId() ) ){
 				count++;
 			}
 		}

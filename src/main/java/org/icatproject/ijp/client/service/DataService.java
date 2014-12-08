@@ -4,9 +4,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.icatproject.ijp.client.DatafileListContent;
 import org.icatproject.ijp.shared.AccountDTO;
 import org.icatproject.ijp.shared.Authenticator;
+import org.icatproject.ijp.shared.DatafileOverview;
 import org.icatproject.ijp.shared.DatasetOverview;
 import org.icatproject.ijp.shared.ForbiddenException;
 import org.icatproject.ijp.shared.GenericSearchSelections;
@@ -31,7 +31,7 @@ public interface DataService extends RemoteService {
 			List<GenericSearchSelections> genericSearchSelectionsList) throws SessionException,
 			InternalException;
 
-	List<DatafileListContent> getDatafileList(String sessionId, String datasetType, Long datasetId,
+	List<DatafileOverview> getDatafileList(String sessionId, String datasetType, Long datasetId,
 			Map<String, List<String>> selectedSearchParamsMap,
 			List<GenericSearchSelections> genericSearchSelectionsList) throws SessionException,
 			InternalException;

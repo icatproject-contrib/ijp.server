@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.icatproject.ijp.client.service.DataServiceAsync;
+import org.icatproject.ijp.shared.DatafileOverview;
 import org.icatproject.ijp.shared.DatasetOverview;
 import org.icatproject.ijp.shared.GenericSearchSelections;
 import org.icatproject.ijp.shared.PortalUtils;
@@ -93,7 +94,7 @@ public class DatafilesPanel extends Composite {
 		});
 
 		matchingDatafilesPanel.setTitle("Matching datafiles");
-		matchingDatafilesPanel.setColumnsFrom( new DatafileListContent() );
+		matchingDatafilesPanel.setColumnsFrom( new DatafileOverview() );
 		
 		// Define/redefine button names / handlers:
 		// Remove Selected --> gone
@@ -112,7 +113,7 @@ public class DatafilesPanel extends Composite {
 		});
 
 		datafilesCartPanel.setTitle("Current Selection");
-		datafilesCartPanel.setColumnsFrom( new DatafileListContent() );
+		datafilesCartPanel.setColumnsFrom( new DatafileOverview() );
 		
 		// Define buttons:
 		// Accept --> Use This Selection
@@ -169,7 +170,7 @@ public class DatafilesPanel extends Composite {
 	protected void refreshDatafilesList() {
 		
 		// set up the callback object
-		AsyncCallback<List<DatafileListContent>> callback = new AsyncCallback<List<DatafileListContent>>() {
+		AsyncCallback<List<DatafileOverview>> callback = new AsyncCallback<List<DatafileOverview>>() {
 			public void onFailure(Throwable caught) {
 				// deal with possible exceptions
 				System.err.println("DatasetsPanel.refreshDatasetsList(): " + caught.getMessage());
@@ -182,7 +183,7 @@ public class DatafilesPanel extends Composite {
 				}
 			}
 
-			public void onSuccess(List<DatafileListContent> result) {
+			public void onSuccess(List<DatafileOverview> result) {
 				// if ( result == null ) {
 				// System.out.println("Result is null");
 				// } else {
