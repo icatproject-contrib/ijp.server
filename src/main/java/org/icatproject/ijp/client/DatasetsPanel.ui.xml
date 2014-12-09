@@ -5,28 +5,38 @@
     <ui:style src="portal.css" />
         
     <g:VerticalPanel spacing='5' width='100%' height='100%'>
-         <g:HorizontalPanel width='100%'>
-            <g:cell width='9%' horizontalAlignment='ALIGN_LEFT'>
-              <g:Label>Job Type</g:Label>
-            </g:cell>
-            <g:cell width='150px' horizontalAlignment='ALIGN_LEFT'>
+        <g:HTMLPanel width="100%">
+          <table width="100%">
+            <tr>
+              <td align="left">
+                <g:Label>Job Type</g:Label>
+              </td>
+              <td align="left">
                 <g:ListBox ui:field="jobTypeListBox" />
-            </g:cell>
-            <g:cell width='200px' horizontalAlignment='ALIGN_LEFT'>
-              <g:Label ui:field="jobDetails"/>
-            </g:cell>
-            <g:cell width='50%' horizontalAlignment='ALIGN_RIGHT'>
+              </td>
+              <td align="left">
+                <g:Label ui:field="jobDetails"/>
+              </td>
+              <td align="right" width="50%">
                 <g:Button ui:field="jobStatusButton" text='Show job status panel' />
-            </g:cell>
-        </g:HorizontalPanel>
-        <g:HorizontalPanel width='100%'>
-            <g:cell width='8%' horizontalAlignment='ALIGN_LEFT'>
-              <g:Label>Dataset Type</g:Label>
-            </g:cell>
-            <g:cell width='150px' horizontalAlignment='ALIGN_LEFT'>
+              </td>
+            </tr>
+            <tr>
+              <td align="left">
+                <g:Label>Dataset Type</g:Label>
+              </td>
+              <td align="left">
                 <g:ListBox ui:field="datasetTypeListBox" />
-            </g:cell>
-        </g:HorizontalPanel>
+              </td>
+              <td align="left">
+                <!-- empty -->
+              </td>
+              <td align="right">
+                <!-- empty -->
+              </td>
+            </tr>
+          </table>
+        </g:HTMLPanel>
         <g:HorizontalPanel>
             <g:HorizontalPanel ui:field="searchListsPanel" />
             <g:VerticalPanel>
