@@ -461,6 +461,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				JobType jobType = jobTypeMappings.getJobTypesMap().get(jobName);
 				selectedDatasets.clear();
 				selectedDatasets.addAll(selectionModel.getSelectedSet());
+				// Don't forget to clear the selectedDatafiles!
+				selectedDatafiles.clear();
 				if (selectedDatasets.size() > 1 && !jobType.getMultiple()
 						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
 					Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
