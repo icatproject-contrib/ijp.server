@@ -1,0 +1,381 @@
+~~ README-ijp-gui.txt
+~~ started 2014-12-09
+~~ sort-of in Almost Plain Text format
+
+        ------------------------------
+        The ICAT Job Portal Interface
+        ------------------------------
+        Brian Ritchie
+        ------------------------------
+        2014-12-19
+        ------------------------------
+
+
+Introduction
+
+  The ICAT Job Portal supports the submission of jobs to run on datasets and
+  datafiles selected via the ICAT Data Service.
+
+~~ Configuration
+
+~~ Covered in installation.xml
+
+Job Types
+
+  A Job Type defines properties of a particular type of job for which the IJP
+  can be used to submit instances.  Each job type is defined in an XML file in
+  the IJP job_types configuration folder.  The key properties of a Job Type are:
+
+  * its name
+  
+  * the executable that will be run for the job
+  
+  * the dataset types for which the job can be run
+  
+  * whether the job can be run for datasets, datafiles, or both
+  
+  * whether one job can be run for multiple datasets/datafiles
+  
+  * whether the job is a batch job or an interactive job
+  
+  * command-line options for the job
+
+Interacting with the IJP
+
+* Executive Summary
+
+  In outline, you use the IJP like this:
+
+  * select a Job Type
+  
+  * select a Dataset Type
+  
+  * set up search filters
+  
+  * Search for matching datasets
+  
+  * Within each dataset, search for datafiles (if the Job Type accepts them)
+  
+  * Add datafiles and/or datasets to the global cart
+  
+  * Submit the job (or multiple jobs) for the selected datasets / datafiles / cart
+  
+  * Choose to run one job for multiple datasets/datafiles (if the Job Type supports it)
+  
+  * Run the jobs
+  
+  * Use the Job Status panel to monitor progress of each job,
+    to view normal / error output, and to cancel running jobs or delete
+    completed jobs.
+
+* Initial steps
+
+  When you load the IJP, or return to it after your session has expired, you 
+  will be asked to log in using an ICAT user account.
+  
+  The initial display shows:
+
+	  * the Job Type selection list
+	  
+	  * a brief message about the current Job Type
+	  
+	  * the Job Status button
+	  
+	  * the Dataset Type selection list
+	  
+	  * the Submit Job button
+
+  The Dataset Type list and Submit Job button are disabled at this point.
+  The IJP is "job-directed": you must first select a Job Type.  If the Job Type
+  specifies a number of Dataset Types for its jobs, these will be added to the
+  Dataset Types list.
+  
+  Some Job Types can be (and should be) run without any dataset or datafile
+  selections (for example, a job that reports the current status of the IJP
+  or the target platform(s)).  If you select such a Job Type, the job details
+  message indicates that this job runs without datasets or datafiles. The
+  Dataset Types list remains disabled, but the Submit Job button is now enabled;
+  clicking on it will proceed to the Job Options Panel (see later).
+  
+  If the Job Type specifies one or more Dataset Types, these will be added to
+  the Dataset Types selection list, and it will be enabled.
+
+* Searching for and selecting Datasets
+
+  Select a Dataset Type from the list.  The display will change, showing:
+
+	  * the Search filters subpanel
+	  
+	  * a table of Matching Datasets, with two sections:
+	  
+	    * a list of datasets (initially empty)
+	    
+	    * an Info Panel showing details of "the" selected dataset (when only one is selected)
+	     
+	  * buttons (above the table): when a single dataset is selected:
+	  
+	    * download dataset
+	    
+	    * show download URL
+	    
+	    * show (more) info about the dataset
+	    
+	  * buttons below the table:
+	  
+	    * Add selected datasets to the Datasets Cart
+	    
+	    * Submit Job for the selected Datasets
+
+  The Search subpanel shows a number of predetermined search options (which are
+  determined from the IJP configuration), a "+" button to add further search
+  options (which are based on the Dataset Type) and a Search button.  Pressing
+  the latter will search for datasets that are of the selected Dataset Type and
+  which fulfil the search filters, and will add the results to the Matching
+  Datasets table.
+  
+  The first result of a search is selected by default; you can de-select it
+  or add other datasets to the selection.  
+  
+  When a single dataset is selected, the Info panel displays more of its details;
+  and the Download, Download URL and Show Info buttons can be used.
+  
+  When one or more datasets are selected, and if the Job Type accepts datasets, 
+  the Add To Datasets Cart and Submit Job for Selected Datasets buttons are 
+  enabled. The Submit button can be used to submit a job (or multiple jobs) for 
+  the selected datasets.
+  
+  If the Job Type does not accept datasets, it should still be possible to
+  search for and select datafiles from within each matching dataset (see later).
+
+
+* The Datasets Cart
+
+  The Add Selected Datasets To Cart button will add the selected datasets to the 
+  "global" datasets cart; this allows you to build up a "shopping cart" of 
+  datasets, in any of the following ways:
+
+	  * change the search filters and perform a new search
+	  
+	  * choose a different dataset type, then search etc.
+	  
+	  * select more datasets from the current list, and add them to the cart
+
+  When datasets are added to the global cart, a separate Datasets Cart table
+  appears, showing the cart contents, and with a "Submit job for these datasets"
+  button.  When the button is pressed, *all* of the datasets in the cart will be
+  used in the job submission. It is possible to select one or more datasets in
+  the cart, but only so that they can be removed using the "Remove selected datasets"
+  button. "Remove All" can be used to empty the datasets cart, in which case it
+  will disappear from the display.
+  
+  Note that each dataset will only be added to the cart once, even if it is
+  selected multiple times.
+  
+  Also note that choosing a different Job Type will clear the datasets cart, even
+  if the job type accepts the same dataset type(s).
+
+
+* Searching for and selecting Datafiles
+
+  There is a global datafiles cart, similar to the datasets cart. It only appears
+  when one or more datafiles have been added to it. Datafiles are added to the
+  cart using a separate search panel.
+  
+  If the Job Type accepts datafiles, then the table of Matching Datasets will
+  have a column titled "Datafiles Selection", and each row will have a button
+  of the form "Add (N in cart)", where N shows the number of datafiles from that
+  dataset that are in the global datafiles cart.
+  
+  Pressing this button for a particular dataset opens the Datafiles Selection
+  Panel. This is a separate dialog that is somewhat similar to the datasets
+  search / choice panels, containing:
+
+	  * zero or more predetermined file search filters
+	  
+	  * a "+" button to add new filter terms
+	  
+	  * a Search button
+	  
+	  * a table of Matching Datafiles, with an "Add to current selection" button
+	  
+	  * a Current Selection table, with buttons for Remove Selected / All,
+	    Add to Main Cart and Cancel
+
+  The process here is similar to that for datasets:
+
+	  * specify the search filters, and hit Search
+	  
+	  * select one or more datafiles from the Matching list, and add them to
+	    the current selection list
+	    
+	  * optionally, perform further searches, and add selections to the Current list
+
+  Once the Current Selection list is as desired, pressing Add to Main Cart will
+  add these datafiles to the global datafiles cart, and leave the dialog.
+  Cancel will leave the dialog without updating the global cart.
+  
+  Back in the main IJP page, the Datafiles Cart will now appear, together with
+  buttons to remove selected datafiles, to empty it, and to submit job(s) for
+  its contents. (As with the Datasets cart, the full cart contents are used,
+  regardless of any selection.)
+  
+  If the Submit Job For These Datafiles button is pressed, no datasets will be
+  passed to the job(s), even if there are datasets in the datasets cart, or if
+  datasets are selected in the Matching Datasets list.  Similarly, pressing
+  the Submit Job For These Datasets button below the datasets cart will ignore
+  the contents of the datafiles cart.
+  
+  When both the datasets cart and the datafiles cart have contents, an extra 
+  button will appear at the bottom of the form (i.e. below the datafiles cart), 
+  titled "Submit Job for Cart (datasets and datafiles)". This is the only way to 
+  submit both datasets and datafiles to the same job run. The Job Type has to 
+  accept both datasets and datafiles before this will be possible.
+
+
+* Submitting jobs
+
+  Clicking on any of the Submit buttons on the main IJP page launches the
+  JobOptions dialog.
+
+** The single / multiple jobs option
+
+  If multiple inputs (datasets and/or datafiles) are selected, and if the 
+  job-type allows multiple inputs per job, this option allows you to choose to 
+  run one job for all the inputs, or separate jobs for each input.
+  
+  Selection of a single dataset and a single datafile counts as "multiple inputs 
+  selected", as there will be two inputs.
+  
+  Note that it may not be sensible to run a "multiple" job-type once per input.
+  For example, the demo copy_datafile job requires precisely one dataset and
+  one datafile to be selected; so the job-type specifies that it accepts
+  multiple inputs, but the job won't run unless the inputs consist of a single
+  dataset and a single datafile.
+  
+  (By the time you read this, copy_datafile may have been expanded to take one 
+  dataset and multiple datafiles, and to copy all of the datafiles into the 
+  dataset; but it will still make no sense to run one job per input, as one 
+  instance will receive the dataset but no datafiles, and the other instances 
+  will receive one datafile but no target dataset!)
+  
+  If multiple inputs are selected, but the selected job-type does not support 
+  multiple inputs per job, then the option will ask you to confirm (via a 
+  checkbox) that you would like to run multiple instances of the job, one per 
+  selected dataset or datafile.
+  
+  If only a single input (dataset or datafile) is selected, this option does
+  not appear.
+
+** Job-specific options
+
+  The remainder of the options in the dialog are determined by the job type
+  specification, which defines the set of options and their input types.
+  Each option type has its own input elements; the currently-supported option
+  types and their input forms are:
+
+	  [radio group] a set of radio buttons (only one can be selected at a time)
+	  
+	  [boolean] a checkbox
+	  
+	  [enumeration] a choice list of the values
+	  
+	  [string] a text input box
+	  
+	  [integer] a Long input box
+	  
+	  [float] a Double input box
+
+  If the option has default, min or max values, these are shown on the form.
+  It is possible to enter values outside the min/max range, but this will
+  report an error if you try to submit the job.
+  
+  In the job type specification, each job option can have a condition that 
+  depends on the dataset parameters; the option will only be made available if 
+  the condition is true for *all* selected datasets. Datafiles are not 
+  considered at all; one consequence of this is that if *no* datasets are 
+  selected (only datafiles), then any options that have a condition will not be 
+  made available.
+
+** Submitting the job(s)
+
+  The IJP is configured with details of one or more batch servers to which it
+  can submit jobs.
+  
+  Pressing the Submit button will send the job (or multiple jobs, if so requested)
+  to the batch server(s).  For each job, the IJP will request an estimate from
+  each batch server, and will choose one of the servers that returns the best
+  estimate.
+  
+  A dialog shows the job-id obtained from the batch server.  The id should be
+  visible in the Job Status Panel.
+  
+  Note that users cannot directly select a particular batch server; but some
+  batch servers may not be able to run some job types (in which case, they should
+  return an estimate of (effective) "infinity".
+
+
+* Monitoring jobs
+
+  On the main IJP panel, clicking the "Show job status panel" button opens the
+  Job Status panel in an overlay.  This lists all jobs submitted by the current
+  user, ordered by time of submission.  For each job, the list shows the job's
+  ID, name, submission date/time and status.  The status can be the following:
+
+	  [Queued] the job is in the batch queue, but has not yet started
+	  
+	  [Executing] the job has started running on the batch server, but has not
+	    yet completed
+	    
+	  [Held] the job has been suspended by the batch server
+	  
+	  [Completed] the job has finished
+	  
+	  [Cancelled] the job was cancelled (by the user, or by the batch system)
+	  
+	  [Unknown] the IJP and/or batch server cannot determine the current status
+
+  The panel is automatically refreshed; the IJP checks the status of each
+  uncompleted job with the batch servers at regular intervals.
+  
+  At the top of the panel are a number of buttons:
+  
+  <<Refresh Job Status>> checks the status of each uncompleted job (though the
+  auto-refresh interval is small enough that this should rarely be required).
+  
+  The remaining buttons apply to the currently-selected job.
+  
+  <<Display Job Output>> shows the (standard) output from the job.  If the job status
+  is Queued, there will be no output yet.  A job that is Executing may have
+  output, if the batch server supports it (and if the job has produced any output
+  at that point).  A job that has Completed may produce standard output.
+  
+  The nature of the output depends on the batch server.  For example, the unixbatch
+  server wraps a small amount of output (timestamps, returned status value) around
+  whatever output the job itself produces; on Scarf, Platform LSF wraps the job
+  output with more detailed information.
+  
+  The job output display is refreshed at regular intervals, so it can be left 
+  open to monitor the progress of a job (assuming that the job and the batch 
+  server support it).
+  
+  <<Display Job Error>> displays any error output (in unix terms, stderr output)
+  from the job.  As with non-error output, there will be no output for a job
+  that is Queued, and output for other states depends on the batch system and
+  the job itself.
+  
+  <<Cancel Job>> can be used to cancel a job, but only if it has not yet Completed.
+  The behaviour in other cases depends on the batch server, but typically a
+  Queued job will be removed before it starts execution, and an Executing job
+  will be halted.  Any standard or error output produced will be visible via
+  the Display Job Output / Error buttons.
+  
+  It is possible that a job whose status appears as Queued has started execution
+  by the time the cancel request reaches the batch server.
+  
+  <<Delete Job>> removes the job details (including its standard and error outputs)
+  from the IJP.  It is only possible to delete jobs once they are Completed
+  or Cancelled. Jobs remain visible in the Status Panel until they are Deleted.
+  
+  Job outputs and other details are stored in the IJP's filespace. It is possible
+  that a future policy may be to remove "very old" jobs from the system to release
+  space.

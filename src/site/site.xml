@@ -8,12 +8,14 @@
     </breadcrumbs>
 
     <menu name="Information for Users">    
+      <item name="User Guide" href="ijp-gui.html"/>
        <item name="Issue Tracking" href="issue-tracking.html"/>
-        <item name="Release Notes" href="release-notes.html"/>
+       <item name="Release Notes" href="release-notes.html"/>
     </menu>
        
     <menu name="Information for Installers">
-    <item name="IJP Installation" href="installation.html"/>
+      <item name="IJP Installation" href="installation.html"/>
+      <item name="Developing IJP Jobs" href="ijp-job-types.html"/>
     </menu>
     
     <menu ref="reports"/>

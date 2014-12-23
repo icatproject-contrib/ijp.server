@@ -1,0 +1,848 @@
+~~ README-ijp-job-types.txt
+~~ Started 2014-12-something
+~~ Converted to Almost Plain Text
+
+        --------
+        Developing IJP Job Types
+        --------
+        Brian Ritchie
+        --------
+        2014-12-22
+        --------
+
+Introduction
+
+  This document gives an outline of ICAT Job Portal job types, and guidelines on
+  how to develop them.
+  
+  There are normally two components (at least) for a Job Type:
+
+    * an XML file that describes the Job Type to the IJP
+        
+    * a script that implements the job type, which will be launched for submission
+      from the IJP
+
+  It is possible to define Job Types that don't require a script, but most
+  realistic job types will require some scripting to process the parameters
+  that will be supplied by the IJP.
+
+~~ [TODO: may want to incorporate some of the details from the current wiki
+~~ page: <<https://code.google.com/p/icat-job-portal/wiki/JobTypeXml>]
+
+Job Types
+
+  Job Types are specified in a set of XML files in a <<<job_types>>> subdirectory of 
+  the IJP configuration under glassfish (typically in 
+  <<<glassfish/domains/domain1/config/ijp/>>>). The job types are read when glassfish 
+  starts the IJP, so when they are changed the IJP (or glassfish) must be
+  restarted; this can be done by reloading the portal page and logging in again.
+  
+  The Job Type XML file determines the IJP's behaviour for each type of job:
+  
+    * for which family of user accounts the job type can be used
+      (or the default family, if none is specified)
+      
+    * whether the user can select datasets and/or datafiles as inputs to the job;
+        
+    * whether the job is a batch job or an interactive session
+    
+    * whether multiple datasets/datafiles can be passed to a single run of the job,
+      or whether multiple jobs must be run, one per dataset/datafile;
+      
+    * what further options should be set for the job
+    
+    * whether to pass details of the ICAT session etc. to the job
+  
+  The XML document must include the following details of a Job Type, as XML
+  elements:
+  
+    * name - will appear in the IJP's Job Types list
+    
+    * executable - the name of, or path to, the job type script
+      that will be run on the target system
+      
+    * type - batch or interactive
+  
+  Other elements and attributes are optional, but many would normally be used
+  for realistic job types:
+
+  * Attributes:
+  
+    * <<<family='family-name'>>>: user account family that can submit this type of job
+    
+    * <<<sessionId='true'>>>: if the ICAT sessionId must be passed to the job
+    
+    * <<<icatUrlRequired='true'>>>: if the ICAT URL must be passed to the job
+    
+    * <<<idsUrlRequired='true'>>>: if the IDS URL must be passed to the job
+      Jobs that need to extract datasets/datafiles or their details from ICAT
+      will normally require all three properties.
+      
+    * <<<acceptsDatasets='true'>>>: if the job accepts dataset IDs as arguments
+    
+    * <<<acceptsDatafiles='true'>>>: if the job accepts datafile IDs as arguments
+      Note: a job can accept either, both, or neither datasets / datafiles.
+    
+  * Elements:
+  
+    * <<<multiple>>>: true if the job can be run for multiple datasets/datafiles
+      (otherwise, if multiple datasets/files are selected, the IJP will
+      submit a separate job (instance) for each).  If omitted, the job is
+      assumed not to support multiple datasets/datafiles.
+      
+    * <<<datasetTypes>>>: one element for each Dataset Type that can be used with the job.
+      Note that the name is plural, but there must be a separate element for
+      each dataset type, eg
+      
+----    
+        <datasetTypes>datasetType1</datasetTypes>
+        <datasetTypes>datasetType2</datasetTypes>
+----
+
+      A job that has no datasetTypes is said to be a "job-only" job.
+      
+    * <<<jobOptions>>>: job options/parameters.  There should be one element per job 
+      option (like <<<datasetTypes>>>).  Each job option should specify:
+      
+        - <<<name>>>: used in the Job Options List; e.g. Count
+        
+        - <<<programParameter>>>: the parameter name that will be used in the
+          command line, e.g. --count
+          
+        - <<<type>>>: the value-type of the option, e.g. enumeration
+        
+        - value ranges: eg a list of <<<value>>> elements for enumerations
+        
+        - <<<condition>>>: an expression in terms of dataset parameters.
+          A job option with a condition will only be available to users if]
+          the condition is true for every dataset to be passed to the job.
+          
+      The Job Options Panel uses the <<<jobOptions>>> list to build a set of input
+      boxes for the user to supply / choose values for each option.  The
+      chosen values are then submitted to the job on the command-line,
+      e.g. as <<<--count=5>>>
+
+  The IJP "wraps up" the invocation of the executable in a script that adds logging
+  and performs some preparation and cleanup tasks.
+
+
+* A Very Simple Job Type
+
+  This is an example of a very simple job type:
+
++-----------------------------------
+  <jobType>
+      <name>date</name>
+      <executable>date</executable>
+      <type>batch</type>
+  </jobType>
++-----------------------------------
+
+  This is a job-only job; it accepts no dataset types. It specifies that it is 
+  to be run as a batch job, and will run an executable called "<<<date>>>". On most 
+  batch servers, it will run the system date command (though of course this 
+  depends on the configuration of the user account in which "<<<date>>>" will be run). 
+  Submitting an instance of this from the IJP (in this case, to the IJP batch 
+  server on Scarf) will produce output that looks something like this:
+
++-----------------------------------
+Sender: LSF System <lsfadmin@cn276.scarf.rl.ac.uk>
+Subject: Job 364438: <date> Done
+
+Job <date> was submitted from host <ijp.scarf.rl.ac.uk> by user <ijp01> in cluster <sctsc>.
+Job was executed on host(s) <cn276.scarf.rl.ac.uk>, in queue <scarf>, as user <ijp01> in cluster <sctsc>.
+</home/escg/ijp01> was used as the home directory.
+</home/escg/ijp01> was used as the working directory.
+Started at Mon Dec 15 15:54:45 2014
+Results reported at Mon Dec 15 15:54:50 2014
+
+Your job looked like:
+
+ ------------------------------------------------------------
+# LSBATCH: User input
+/home/escg/glassfish/jobOutputDir/llvplelppb.sh
+ ------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time   :      0.01 sec.
+    Max Memory :         2 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+Mon Dec 15 15:54:50 GMT 2014 - date starting
+Mon Dec 15 15:54:50 GMT 2014
+Mon Dec 15 15:54:50 GMT 2014 - date ending with code 0
+
+
+PS:
+
+Read file </home/escg/ijp01/jobsOutput/icmqpedwum/364438.err> for stderr output of this job.
++-----------------------------------
+
+  Much of the output is generated by Platform LSF on Scarf.  (Note that IJP moves
+  the output to its own area once it detects that the job has completed, so
+  the file reference for the stderr output no longer exists; use the IJP's
+  Show Error Output button instead.)  The "<<<date starting/ending>>>" lines come from
+  the IJP's wrapper script. The line with (only) the date is the actual output
+  from the executable.
+
+
+* Job Type with Options
+
+  The "sleepcount" job type is another job-only job. It merely sleeps a given
+  number of times and prints a count; but it allows the user to specify the
+  number of sleeps, and their duration, via a pair of options.  The XML looks
+  like this:
+
++-----------------------------------
+  <jobType>
+      <name>sleepcount</name>
+      <executable>sleepcount.bash</executable>
+      <type>batch</type>
+      <datasetTypes>none (job only)</datasetTypes>
+      <jobOptions>
+        <name>Count</name>
+        <type>enumeration</type>
+        <programParameter>--count</programParameter>
+        <values>5</values>
+        <values>10</values>
+      </jobOptions>
+      <jobOptions>
+        <name>Sleep Time</name>
+        <type>enumeration</type>
+        <programParameter>--sleep</programParameter>
+        <values>30</values>
+        <values>60</values>
+        <values>180</values>
+      </jobOptions>
+  </jobType>
++-----------------------------------
+
+  The executable for the job is <<<sleepcount.bash>>>.  Here, we use the "fake"
+  dataset type "<<<none (job only)>>>" to say that the job takes no dataset types;
+  but in general it is better to omit the datasetTypes element completely.
+  The key difference from the date jobtype is that we now specify two options:
+  Count and Sleep Time.  Each is defined as an enumeration, with a list of
+  specific values.  When the user chooses to submit a sleepcount job, the
+  Job Options panel will invite them to choose a value from the list for each
+  option.  
+  
+  We could have used <<<integer>>> as the type instead, but then the
+  sleepcount.bash script would have to check for and reject "unreasonable"
+  values (such as non-positive integers, or very large values).
+  
+  The sleepcount job is simple, but demonstrates the ability to view the output
+  of a job during its progress.  In the IJP's Job Status Panel, clicking on
+  Display Job Output whilst the job is Executing will show something like this:
+
++-----------------------------------
+  Tue Dec 16 11:32:39 GMT 2014 - /home/escg/glassfish/jobscripts/sleepcount.bash starting 
+  Supplied args: --count 5 --sleep 30 
+  Count 1: sleeping for 30 ... 
+  Count 2: sleeping for 30 ...
++-----------------------------------
+
+  The display will update as the job progresses.
+  Note that we don't see the Platform LSF "wrapping" until the job has completed.
+
+
+* Job Type using Datasets
+
+  Here is an example of a Job Type that accepts (multiple) datasets:
+
++-----------------------------------
+<jobType sessionId='true' icatUrlRequired='true' idsUrlRequired='true'
+    acceptsDatasets='true' acceptsDatafiles='false'>
+    <name>test_args_sets_only</name>
+    <executable>/home/br54/scripts/test_args.py</executable>
+    <multiple>true</multiple>
+    <type>batch</type>
+    <datasetTypes>TestDatasetType</datasetTypes>
+    <datasetTypes>TestDatasetType2</datasetTypes>
+</jobType>
++-----------------------------------
+
+  (In one sense, this is not a well-defined job-type: the executable is defined
+  via an absolute path.  This only works if the script can be located on the
+  same path on each batch server, which is rarely possible.)
+  
+  The <<<test_args.py>>> script reports whatever arguments are supplied to it. We use
+  it in multiple job types that allow and supply different parameters.  We will
+  look at the script itself later as an example of how to process parameters
+  passed from the IJP.
+  
+  The <<<test_args_sets_only>>> job type accepts datasets, but not datafiles.  When a
+  user chooses this job type, the IJP will allow the user to search for and
+  select datasets (of either of the two specified dataset types); but it will not
+  be possible to select datafiles.  The spec also requires the IJP to pass the
+  ICAT session ID and ICAT and IDS urls to the job.
+  
+  The boolean attributes (and the <<<multiple>>> element) can be omitted; they are
+  false by default.
+  
+  In general, a job type that accepts datasets or datafiles must request the
+  session ID and ICAT/IDS urls, as only the dataset / datafile IDs are passed
+  to the job, and the job executable will need to connect to ICAT and/or the IDS
+  in order to resolve the IDs.
+  
+  The <<<type>>> specifies that it is a batch job, and <<<multiple>>> is set to true,
+  which tells the IJP that a single job can be submitted for multiple datasets.
+  (The user will still be given the option of running a separate job for each
+  selected dataset.)
+
+  The following sample output was generated when submitting a single job for
+  two selected datasets:
+
++-----------------------------------
+Tue Dec 23 11:28:31 GMT 2014 - /home/br54/scripts/test_args.py starting
+test_args.py starting...
+ICAT sessionId provided
+ICAT url = https://sig-23.esc.rl.ac.uk:8181
+IDS url = https://sig-23.esc.rl.ac.uk:8181
+datasetIds =  3029,4573
+datafileIds not supplied
+Other command-line arguments (if any):  []
+test_args.py completed.
+Tue Dec 23 11:28:31 GMT 2014 - /home/br54/scripts/test_args.py ending with code 0
++-----------------------------------
+
+
+* Job Type using Datasets and/or Datafiles
+
+  The <<<test_args_multi>>> job type uses the test_args script, but this time
+  tells the IJP to allow the user to select any combination of datasets and/or
+  datafiles:
+
++-----------------------------------
+<jobType sessionId='true' icatUrlRequired='true' idsUrlRequired='true'
+    acceptsDatasets='true' acceptsDatafiles='true'>
+    <name>test_args_multi</name>
+    <executable>/home/br54/scripts/test_args.py</executable>
+    <multiple>true</multiple>
+    <type>batch</type>
+    <datasetTypes>TestDatasetType</datasetTypes>
+    <datasetTypes>TestDatasetType2</datasetTypes>
+</jobType>
++-----------------------------------
+
+  The only difference (apart from the name) from <<<test_args_sets_only>>> is that
+  the attribute <<<acceptsDatafiles>>> is now set to <<<'true'>>>.  The IJP will allow
+  the user to select multiple datasets and/or datafiles to pass to the job;
+  and the user will be able to choose whether to run a single job for all
+  selected datasets/datafiles, or to run separate jobs for each.
+  
+  The Job Type specification is intentionally simple concerning the use of
+  the <<<acceptsDatasets/Datafiles>>> attributes, and the <<<multiple>>> element.
+  It is not possible to specify more complex combinations, for example a job
+  that accepts one dataset and multiple datafiles, or a job that accepts
+  multiple datasets or multiple datafiles, but not a mixture.  For such job
+  types, the XML should set all three properties to true, and the job
+  executable should check that the user's selection meets its more precise
+  requirements.
+
+  The following sample output was generated when submitting a single job for
+  one dataset and two datafiles:
+
++-----------------------------------
+Tue Dec 23 11:31:27 GMT 2014 - /home/br54/scripts/test_args.py starting
+test_args.py starting...
+ICAT sessionId provided
+ICAT url = https://sig-23.esc.rl.ac.uk:8181
+IDS url = https://sig-23.esc.rl.ac.uk:8181
+datasetIds =  4573
+datafileIds =  3563,4589
+Other command-line arguments (if any):  []
+test_args.py completed.
+Tue Dec 23 11:31:27 GMT 2014 - /home/br54/scripts/test_args.py ending with code 0
++-----------------------------------
+
+
+* Job Type to create a datafile
+
+  This job type specifies jobs to create a datafile in a given dataset:
+
++-----------------------------------
+<jobType sessionId='true' icatUrlRequired='true' idsUrlRequired='true'
+    acceptsDatasets='true' acceptsDatafiles='false'>
+    <name>create_datafile</name>
+    <!--
+        Create a new datafile in the given dataset.
+        Can be applied to datasets of type TestDatasetType.
+        Options:
+            Filename: name given to the created datafile
+            Contents: string that becomes the file contents
+        Requires sessionId, ICAT and IDS server URLs to be supplied by IJP.
+        The script create_datafile.py must be in the execution user's path.
+    -->
+    <executable>create_datafile.py</executable>
+    <type>batch</type>
+    <datasetTypes>TestDatasetType</datasetTypes>
+    <jobOptions>
+      <name>Filename</name>
+      <type>string</type>
+      <programParameter>--filename</programParameter>
+    </jobOptions>
+    <jobOptions>
+      <name>Contents</name>
+      <type>string</type>
+      <programParameter>--contents</programParameter>
+    </jobOptions>
+</jobType>
++-----------------------------------
+
+  The job accepts a single dataset, and takes options to define the filename
+  and contents of a datafile to be created in that dataset.  The sessionID
+  and ICAT/IDS URLs are required.
+  
+  The IJP will allow the user to select one or more datasets, but not datafiles.
+  If more than one dataset is selected, the IJP will ask the user to confirm
+  the creation of multiple jobs, one for each dataset. (The same filename and
+  contents will be used for each - it is up to the user to decide whether this
+  is what they really want.)
+  
+  At present the script is fairly limited: it is not possible to define other
+  properties of the datafile, including its type; but it gives an example of
+  how to develop scripts that "call back" to the IJP and IDS.
+
+More about job options
+
+* Option Types
+
+  The IJP supports the following types of job options:
+
+** boolean
+
+  There are two forms of boolean option, simple and group.  A simple boolean
+  option specifies a single true/false value.  For example:
+
++-----------------------------------
+    <jobOptions>
+        <name>Show variance image instead of image</name>
+        <type>boolean</type>
+        <programParameter>--use-sigsqimage</programParameter>
+    </jobOptions>
++-----------------------------------
+
+  In the IJP's Job Options panel, this is offered to the user as a check box
+  with the title "Show variance image instead of image".  If the user ticks
+  the box, the program parameter <<<--use-sigsqimage>>> will be added to the job
+  arguments, otherwise it will be omitted.
+  
+  Group boolean options can be used to define a choice list, with each option
+  defining one of the possible (mutually exclusive) values.  For example:
+
++-----------------------------------
+    <jobOptions>
+        <name>View reg residual frames</name>
+        <groupName>View type</groupName>
+        <type>boolean</type>
+        <programParameter>--reg-residualframes</programParameter>
+    </jobOptions>
+    <jobOptions>
+        <name>View reg model frames</name>
+        <groupName>View type</groupName>
+        <type>boolean</type>
+        <programParameter>--reg-modelframes</programParameter>
+    </jobOptions>
++-----------------------------------
+
+  defines two options for a "View type" group.  This will be presented to the
+  user as a list of (two) radio buttons.  When the user selects a radio button,
+  the corresponding program parameter is added to the job arguments.
+
+** enumeration
+
+  An enumeration option defines a list of possible values for a program parameter.
+  For example:
+
++-----------------------------------
+    <jobOptions>
+        <name>Track method</name>
+        <type>enumeration</type>
+        <programParameter>--trackmethod</programParameter>
+        <values></values>
+        <values>Simple</values>
+        <values>SLH</values>
+        <values>Biggles</values>
+        <values>Simulation</values>
+    </jobOptions>
++-----------------------------------
+
+  defines a list of values for the program parameter <<<--trackmethod>>>.  In the Job
+  Options Panel, the user will see an option "Track methods", with a drop-down
+  list giving the values Simple, SLH, etc.  When the user selects a value,
+  the program parameter and the value are added to the job arguments.  They
+  appear as separate arguments, e.g.
+  
++------
+    --trackmethod Biggles
++------
+
+  The Python options parser will parse this (assuming the <<<--trackmethod>>> parameter
+  has been added to it) and store the value in its options result, e.g. as
+  <<<options.trackmethod>>>, whose value in this case would be <<<"Biggles">>>.
+
+** string
+
+  A string option allows the user to supply arbitrary (one-line) text input.
+  For example:
+
++-----------------------------------
+    <jobOptions>
+        <name>Set min,max for colour scale</name>
+        <type>string</type>
+        <programParameter>--imrange</programParameter>
+        <tip>arg=min,max image value or "framestack" to calculate entire framestack range for each channel separately</tip>
+    </jobOptions>
++-----------------------------------
+
+  In the Job Options panel, this option will appear as a text input box with
+  the title "Set min,max for colour scale".
+  
+  Note the use of an optional <<<tip>>> element to supply advice to the user on
+  what value to supply.  There are no constraints on the user input; it is the
+  responsibility of the job script to check for and reject any illegal values.
+  
+  The program parameter and the user input are supplied to the job as separate
+  arguments.  The IJP and current batch servers take care to ensure that the
+  user input is delivered as a single argument, even if the input contains spaces.
+  If the job script passes the arguments to another shell, care must be taken to
+  ensure that spaces and special characters are not accidentally interpreted.
+
+** integer
+
+  An integer option allows the user to input an integer value. Optional elements
+  can be used to specify default, min and max values.  For example:
+
++-----------------------------------
+    <jobOptions>
+        <name>Do not clean levels/stats</name>
+        <type>integer</type>
+        <programParameter>--Levels.no-clean</programParameter>
+        <defaultValue>0</defaultValue>
+        <minValue>0</minValue>
+        <maxValue>10</maxValue>
+    </jobOptions>
++-----------------------------------
+
+  In the Job Options Panel, the user can enter values that are outside the 
+  min/max range, but in that case clicking the Submit button will pop up an 
+  error message.
+  
+  The program parameter and value are added as separate (but adjacent) arguments 
+  to the job.
+
+** float
+
+  Float options are similar to integer options, except that floating-point
+  values can be entered:
+
++-----------------------------------
+    <jobOptions>
+        <name>Quantum efficiency</name>
+        <type>float</type>
+        <programParameter>--EMCCD.qe</programParameter>
+        <defaultValue>0.910000026</defaultValue>
+        <minValue>-1.0</minValue>
+        <maxValue>1.0</maxValue>
+    </jobOptions>
++-----------------------------------
+
+
+* Option Conditions
+
+  An option can specify a <<<condition>>>, which is a boolean expression in terms of
+  dataset parameter names.  The available parameter names depend on the
+  dataset types for which the job type is defined.
+  
+  The following is an example of a conditional boolean option for a group
+  type "View type":
+
++-----------------------------------
+    <jobOptions>
+        <name>View reg whitelights (no tracks)</name>
+        <groupName>View type</groupName>
+        <type>boolean</type>
+        <programParameter>--reg-whitelights --no-tracks</programParameter>
+        <condition>numWhitelightFiles&gt;0 &amp;&amp; numChannels&gt;1</condition>
+    </jobOptions>
++-----------------------------------
+
+  The condition is a boolean expression. XML syntax requires that the logical
+  operators <<<&&>>> and <<<\>>>> be replaced with <<<&amp;&amp;>>> and <<<&gt;>>> 
+  espectively; this can be more easily read as:
+
++-----------------------------------
+  numWhitelightFiles>0 && numChannels>1
++-----------------------------------
+
+  When the user chooses a number of datasets for submission to the job(s),
+  for each dataset the IJP determines the values of the dataset parameters
+  numWhitelightFiles and numChannels, and evaluates the condition.  If the
+  condition is true for <<every>> selected dataset, then the option will be added
+  to the Job Options Panel.  However, if the expression is false for one or
+  more datasets, or if a dataset has no value for either parameter, then the
+  option will not appear.
+
+** Conditions and datafiles
+
+  There is no equivalent notion of condition for selected datafiles.  If
+  the user selects a combination of datasets and datafiles, any conditional
+  options are evaluated only for the datasets: if the condition is true for
+  all the datasets, the option will appear, otherwise it will not.
+  A special case is where the user selects only one or more datafiles, and no
+  datasets.  In this case, <<no>> conditional options will appear.
+
+
+Writing job scripts
+
+* What the IJP sends to the job script
+
+  The general form of the command line that the IJP creates and passes to the
+  batch system is:
+
++-----------------------------------
+  <executable> --datasetIds=<id-list> --datafileIds=<id-list> [<option> <value>]* 
+      --sessionId=<sessionId> --icatUrl=<icat-url> --idsUrl=<ids-url>
++-----------------------------------
+
+  where <<<\<id-list\>>>> is a comma-separated list of dataset/datafile IDs (digit-strings).
+
+  Note that the job options use a slightly different syntax from the 'internal'
+  IJP options, in that the option-name and value form separate parameters,
+  instead of a single parameter of the form <<<--option-name=value>>>.  In theory,
+  this means that we could define options whose programParameter values do not
+  begin with the '<<<-->>>' or '<<<->>>' prefixes that the Python OptionsParser expects, in
+  which case the parser will consider the option name as an "ordinary" argument,
+  with the value as the next argument, and leave both unprocessed.
+  
+  To be more precise, each parameter is enclosed in single quotes, to prevent
+  the shell from interpreting any spaces or special characters (!, ?, etc.) in
+  user-supplied option values.
+  
+  An example of a 'real' command-line submitted by the IJP is:
+
+~~ May need to add linebreaks to this!
++-----------------------------------
+  create_datafile.py '--datasetIds=4573' '--filename' 'test-datafile-creation' 
+    '--contents' 'The user can put spaces etc. into this value!' 
+    '--sessionId=745d6f3d-bdca-426f-9aeb-0cf0044714a8' 
+    '--icatUrl=https://sig-23.esc.rl.ac.uk:8181' '--idsUrl=https://sig-23.esc.rl.ac.uk:8181' 
++-----------------------------------
+
+  (The original is a single command-line; linebreaks here are for readability.) 
+  This is not quite completely accurate. Different batch servers may generate 
+  slightly different command lines; for example, unixbatch also redirects the 
+  stdout and stderr streams to temporary files; but this is irrelevant to the 
+  executable.
+
+  The command shell should strip away the quotes, so that for the above example,
+  <<<create_datafile.py>>>'s arguments array will contain the following elements:
+
+    [[1]] <<<--datasetIds=4573>>>
+    
+    [[2]] <<<--filename>>>
+    
+    [[3]] <<<test-datafile-creation>>>
+    
+    [[4]] <<<--contents>>>
+    
+    [[5]] <<<The user can put spaces etc. into this value!>>>
+    
+    [[6]] <<<--sessionId=745d6f3d-bdca-426f-9aeb-0cf0044714a8>>>
+    
+    [[7]] <<<--icatUrl=https://sig-23.esc.rl.ac.uk:8181>>>
+    
+    [[8]] <<<--idsUrl=https://sig-23.esc.rl.ac.uk:8181'>>> 
+
+  Note that the value of argument 5 contains spaces (and an exclamation mark).
+  If the job script were to pass this argument verbatim to another shell, it could
+  cause problems: it would now be split into multiple arguments, and the shell
+  may try to interpret the exclamation mark.
+
+* Processing the arguments
+
+  The IJP uses the syntax:
+
++-----------------------------------
+  --option-name=option-value
++-----------------------------------
+
+  for its "internal" options.  This is chosen to match Python's option parser,
+  so that Python scripts can extract the internal options easily.  Indeed,
+  there is a Python module, ijp.cat_utils, that provides various utilities for
+  Python scripting for the IJP. This includes the class IjpOptionParser, which
+  extends the Python ObjectParser class by predefining the standard IJP options:
+
+    * <<<--sessionId>>>
+    
+    * <<<--icatUrl>>>
+    
+    * <<<--idsUrl>>>
+    
+    * <<<--datasetIds>>>
+    
+    * <<<--datafileIds>>>
+
+  and binding them to options with the same names when arguments are parsed.
+  
+  When writing new job scripts in Python, it makes sense to use OptionParser 
+  syntax for the (programParameter value of) job options (defined in the Job 
+  Type XML); that is, in brief, use <<<--long-name>>> for multi-letter option names, 
+  and <<<-s>>> (i.e. single dash) for single-letter option names.
+  
+  The <<<programParameter>>> values in the XML file MUST correspond to options added
+  to the parser in the Python file.  The options parser will throw an exception
+  if it finds an option it does not recognise.
+
+* Example: <<<create_datafile.py>>>
+
+  The start of the <<<create_datafile.py>>> script gives an example of how to
+  process the command-line arguments:
+
++-----------------------------------
+  #!/usr/bin/env python
+  
+  import sys
+  import os
+  import logging
+  import tempfile
+  
+  from ijp import cat_utils
+  from ijp.cat_utils import terminate, IjpOptionParser
+  
+  logging.basicConfig(level=logging.CRITICAL)
+  
+  # Use the IjpOptionsParser, which predefines the 'standard' IJP options
+  
+  usage = "usage: %prog dataset_id options"
+  parser = IjpOptionParser(usage)
+  
+  # Declare options specific to this script:
+  
+  parser.add_option("--filename", dest="filename",
+                    help="write contents to FILE", metavar="FILE")
+  parser.add_option("--contents", dest="fileContents",
+                    help="contents to put into the file")
+  
+  # Parse the arguments to extract the options
+  
+  (options, args) = parser.parse_args()
+  
+  jobName = os.path.basename(sys.argv[0])
+  print jobName, "starting..."
+  
+  # When submitted from IJP, there shouldn't be any other arguments,
+  # unless the job type contained options whose names don't begin with '--' or '-'
+  # TODO: process (or complain about) any other arguments
+  
+  rest = args[1:]    
+  
+  # Check that we do have a sessionId (job type *ought* to request it)
+  
+  if not options.sessionId:
+      terminate(jobName + " must specify an ICAT session ID", 1)
+  
+  # Check and report icat/ids URLs if present
+  
+  if options.icatUrl:
+      print "ICAT url =", options.icatUrl
+  else:
+      terminate("ICAT url not supplied", 1)
+  
+  if options.idsUrl:
+      print "IDS url =", options.idsUrl
+  else:
+      terminate("IDS url not supplied", 1)
+  
+  sessionId = options.sessionId
+  
+  if not options.datasetIds:
+      terminate(jobName + " must supply a dataset ID", 1)
+  
+  # Check that there is only a single ID, not a list
+  # (Job type *should not* specify <multiple>true</multiple>)
+  
+  if len(options.datasetIds.split(',')) > 1:
+      terminate(jobName + ': expects a single datasetId, not a list: ' + options.datasetIds, 1)
+  
+  datasetId = options.datasetIds
+  
+  # filename and fileContents must be defined
+  
+  if not options.filename:
+      terminate(jobName + " must specify a filename", 1)
+  
+  if not options.fileContents:
+      terminate(jobName + " must supply file contents", 1)
+  
+  # If we reach here, we have a single datasetId,
+  # and should be able to convert it to an int
+  
+  datasetId = int(datasetId)
+
+  # Now the real work can begin
+  # ...
++-----------------------------------
+
+* Using the ICAT session
+
+  The remainder of the <<<create_datafile.py>>> script gives one example of how 
+  utilities from <<<cat_utils>>> can be used to connect to an ICAT session,
+  resolve the dataset ID, and create the datafile:
+
++-----------------------------------
+  # Hard-wired facility name
+  facilityName = "TestFacility"
+  
+  # Create a Session object using the facilityName, the ICAT/IDS urls and the sessionId
+  
+  session = cat_utils.Session(facilityName, options.icatUrl, options.idsUrl, sessionId)
+  
+  # Create temporary file containing fileContents
+  
+  newFile = tempfile.NamedTemporaryFile(delete=False)
+  newFile.write(options.fileContents)
+  newFile.close()
+  
+  # TODO: hard-wired formatName ties in with test ICAT setup - probably ought to be "Text" or similar
+  formatName = "TestDataFormat"
+  formatVersion = "0.1"
+  datafileFormat = session.getDatafileFormat(formatName, formatVersion)
+  
+  dataset = session.get("Dataset INCLUDE Investigation, DatasetType", datasetId)
+  
+  try:
+      dfid = session.writeDatafile(newFile.name, dataset, options.filename, datafileFormat)
+      print "Written file", options.filename, "in dataset", dataset.name, "file id =", dfid
+  
+      dataset.complete = True
+      session.update(dataset)
+      os.unlink(newFile.name)
+                      
+  except Exception as e:
+      print "Exception raised during datafile creation:", e
+      # No mechanism at present to delete the datafile via the session
+      # but we can and should remove the temporary file
+      os.unlink(newFile.name)
+      terminate(e, 1)
+  
+  print jobName, "completed."
++-----------------------------------
+
+  Note that there are some details that are hard-wired into the script that 
+  perhaps should be controlled from further job options: the facility name, the 
+  datafile format and version. The script uses values that apply to a particular 
+  test ICAT instance. It would be simple to add extra job options for these with 
+  a fixed (enumeration) list of values. At present, the Job Options XML does not 
+  support the ability to query the current ICAT instance to obtain the current 
+  set of datafile format types, etc.
+
+
