@@ -269,10 +269,6 @@ Read file </home/escg/ijp01/jobsOutput/icmqpedwum/364438.err> for stderr output 
 </jobType>
 +-----------------------------------
 
-  (In one sense, this is not a well-defined job-type: the executable is defined
-  via an absolute path.  This only works if the script can be located on the
-  same path on each batch server, which is rarely possible.)
-  
   The <<<test_args.py>>> script reports whatever arguments are supplied to it. We use
   it in multiple job types that allow and supply different parameters.  We will
   look at the script itself later as an example of how to process parameters
@@ -313,6 +309,18 @@ test_args.py completed.
 Tue Dec 23 11:28:31 GMT 2014 - /home/br54/scripts/test_args.py ending with code 0
 +-----------------------------------
 
+  In one sense, this is not a well-defined job-type: the executable is defined
+  via an absolute path.  This only works if the script can be located on the
+  same path on each batch server on which the job may be run, which is rarely possible. In a realistic
+  configuration, in each batch system on which they are to be run, job-type 
+  executables should be placed in a folder that is visible to (on the PATH of)
+  every batch-user id; and absolute paths to executables should be avoided
+  in job types.
+  
+  The current batch servers all use the Unix <<<sudo>>> command to submit jobs
+  as specific batch users. This adds a restriction that the executable folders
+  should also be in the sudoers <<<secure_path>>> list.
+
 
 * Job Type using Datasets and/or Datafiles
 
@@ -324,7 +332,7 @@ Tue Dec 23 11:28:31 GMT 2014 - /home/br54/scripts/test_args.py ending with code 
 <jobType sessionId='true' icatUrlRequired='true' idsUrlRequired='true'
     acceptsDatasets='true' acceptsDatafiles='true'>
     <name>test_args_multi</name>
-    <executable>/home/br54/scripts/test_args.py</executable>
+    <executable>test_args.py</executable>
     <multiple>true</multiple>
     <type>batch</type>
     <datasetTypes>TestDatasetType</datasetTypes>

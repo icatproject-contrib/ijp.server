@@ -14,13 +14,9 @@
             <url>scp://www.icatproject.org/var/www/html/mvn/site/ijp/server/${project.version}</url>
         </site>
         <repository>
-            <id>nexus.esc.rl.ac.uk</id>
-            <url>http://nexus.esc.rl.ac.uk:8081/nexus/content/repositories/releases</url>
+            <id>repo</id>
+            <url>scp://www.icatproject.org/var/www/html/mvn/repo</url>
         </repository>
-        <snapshotRepository>
-            <id>nexus.esc.rl.ac.uk</id>
-            <url>http://nexus.esc.rl.ac.uk:8081/nexus/content/repositories/snapshots</url>
-        </snapshotRepository>
     </distributionManagement>
 
     <issueManagement>
@@ -210,6 +206,19 @@
                 </dependencies>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>2.7</version>
+                <dependencies>
+                    <dependency><!-- add support for ssh/scp -->
+                        <groupId>org.apache.maven.wagon</groupId>
+                        <artifactId>wagon-ssh</artifactId>
+                        <version>1.0</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
         </plugins>
     </build>
 
@@ -241,4 +250,6 @@
         </plugins>
     </reporting>
 
+    <description>The ICAT Job Portal supports the submission of jobs to run on a batch service, applied to datasets and/or datafiles selected via the ICAT Data Service.
+</description>
 </project>
