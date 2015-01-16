@@ -943,7 +943,9 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		jobTypeListBox.addItem(JOB_TYPES_LIST_FIRST_OPTION);
 		int selectedItemIndex = 0;
 		int itemCount = 1;
-		for (String jobName : jobTypeMappings.getJobTypesMap().keySet()) {
+		List<String> jobNames = new ArrayList<String>(jobTypeMappings.getJobTypesMap().keySet());
+		Collections.sort(jobNames);
+		for (String jobName : jobNames) {
 			jobTypeListBox.addItem(jobName);
 			if( jobName.equals(selectedJobType)){
 				selectedItemIndex = itemCount;
