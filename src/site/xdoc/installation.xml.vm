@@ -152,7 +152,8 @@
                       "date ending with code 0".</li>
                 </ul>
               </p> 
-              <p>Repeat for other job types, to test other aspects of the IJP, e.gs:
+              <p>Install the demojobs distribution (on both the IJP server and the batch server if they are different).
+                 Repeat for these job types, to test other aspects of the IJP, e.gs:
                 <dl>
                   <dt>sleepcount</dt>
                       <dd>Asks for sleep duration and no. of iterations. It should be possible to observe the output before the job completes.</dd>
