@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+
+    <properties>
+        <title>Building a Standalone IJP in a VM</title>
+    </properties>
+
+    <body>
+
+        <section name="Building a Standalone IJP in a VM">
+
+            <p>
+            This document describes a stand-alone installation of the ICAT Job
+            Portal on a single machine.
+            It describes specific configuration details for this particular
+            installation, on a linux (CentOS) VM, covering details that are
+            to some extent abstract in the installation instructions.
+            It is an example of one way in which this can be done; it is by
+            no means mandatory; and details and processes on other systems
+            are likely to be different.
+            </p>
+            <p>
+            By a "standalone" instance we mean a single system that acts as
+            both a central IJP server and as a batch server.  (Indeed, in our
+            case, we also installed ICAT and IDS instances, though this is not
+            obligatory.)  This means that we installed these components:
+            </p>
+            <dl>
+              <dt>ijp.server</dt>
+                <dd>The central IJP server, which provides the portal.</dd>
+              <dt>ijp.unixbatch</dt>
+                <dd>"Leaf" batch server that uses the Unix batch system
+                  to submit jobs</dd>
+              <dt>ijp.demojobs</dt>
+                <dd>A set of job types and executable scripts that can be
+                  used to demonstrate and test basic usage of the IJP</dd>
+            </dl>
+            <p>
+            We will concentrate on installation details that are deliberately
+            abstract in the installation notes of each component, particularly
+            as regards prerequisites. Some key configuration decisions / steps
+            are:
+            </p>
+            <ul>
+              <li>creation of appropriate users and user groups</li>
+              <li>creation of folders to hold job output etc.</li>
+              <li>modifications to <code>/etc/sudoers</code></li>
+            </ul>
+        </section>
+        
+        <section name="Basic Prerequisites: mysql, python, glassfish">
+            <p>
+            The system in this case was a VM running CentOS linux, called sig-23.
+            We created an initial user, br54; this account became the glassfish
+            owner and was used for the bulk of the ICAT component installations.
+            </p>
+            <subsection name="MySQL">
+              <h4>Outline</h4>
+                <ul>
+                  <li>install mysql</li>
+                  <li>run <code>mysql_secure_installation</code></li>
+                  <li>create icat user and database</li>
+                </ul>
+              <h4>Detail</h4>
+              <p>
+              Mysql was already installed on the VM, but the root password was
+              unknown, so we removed and reinstalled it; running as root:
+              </p>
+              <ul>
+                <li><code>yum remove mysql</code></li>
+                <li>found the existing mysql DBs (in <code>/var/lib/mysql</code> or thereabouts),
+                    and deleted them (<code>rm -rf *</code>)</li>
+                <li><code>yum install mysqld</code></li>
+                <li>Start mysqld: <code>service mysqld start</code></li>
+                <li>Run <code>mysql_secure_installation</code>, changing the
+                  (mysql) root password and disabling the anonymous account.</li>
+              </ul>
+              <p>
+              For the local ICAT installation, we created an icat user and database
+              in mysql:
+              </p>
+              <source>
+sig-23$ mysql -u root -p
+Password: *****
+mysql> create user 'icat' identified by 'secret';
+...
+mysql> grant all on icat.* to icat;
+...
+</source>
+              <p>
+              and:
+              </p>
+               <source>
+sig-23$ mysql -u icat -p
+Password: *****
+mysql> create database icat;
+...
+</source>
+              <p>
+              Later, we created separate databases for IDS and IJP.
+             </p>
+            </subsection>
+            <subsection name="Python">
+              <ul>
+                <li>Confirmed that the python version was 2.6.6 (which matches the ICAT requirement).</li>
+                <li>Confirmed that python-suds is installed.</li>
+              </ul>
+            </subsection>
+            <subsection name="Glassfish">
+              <p>
+                We installed glassfish 4.0, following the 
+                <a href="http://icatproject.org/installation/glassfish/">Glassfish
+                installation instructions</a>, including extraction and import of
+                the unsigned security certificate (into <code>/usr/lib/java/jre/lib/security</code>).
+              </p>
+              <p>
+                (Note: in the first attempt, we installed glassfish 4.1; this
+                created problems that were not revealed until we tried <code>testicat</code>
+                after the ICAT installation. Replacement with glassfish 4.0 worked.)
+              </p>
+              <p>
+                Downloaded a JDBC connector jar for mysql, and added to
+                <code>/home/br54/glassfish4/glassfish/domains/domain1/lib/</code>.
+              </p>
+            </subsection>
+        </section>
+        
+        <section name="ICAT and IDS">
+          <p>
+            It is not necessary to install local instances of ICAT and IDS, so we
+            will not go into detail here, except to mention that they were installed
+            locally (as was ICE).  A prerequisite is that at least one authenticator
+            should be installed first. We installed <code>authn_simple</code> and
+            <code>authn_db</code>.
+            <code>icat_setup</code> was used to create a user in the powerusers
+            group, which was given the rule <code>ALL CRUD</code>.
+          </p>
+          <p>
+            The initial configuration of an IJP installation uses (absolute) URLs
+            for the ICAT and IDS instances on this VM. Any other installation
+            will have to change these.
+          </p>
+          <p>
+            ICE was used to create some trivial dummy entities
+            (TestFacility, TestDataset, etc.); the initial configuration of the
+            demo jobs scripts defines properties that match this dummy setup.
+            These should be changed to align with your chosen ICAT / IDS instances.
+          </p>
+          <p>
+            Later, we modified ICE's configuration by adding Dataset to
+            the <code>beans.list</code> property; this enabled us to create
+            initial datasets (TestDataset, TestDataset2) that could be found
+            in IJP searches, and to which we could add datafiles from test
+            jobs.
+          </p>
+        </section>
+        
+        <section name="IJP Server">
+          <p><i>In practice, it would be reasonable to install the unixbatch
+            batch server at this point, but we did it in the opposite order.</i>
+          </p>
+          <p>
+            We downloaded the IJP snapshot distribution  into <code>/home/br54/Downloads/</code>, and
+            unzipped it there to obtain <code>ijp.server/</code>.
+          </p>
+          <p>
+            Created a database in mysql for ijp (still using the icat user):
+          </p>
+          <source>
+mysql -u root -p 
+create database ijp; 
+grant all on ijp.* to 'icat'@'localhost'; 
+</source>
+          <p>
+            The installation was straightforward. <i>(Well, eventually: the setup
+            process was honed over several iterations. It should be straightforward
+            now!)</i>. As with other ICAT component installations, we ran
+            <code>./setup configure -v</code> and followed instructions, modifying
+            configuration files to match the specific system configuration at
+            each stage.
+          </p>
+          <p>
+            Modified <code>ijp-setup.properties</code>:
+          </p>
+          <source>
+# Driver and connection properties for MySQL
+driver=com.mysql.jdbc.jdbc2.optional.MysqlDataSource
+dbProperties=user=icat:password=secret:databaseName=ijp
+
+# Glassfish home, must contain "glassfish/domains"
+glassfish=/home/br54/glassfish4
+
+# Glassfish admin port (normally 4848)
+port=4848
+</source>
+          <p>
+            Modified <code>ijp.properties</code>:
+          </p>
+          <source>
+icat.url = https://sig-23.esc.rl.ac.uk:8181
+ids.url = https://sig-23.esc.rl.ac.uk:8181
+
+reader = simple username br54 password secret
+
+# unixbatch on sig-23:
+batchserverUrls = https://sig-23.esc.rl.ac.uk:8181
+
+# authn methods
+authn.list simple db
+
+authn.simple.list username password
+authn.simple.password.visible false
+
+authn.db.list username password
+authn.db.password.visible false
+
+authn.anon.list
+</source>
+          <p>
+            The other configuration files (<code>families.xml</code>,
+            <code>dataset_search_items.xml</code>, <code>datafile_search_items.xml</code>
+            and the <code>ijp</code> subfolder hierarchy) were left unchanged;
+            but note that the family names <code>families.xml</code> must match
+            configuration details in unixbatch.
+          </p>
+          <p>
+            Once configuration was complete, we ran <code>./setup install -v</code>.
+          </p>
+        </section>
+        
+        <section name="Unixbatch">
+          <subsection name="Create batch user accounts">
+            <p>
+              As root, we created a unixbatch group and users:
+            </p>
+            <source>
+[root@sig-23 ijp]# groupadd unixbatch
+[root@sig-23 ijp]# useradd -g unixbatch batch01
+[root@sig-23 ijp]# useradd -g unixbatch batch02
+[root@sig-23 ijp]# useradd -g unixbatch batch03
+[root@sig-23 ijp]# useradd -g unixbatch ingest01
+[root@sig-23 ijp]# useradd -g unixbatch ingest02
+</source>
+            <p>
+              These match the default configuration in <code>unixbatch.properties</code>.
+            </p>
+          </subsection>
+          <subsection name="Modifications to the sudoers file">
+            <p>
+              As root, we used <code>visudo</code> to modify <code>/etc/sudoers</code> 
+              as described in the unixbatch installation notes:
+            </p>
+              <ul>
+                <li>Commented-out the line: <br/>
+                  <source>
+# Defaults requiretty
+</source>
+                </li>
+                <li>Added an entry to allow glassfish to sudo to the batch
+                  users to run the unix batch system commands:
+                  <source>
+br54        ALL=(batch01,batch02,batch03,ingest01,ingest02) NOPASSWD: /usr/bin/batch, /usr/bin/atq, /usr/bin/atrm, /usr/bin/kill
+</source>
+                </li>
+              </ul>
+            <p>
+              (We will modify <code>/etc/sudoers</code> again later, to add
+              the job scripts folder to the security policy.)
+            </p>
+          </subsection>
+          <subsection name="Create mysql database">
+            <source>
+mysql -u root -p 
+create database unixbatch; 
+grant all on unixbatch.* to 'icat'@'localhost';
+</source>
+          </subsection>
+          <subsection name="Installation and configuration">
+            <p>
+              We gave the glassfish user (br54) access to the home directory
+              of each of the batch users:
+            </p>
+              <source>
+setfacl -m user:br54:rx /home/batch01
+</source>
+            <p>
+              etc.
+            </p>
+            <p>
+              Created <code>/home/br54/unixbatch/jobOutputDir/</code>.
+              The installation instructions say that this folder has to be
+              readable by the batch users; this means that <code>/home/br54/</code>
+              and <code>/home/br54/unixbatch/</code> must be readable too.
+              The simplest way to do this is (as the glassfish user br54):
+            </p>
+            <source>
+chmod +rx /home/br54
+chmod +rx /home/br54/unixbatch
+chmod +rx /home/br54/unixbatch/jobOutputDir
+</source>
+            <p>
+              A more precise solution might be to add the glassfish user to the unixbatch
+              group, then do <code>chmod g+rx</code> etc.
+            </p>
+            <p>
+              <code>unixbatch-setup.properties</code> was modified:
+            </p>
+            <source>
+# Driver and connection properties for MySQL
+driver=com.mysql.jdbc.jdbc2.optional.MysqlDataSource
+dbProperties=user=icat:password=icat:databaseName=unixbatch
+
+# Glassfish home, must contain "glassfish/domains"
+glassfish=/home/br54/glassfish4
+
+# Glassfish admin port (normally 4848)
+port=4848
+</source>
+            <p>
+              <code>unixbatch.properties</code> was modified:
+            </p>
+            <source>
+icat.url = https://sig-23.esc.rl.ac.uk:8181
+
+families.list = batch ingest
+families.batch = batch01 batch02 batch03
+families.ingest = ingest01 ingest02
+
+jobOutputDir = /home/br54/unixbatch/jobOutputDir
+</source>
+            <p>
+              Note that <code>families.list</code> matches the family names
+              in <code>families.xml</code> in the IJP server configuration.
+            </p>
+            <p>
+              At this stage, it was possible to run the simple "date" job type.
+              Further job types were added by hand; but we will try to describe
+              the process in terms of the ijp.demojobs distribution.
+            </p>
+          </subsection>
+        </section>
+        
+        <section name="Demo Jobs">
+          <subsection name="Prerequisites">
+            <p>
+              As root, we created a dedicated folder to hold batch job scripts,
+              <code>/opt/ijp/bin</code>.  The job scripts have to be visible
+              to the batch users, when batch jobs are run from glassfish via
+              sudo.  This means that we have to add the above folder to the
+              sudoers security policy. We did this by modifying (as root)
+              <code>/etc/sudoers</code> using <code>visudo</code>:
+            </p>
+            <source>
+# Add /opt/ijp/bin to secure_path, for ijp/unixbatch
+Defaults    secure_path = /sbin:/bin:/usr/sbin:/usr/bin:/opt/ijp/bin
+</source>
+            <p>
+              (We also added <code>/opt/ijp/bin</code> to each batch user's
+              PATH, by editing their profile; this may not have been necessary,
+              as the path should be set by sudo.)
+            </p>
+            <p>
+              When the IJP server and the batch server are on the same machine,
+              the demojobs installer can be used to install the job types in
+              the IJP server, and the job scripts to a scripts folder.
+              To do this, the installer must have write access to both locations.
+              This suggests that the scripts folder should belong to the
+              glassfish user.
+              However, our root-owned scripts folder adds an extra complication:
+              when the demojobs installer
+              is run by br54, it has to be configured to extract the scripts to
+              a folder owned by br54, and then the root user has to copy them
+              to <code>/opt/ijp/bin</code>. In retrospect, it would have been simpler to
+              add the br54-owned scripts folder to the sudoers secure path.
+            </p>
+          </subsection>
+          <subsection name="Installation">
+            <p>
+              Configured <code>demojobs.properties</code> as follows:
+            </p>
+            <source>
+# Configuration for IJP sample job scripts
+
+# Glassfish connection details (if current system is an IJP server)
+# Glassfish home, must contain "glassfish/domains"
+glassfish=/home/br54/glassfish4
+
+# Glassfish admin port (normally 4848)
+port=4848
+
+# Location on batch server for job scripts (if current system is an IJP batch server)
+# ijp.scripts.dir=/opt/ijp/bin
+ijp.scripts.dir=/home/br54/Downloads/scripts-test/scripts
+
+# DatasetType 1 - used in most job types; must exist in ICAT
+dataset.type.1=TestDatasetType
+
+# DatasetType 2 - used in some job types; must exist in ICAT
+dataset.type.2=TestDatasetType2
+
+# Facility name (used by copy/create datafile jobs): must exist in ICAT
+facility.name=TestFacility
+
+# Data format and version (used by create_datafile): must exist in ICAT
+data.format.name=TestDataFormat
+data.format.version=0.1
+</source>
+            <p>
+              Note:
+            </p>
+              <ul>
+                <li>we used a br54-owned folder as the scripts target</li>
+                <li>the dataset, facility and data format properties
+                  are chosen to match entities in the ICAT instance</li>
+              </ul>
+          </subsection>
+          <subsection name="Post-installation">
+          <p>
+            We ran <code>./setup install -v</code> to install the job types into the IJP server,
+            and the job scripts into <code>/home/br54/Downloads/scripts-test/scripts/</code>.
+            As root, then we copied the scripts from there into <code>/opt/ijp/bin/</code>.
+          </p>
+          <p>
+            It was now possible to use the IJP web interface to submit jobs to the unix batch
+            system, etc.
+          </p>
+          </subsection>
+        </section>
+    </body>
+</document>
+

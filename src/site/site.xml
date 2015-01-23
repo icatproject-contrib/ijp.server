@@ -15,6 +15,7 @@
        
     <menu name="Information for Installers">
       <item name="IJP Installation" href="installation.html"/>
+      <item name="Standalone Installation Example" href="standalone-ijp-installation.html"/>
       <item name="Developing IJP Jobs" href="ijp-job-types.html"/>
     </menu>
     
