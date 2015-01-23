@@ -4,7 +4,7 @@
     <groupId>org.icatproject</groupId>
     <artifactId>ijp.server</artifactId>
     <version>2.0.1-SNAPSHOT</version>
-    <name>portal</name>
+    <name>IJP Server</name>
     <packaging>war</packaging>
 
     <distributionManagement>

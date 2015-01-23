@@ -16,18 +16,18 @@
                 <ul>
                     <li>
                         The IJP server distribution:
-                        <a href="${repoUrl}/org/icatproject/ijp/${project.version}/ijp.server-${project.version}-distro.zip">ijp.server-${project.version}-distro.zip</a>
+                        <a href="${repoUrl}/org/icatproject/ijp.server/${project.version}/ijp.server-${project.version}-distro.zip">ijp.server-${project.version}-distro.zip</a>
                     </li>
                      <li>
                         A suitable deployed container (here assumed to be glassfish though tomcat should be sufficient) to support a web
                         application.
                         Testing has been carried out with Glassfish 4.0.
-                        <a href="https://code.google.com/p/icatproject/wiki/Glassfish">Glassfish installation instructions</a>
+                        <a href="http://icatproject.org/installation/glassfish/">Glassfish installation instructions</a>
                         are available.
                     </li>
                     <li>
                         A database as described in
-                        <a href="https://code.google.com/p/icatproject/wiki/Databases">Database installation instructions</a>
+                        <a href="http://icatproject.org/installation/database/">Database installation instructions</a>
                         installed on the server.  During setup you will have to define a jdbc driver and connection details
                         for this database.
                     </li>
@@ -57,12 +57,12 @@
                 <ol>
                     <li>
                         Please follow
-                        <a href="http://code.google.com/p/icatproject/wiki/Installation"> the generic installation instructions</a>
+                        <a href="http://icatproject.org/installation/component/"> the generic installation instructions</a>
                     </li>
                     <li> Update the ijp.properties file with the ICAT and IDS urls, and URLs of the IJP batch servers.</li>
                     <li>The glassfish certificate for the central IJP server may need to be added to the Java trust store
                       and to the glassfish keystore on each batch server.  See the 
-                      <a href="https://code.google.com/p/icatproject/wiki/Glassfish">Glassfish installation instructions</a>
+                      <a href="http://icatproject.org/installation/glassfish/">Glassfish installation instructions</a>
                       for more details.</li>
                     <li>The glassfish certificate for each batch server may need to be added to the central IJP server's
                       trust store and glassfish keystore.</li>
