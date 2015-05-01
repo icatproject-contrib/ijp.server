@@ -20,7 +20,6 @@ import org.icatproject.ijp.client.service.DataService;
 import org.icatproject.ijp.server.ejb.session.JobManagementBean;
 import org.icatproject.ijp.server.manager.DataServiceManager;
 import org.icatproject.ijp.server.manager.XmlFileManager;
-import org.icatproject.ijp.shared.AccountDTO;
 import org.icatproject.ijp.shared.Authenticator;
 import org.icatproject.ijp.shared.Constants;
 import org.icatproject.ijp.shared.DatafileOverview;
@@ -184,8 +183,8 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	}
 
 	@Override
-	public AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
-			throws InternalException {
+	public String submitInteractive(String sessionId, JobType jobType, List<String> parameters)
+			throws InternalException, ForbiddenException, ParameterException, SessionException {
 		return jobManagementBean.submitInteractive(sessionId, jobType, parameters);
 	}
 

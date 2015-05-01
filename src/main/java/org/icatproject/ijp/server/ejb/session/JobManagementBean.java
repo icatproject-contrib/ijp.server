@@ -42,7 +42,6 @@ import org.icatproject.ijp.server.Icat;
 import org.icatproject.ijp.server.ejb.entity.Job;
 import org.icatproject.ijp.server.ejb.entity.Job.Status;
 import org.icatproject.ijp.server.manager.XmlFileManager;
-import org.icatproject.ijp.shared.AccountDTO;
 import org.icatproject.ijp.shared.Constants;
 import org.icatproject.ijp.shared.ForbiddenException;
 import org.icatproject.ijp.shared.InternalException;
@@ -71,8 +70,8 @@ public class JobManagementBean {
 		private boolean interactive;
 		private String family;
 
-		public Estimator(String sessionId, String executable, List<String> parameters,
-				String family, boolean interactive, Entry<String, WebTarget> entry) {
+		public Estimator(String sessionId, String executable, List<String> parameters, String family,
+				boolean interactive, Entry<String, WebTarget> entry) {
 			this.sessionId = sessionId;
 			this.executable = executable;
 			this.parameters = parameters;
@@ -84,10 +83,9 @@ public class JobManagementBean {
 		@Override
 		public void run() {
 			WebTarget server = entry.getValue();
-			response = server.path("estimate").queryParam("sessionId", sessionId)
-					.queryParam("executable", executable).queryParam("parameters", parameters)
-					.queryParam("interactive", interactive).queryParam("family", family)
-					.request(MediaType.APPLICATION_JSON).get(Response.class);
+			response = server.path("estimate").queryParam("sessionId", sessionId).queryParam("executable", executable)
+					.queryParam("parameters", parameters).queryParam("interactive", interactive)
+					.queryParam("family", family).request(MediaType.APPLICATION_JSON).get(Response.class);
 		}
 
 		/** returns null in case of error */
@@ -100,8 +98,8 @@ public class JobManagementBean {
 					return jsonReader.readObject().getInt("time");
 				}
 			} catch (Exception e) {
-				logger.error("Bad response from batch service " + entry.getValue().getUri() + ": "
-						+ e.getClass() + " " + e.getMessage() + " " + json);
+				logger.error("Bad response from batch service " + entry.getValue().getUri() + ": " + e.getClass() + " "
+						+ e.getMessage() + " " + json);
 				return null;
 			}
 
@@ -119,7 +117,7 @@ public class JobManagementBean {
 	private Client client;
 
 	private Map<String, WebTarget> batchServers = new HashMap<>();
-	
+
 	private String icatUrl;
 	private String idsUrl;
 
@@ -129,8 +127,7 @@ public class JobManagementBean {
 			icat = Icat.getIcat();
 
 			Unmarshaller um = JAXBContext.newInstance(Families.class).createUnmarshaller();
-			Families fams = (Families) um.unmarshal(new FileReader(Constants.CONFIG_SUBDIR
-					+ "/families.xml"));
+			Families fams = (Families) um.unmarshal(new FileReader(Constants.CONFIG_SUBDIR + "/families.xml"));
 
 			defaultFamily = fams.getDefault();
 			logger.info("Default family is " + defaultFamily);
@@ -144,18 +141,17 @@ public class JobManagementBean {
 
 			CheckedProperties props = new CheckedProperties();
 			props.loadFromFile(Constants.PROPERTIES_FILEPATH);
-			List<String> batchserverUrlstrings = new ArrayList<>(Arrays.asList(props.getString(
-					"batchserverUrls").split("\\s+")));
+			List<String> batchserverUrlstrings = new ArrayList<>(Arrays.asList(props.getString("batchserverUrls")
+					.split("\\s+")));
 			client = ClientBuilder.newClient();
 
 			for (String batchserverUrlstring : batchserverUrlstrings) {
-				batchServers.put(batchserverUrlstring,
-						client.target(batchserverUrlstring + "/batch"));
+				batchServers.put(batchserverUrlstring, client.target(batchserverUrlstring + "/batch"));
 			}
-			
+
 			icatUrl = props.getString("icat.url");
 			idsUrl = props.getString("ids.url");
-			
+
 			logger.info("Initialised JobManagementBean");
 		} catch (Exception e) {
 			String msg = e.getClass().getName() + " reports " + e.getMessage();
@@ -177,26 +173,22 @@ public class JobManagementBean {
 	@PersistenceContext(unitName = "ijp")
 	private EntityManager entityManager;
 
-	public String getJobOutput(String sessionId, long id, OutputType outputType)
-			throws SessionException, ForbiddenException, InternalException, ParameterException {
-		logger.debug("getJobOutput for id " + id + " outputType " + outputType
-				+ " under sessionId " + sessionId);
+	public String getJobOutput(String sessionId, long id, OutputType outputType) throws SessionException,
+			ForbiddenException, InternalException, ParameterException {
+		logger.debug("getJobOutput for id " + id + " outputType " + outputType + " under sessionId " + sessionId);
 
 		Job job = getJob(sessionId, id);
 		WebTarget batch = batchServers.get(job.getBatch());
-		Response response = batch
-				.path(outputType == OutputType.STANDARD_OUTPUT ? "output" : "error")
-				.path(job.getJobId()).queryParam("sessionId", sessionId)
+		Response response = batch.path(outputType == OutputType.STANDARD_OUTPUT ? "output" : "error")
+				.path(job.getJobId()).queryParam("sessionId", sessionId).queryParam("icatUrl", icatUrl)
 				.request(MediaType.APPLICATION_OCTET_STREAM).get(Response.class);
 		checkResponse(response);
 		return response.readEntity(String.class);
 
 	}
 
-	public long submitBatch(String sessionId, JobType jobType, List<String> parameters)
-			throws SessionException, InternalException, ForbiddenException, ParameterException {
-		logger.debug("submitBatch: " + jobType + " with parameters " + parameters
-				+ " under sessionId " + sessionId);
+	private Entry<String, WebTarget> chooseBatch(String sessionId, JobType jobType, List<String> parameters)
+			throws ParameterException, SessionException, ForbiddenException, InternalException {
 		String reqFamily = jobType.getFamily();
 		String family = reqFamily == null ? defaultFamily : reqFamily;
 		if (!familyPattern.containsKey(family)) { // Map with null values
@@ -207,17 +199,17 @@ public class JobManagementBean {
 		if (lf != null && !lf.matcher(username).matches()) {
 			throw new ForbiddenException(username + " is not allowed to use family " + family);
 		}
-		
-		if( jobType.isSessionId() ){
+
+		if (jobType.isSessionId()) {
 			parameters.add("--sessionId=" + sessionId);
 		}
-		
-		if( jobType.isIcatUrlRequired() ){
-			parameters.add("--icatUrl=" + icatUrl );
+
+		if (jobType.isIcatUrlRequired()) {
+			parameters.add("--icatUrl=" + icatUrl);
 		}
 
-		if( jobType.isIdsUrlRequired() ){
-			parameters.add("--idsUrl=" + idsUrl );
+		if (jobType.isIdsUrlRequired()) {
+			parameters.add("--idsUrl=" + idsUrl);
 		}
 
 		Entry<String, WebTarget> bestEntry;
@@ -228,8 +220,8 @@ public class JobManagementBean {
 
 			/* Send message to batch workers in parallel */
 			for (Entry<String, WebTarget> entry : batchServers.entrySet()) {
-				Estimator estimator = new Estimator(sessionId, jobType.getExecutable(), parameters,
-						family, false, entry);
+				Estimator estimator = new Estimator(sessionId, jobType.getExecutable(), parameters, family, false,
+						entry);
 				Thread thread = new Thread(estimator);
 				thread.start();
 				threads.put(thread, estimator);
@@ -267,17 +259,31 @@ public class JobManagementBean {
 		}
 
 		if (bestEntry == null) {
-			throw new InternalException("No batch system responded positively within " + maxSeconds
-					+ " seconds");
+			throw new InternalException("No batch system responded positively within " + maxSeconds + " seconds");
 		}
-		Form f = new Form().param("sessionId", sessionId)
+
+		return bestEntry;
+
+	}
+
+	public long submitBatch(String sessionId, JobType jobType, List<String> parameters) throws SessionException,
+			InternalException, ForbiddenException, ParameterException {
+		logger.debug("submitBatch: " + jobType + " with parameters " + parameters + " under sessionId " + sessionId);
+
+		Entry<String, WebTarget> bestEntry = chooseBatch(sessionId, jobType, parameters);
+
+		Form f = new Form().param("sessionId", sessionId).param("icatUrl", icatUrl)
 				.param("executable", jobType.getExecutable()).param("interactive", "false");
+
+		String reqFamily = jobType.getFamily();
+		String family = reqFamily == null ? defaultFamily : reqFamily;
 		if (family != null) {
 			f.param("family", family);
 		}
 		for (String s : parameters) {
 			f.param("parameter", s);
 		}
+
 		Response response = bestEntry.getValue().path("submit").request(MediaType.APPLICATION_JSON)
 				.post(Entity.form(f), Response.class);
 
@@ -289,7 +295,7 @@ public class JobManagementBean {
 			Job job = new Job();
 			job.setJobId(jobId);
 			job.setBatch(bestEntry.getKey());
-			job.setUsername(username);
+			job.setUsername(getUserName(sessionId));
 			job.setSubmitDate(new Date());
 			job.setJobType(jobType.getName());
 			job.setStatus(Status.OTHER);
@@ -301,8 +307,35 @@ public class JobManagementBean {
 
 	}
 
-	private void checkResponse(Response response) throws InternalException, ForbiddenException,
-			ParameterException, SessionException {
+	public String submitInteractive(String sessionId, JobType jobType, List<String> parameters)
+			throws InternalException, ForbiddenException, ParameterException, SessionException {
+		logger.debug("submitInteractive: " + jobType + " with parameters " + parameters + " under sessionId "
+				+ sessionId);
+
+		Entry<String, WebTarget> bestEntry = chooseBatch(sessionId, jobType, parameters);
+
+		Form f = new Form().param("sessionId", sessionId).param("icatUrl", icatUrl)
+				.param("executable", jobType.getExecutable()).param("interactive", "true");
+
+		String reqFamily = jobType.getFamily();
+		String family = reqFamily == null ? defaultFamily : reqFamily;
+		if (family != null) {
+			f.param("family", family);
+		}
+		for (String s : parameters) {
+			f.param("parameter", s);
+		}
+
+		Response response = bestEntry.getValue().path("submit").request(MediaType.APPLICATION_JSON)
+				.post(Entity.form(f), Response.class);
+
+		checkResponse(response);
+		return response.readEntity(String.class);
+
+	}
+
+	private void checkResponse(Response response) throws InternalException, ForbiddenException, ParameterException,
+			SessionException {
 		if (response.getStatus() / 100 != 2) {
 			String code = null;
 			String message = null;
@@ -339,25 +372,6 @@ public class JobManagementBean {
 		}
 	}
 
-	public AccountDTO submitInteractive(String sessionId, JobType jobType, List<String> parameters)
-			throws InternalException {
-		logger.debug("submitInteractive: " + jobType + " with parameters " + parameters
-				+ " under sessionId " + sessionId);
-		return null;
-		// Path p = null; TODO
-		// try {
-		// p = Files.createTempFile(null, null);
-		// } catch (IOException e) {
-		// throw new InternalException("Unable to create a temporary file: " + e.getMessage());
-		// }
-		// File interactiveScriptFile = p.toFile();
-		// createScript(interactiveScriptFile, parameters, jobType, sessionId);
-		// Account account = machineEJB.prepareMachine(sessionId, jobType.getExecutable(),
-		// parameters,
-		// interactiveScriptFile);
-		// return account.getDTO(machineEJB.getPoolPrefix());
-	}
-
 	private String getUserName(String sessionId) throws SessionException {
 		try {
 			if (sessionId == null) {
@@ -365,13 +379,12 @@ public class JobManagementBean {
 			}
 			return icat.getUserName(sessionId);
 		} catch (IcatException_Exception e) {
-			throw new SessionException("IcatException " + e.getFaultInfo().getType() + " "
-					+ e.getMessage());
+			throw new SessionException("IcatException " + e.getFaultInfo().getType() + " " + e.getMessage());
 		}
 	}
 
-	public String listStatus(String sessionId) throws SessionException, InternalException,
-			ForbiddenException, ParameterException {
+	public String listStatus(String sessionId) throws SessionException, InternalException, ForbiddenException,
+			ParameterException {
 		logger.debug("listStatus under sessionId " + sessionId);
 
 		String username = getUserName(sessionId);
@@ -388,9 +401,8 @@ public class JobManagementBean {
 				status = "Cancelled";
 			} else {
 				WebTarget batch = batchServers.get(job.getBatch());
-				Response response = batch.path("status").path(job.getJobId())
-						.queryParam("sessionId", sessionId).request(MediaType.APPLICATION_JSON)
-						.get(Response.class);
+				Response response = batch.path("status").path(job.getJobId()).queryParam("sessionId", sessionId)
+						.queryParam("icatUrl", icatUrl).request(MediaType.APPLICATION_JSON).get(Response.class);
 				checkResponse(response);
 				String json = response.readEntity(String.class);
 				try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
@@ -401,14 +413,12 @@ public class JobManagementBean {
 						job.setStatus(Status.CANCELLED);
 					}
 				} catch (JsonException e) {
-					throw new InternalException(e.getClass() + " " + e.getMessage() + " for:"
-							+ json);
+					throw new InternalException(e.getClass() + " " + e.getMessage() + " for:" + json);
 				}
 			}
 			synchronized (dateTimeFormat) {
 				gen.writeStartObject().write("jobId", job.getId()).write("name", job.getJobType())
-						.write("date", dateTimeFormat.format(job.getSubmitDate()))
-						.write("status", status).writeEnd();
+						.write("date", dateTimeFormat.format(job.getSubmitDate())).write("status", status).writeEnd();
 			}
 		}
 		gen.writeEnd().close();
@@ -418,8 +428,8 @@ public class JobManagementBean {
 
 	private SimpleDateFormat dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-	public String getStatus(long id, String sessionId) throws SessionException, ForbiddenException,
-			InternalException, ParameterException {
+	public String getStatus(long id, String sessionId) throws SessionException, ForbiddenException, InternalException,
+			ParameterException {
 		logger.debug("getStatus for id " + id + " under sessionId " + sessionId);
 		Job job = getJob(sessionId, id);
 		String status;
@@ -430,9 +440,8 @@ public class JobManagementBean {
 			status = "Cancelled";
 		} else {
 			WebTarget batch = batchServers.get(job.getBatch());
-			Response response = batch.path("status").path(job.getJobId())
-					.queryParam("sessionId", sessionId).request(MediaType.APPLICATION_JSON)
-					.get(Response.class);
+			Response response = batch.path("status").path(job.getJobId()).queryParam("sessionId", sessionId)
+					.queryParam("icatUrl", icatUrl).request(MediaType.APPLICATION_JSON).get(Response.class);
 			checkResponse(response);
 			String json = response.readEntity(String.class);
 			try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
@@ -448,10 +457,9 @@ public class JobManagementBean {
 		}
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		synchronized (dateTimeFormat) {
-			Json.createGenerator(baos).writeStartObject().write("jobId", job.getId())
-					.write("name", job.getJobType())
-					.write("date", dateTimeFormat.format(job.getSubmitDate()))
-					.write("status", status).writeEnd().close();
+			Json.createGenerator(baos).writeStartObject().write("jobId", job.getId()).write("name", job.getJobType())
+					.write("date", dateTimeFormat.format(job.getSubmitDate())).write("status", status).writeEnd()
+					.close();
 		}
 		return baos.toString();
 	}
@@ -465,26 +473,25 @@ public class JobManagementBean {
 		return job;
 	}
 
-	public void delete(String sessionId, long id) throws SessionException, ForbiddenException,
-			InternalException, ParameterException {
+	public void delete(String sessionId, long id) throws SessionException, ForbiddenException, InternalException,
+			ParameterException {
 		logger.debug("d	elete for id " + id + " under sessionId " + sessionId);
 		Job job = getJob(sessionId, id);
 		WebTarget batch = batchServers.get(job.getBatch());
-		Response response = batch.path("delete").path(job.getJobId())
-				.queryParam("sessionId", sessionId).request(MediaType.APPLICATION_JSON)
-				.delete(Response.class);
+		Response response = batch.path("delete").path(job.getJobId()).queryParam("sessionId", sessionId)
+				.queryParam("icatUrl", icatUrl).request(MediaType.APPLICATION_JSON).delete(Response.class);
 		checkResponse(response);
 		entityManager.remove(job);
 	}
 
-	public void cancel(String sessionId, long id) throws SessionException, ForbiddenException,
-			InternalException, ParameterException {
+	public void cancel(String sessionId, long id) throws SessionException, ForbiddenException, InternalException,
+			ParameterException {
 		logger.debug("cancel for id " + id + " under sessionId " + sessionId);
 		Job job = getJob(sessionId, id);
 		WebTarget batch = batchServers.get(job.getBatch());
-		Form f = new Form().param("sessionId", sessionId);
-		Response response = batch.path("cancel").path(job.getJobId())
-				.request(MediaType.APPLICATION_JSON).post(Entity.form(f), Response.class);
+		Form f = new Form().param("sessionId", sessionId).param("icatUrl", icatUrl);
+		Response response = batch.path("cancel").path(job.getJobId()).request(MediaType.APPLICATION_JSON)
+				.post(Entity.form(f), Response.class);
 		checkResponse(response);
 		job.setStatus(Status.CANCELLED);
 	}
@@ -508,7 +515,8 @@ public class JobManagementBean {
 		if (jt == null) {
 			throw new ParameterException("Job type " + jobType + " is not recognised.");
 		}
-		// TODO this is or the toString method need improvement - probably a special method such as
+		// TODO this is or the toString method need improvement - probably a
+		// special method such as
 		// getHelp()
 		return jt.toString();
 	}
