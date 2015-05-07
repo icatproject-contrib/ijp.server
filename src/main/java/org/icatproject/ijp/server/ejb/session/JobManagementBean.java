@@ -401,19 +401,31 @@ public class JobManagementBean {
 				status = "Cancelled";
 			} else {
 				WebTarget batch = batchServers.get(job.getBatch());
-				Response response = batch.path("status").path(job.getJobId()).queryParam("sessionId", sessionId)
-						.queryParam("icatUrl", icatUrl).request(MediaType.APPLICATION_JSON).get(Response.class);
-				checkResponse(response);
-				String json = response.readEntity(String.class);
-				try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
-					status = jsonReader.readObject().getString("status");
-					if (status.equals("Completed")) {
-						job.setStatus(Status.COMPLETED);
-					} else if (status.equals("Cancelled")) {
-						job.setStatus(Status.CANCELLED);
+				if( batch == null ){
+					logger.warn("listStatus: unfinished job " + job.getJobId() + "(status " + job.getStatus() 
+							+ ") is from batch server not in current configuration: " + job.getBatch());
+					status = "Unknown";
+					job.setStatus(Status.OTHER);
+				} else {
+					// Don't let batch server response failures spoil listing of other jobs
+					try {
+						Response response = batch.path("status").path(job.getJobId()).queryParam("sessionId", sessionId)
+								.queryParam("icatUrl", icatUrl).request(MediaType.APPLICATION_JSON).get(Response.class);
+						checkResponse(response);
+						String json = response.readEntity(String.class);
+						JsonReader jsonReader = Json.createReader(new StringReader(json));
+						status = jsonReader.readObject().getString("status");
+						if (status.equals("Completed")) {
+							job.setStatus(Status.COMPLETED);
+						} else if (status.equals("Cancelled")) {
+							job.setStatus(Status.CANCELLED);
+						}
+					} catch (Exception e) {
+						logger.warn("listStatus: exception processing batch server " + job.getBatch() + " response for job " + job.getJobId() + "(status " + job.getStatus() 
+								+ ") " + e.getClass() + " " + e.getMessage() );
+						status = "Unknown";
+						job.setStatus(Status.OTHER);
 					}
-				} catch (JsonException e) {
-					throw new InternalException(e.getClass() + " " + e.getMessage() + " for:" + json);
 				}
 			}
 			synchronized (dateTimeFormat) {
