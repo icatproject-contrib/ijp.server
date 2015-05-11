@@ -244,6 +244,8 @@ public class JobStatusPanel extends Composite implements RequiresResize {
 					System.err.println("caught is a SessionException");
 					portal.loginPanel.setMessageText(caught.getMessage());
 					portal.loginDialog.show();
+					// Ensure login dialog appears above the job status panel
+					portal.loginDialog.getElement().getStyle().setZIndex(1);
 				} else {
 					Window.alert("Server error: " + caught.getMessage());
 				}
