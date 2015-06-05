@@ -45,6 +45,7 @@ import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.RequiresResize;
+import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.SplitLayoutPanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.VerticalPanel;
@@ -110,6 +111,8 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 	VerticalPanel verticalSplitPanelHolder;
 	
 	SplitLayoutPanel datasetSplitPanel;
+	
+	ScrollPanel datasetsTableScrollPanel;
 
 	// This button will be used to Submit the job for the current selection in the Matching Datasets panel only;
 	// The Accept button in the datasetsCartPanel will submit for the shopping cart
@@ -209,9 +212,11 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		datasetInfoTable = new CellTable<DatasetInfoItem>();
 		datasetsTable.setWidth("100%");
 		datasetInfoTable.setWidth("100%");
+		datasetsTableScrollPanel = new ScrollPanel();
+		datasetsTableScrollPanel.add(datasetsTable);
 		datasetSplitPanel = new SplitLayoutPanel();
 		datasetSplitPanel.addStyleName(IjpResources.INSTANCE.css().scrollPanel());
-		datasetSplitPanel.addNorth(datasetsTable, 384);
+		datasetSplitPanel.addNorth(datasetsTableScrollPanel, 384);
 		datasetSplitPanel.add(datasetInfoTable);
 		verticalSplitPanelHolder.add(datasetSplitPanel);
 		
