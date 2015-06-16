@@ -330,7 +330,10 @@ public class JobManagementBean {
 				.post(Entity.form(f), Response.class);
 
 		checkResponse(response);
-		return response.readEntity(String.class);
+		
+		String s = response.readEntity(String.class);
+		logger.debug("submitInteractive: received response: " + s );
+		return s;
 
 	}
 
