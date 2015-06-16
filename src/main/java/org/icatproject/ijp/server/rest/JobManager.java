@@ -139,7 +139,7 @@ public class JobManager {
 				JsonObject rdp = jsonReader.readObject().getJsonObject("rdp");
 				if (rdp != null) {
 					String host = rdp.getString("host");
-					String account = rdp.getString("account");
+					String account = rdp.getString("username");
 					String password = rdp.getString("password");
 					return "rdesktop -u " + account + " -p " + password + " " + host;
 				} else {
