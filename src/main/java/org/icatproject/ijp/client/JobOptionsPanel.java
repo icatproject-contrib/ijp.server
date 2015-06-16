@@ -295,7 +295,7 @@ public class JobOptionsPanel extends VerticalPanel {
 											if (rdpv != null) {
 												JSONObject rdp = rdpv.isObject();
 												String host = rdp.get("host").isString().stringValue();
-												String account = rdp.get("account").isString().stringValue();
+												String account = rdp.get("username").isString().stringValue();
 												String password = rdp.get("password").isString().stringValue();
 												if (Window.Navigator.getPlatform().startsWith("Win")) {
 													portal.datasetsPanel.hostNameField.setValue(host);
