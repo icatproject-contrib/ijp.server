@@ -2,11 +2,55 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
+
 	<groupId>org.icatproject</groupId>
 	<artifactId>ijp.server</artifactId>
 	<version>2.0.1-SNAPSHOT</version>
 	<name>IJP Server</name>
 	<packaging>war</packaging>
+
+	<description>The ICAT Job Portal supports the submission of jobs to run on a batch service, applied to datasets and/or datafiles selected via the ICAT Data Service.
+</description>
+
+
+	<properties>
+		<gwt.version>2.7.0</gwt.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<repoUrl>http://www.icatproject.org/mvn/repo</repoUrl>
+		<webappDirectory>${project.build.directory}/${project.build.finalName}</webappDirectory>
+		<project.scm.id>github</project.scm.id>
+	</properties>
+
+	<repositories>
+		<repository>
+			<id>ICAT Repo</id>
+			<url>http://www.icatproject.org/mvn/repo</url>
+		</repository>
+	</repositories>
+
+	<scm>
+		<connection>scm:git:https://github.com/icatproject/ijp.server.git</connection>
+		<developerConnection>scm:git:https://github.com/icatproject/ijp.server.git</developerConnection>
+		<url>https://github.com/icatproject/ijp.server</url>
+	</scm>
+
+	<issueManagement>
+		<url>https://github.com/icatproject/ijp.demo/issues</url>
+		<system>GitHub</system>
+	</issueManagement>
+
+	<licenses>
+		<license>
+			<name>Apache License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
+		</license>
+	</licenses>
+
+	<organization>
+		<name>The ICAT Collaboration</name>
+		<url>http://www.icatproject.org</url>
+	</organization>
 
 	<distributionManagement>
 		<downloadUrl>http://www.icatproject.org/mvn/repo</downloadUrl>
@@ -19,39 +63,6 @@
 			<url>scp://www.icatproject.org/var/www/html/mvn/repo</url>
 		</repository>
 	</distributionManagement>
-
-	<issueManagement>
-		<url>http://code.google.com/p/icat-job-portal/issues/list</url>
-		<system>Google Code</system>
-	</issueManagement>
-
-	<scm>
-		<connection>scm:svn:http://icat-job-portal.googlecode.com/svn/portal/trunk</connection>
-		<developerConnection>scm:svn:https://icat-job-portal.googlecode.com/svn/portal/trunk</developerConnection>
-		<url>http://code.google.com/p/icat-job-portal/source/browse/#svn%2Fportal%2Ftrunk</url>
-	</scm>
-
-	<repositories>
-
-		<repository>
-			<id>ICAT Repo</id>
-			<url>http://www.icatproject.org/mvn/repo</url>
-		</repository>
-
-		<repository>
-			<id>nexus.esc.rl.ac.uk</id>
-			<url>http://nexus.esc.rl.ac.uk:8081/nexus/content/groups/public</url>
-		</repository>
-
-	</repositories>
-
-	<properties>
-		<gwt.version>2.7.0</gwt.version>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<repoUrl>http://www.icatproject.org/mvn/repo</repoUrl>
-		<webappDirectory>${project.build.directory}/${project.build.finalName}</webappDirectory>
-	</properties>
 
 	<dependencies>
 
@@ -220,6 +231,12 @@
 				</dependencies>
 			</plugin>
 
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>2.5.2</version>
+			</plugin>
+
 		</plugins>
 	</build>
 
@@ -251,6 +268,4 @@
 		</plugins>
 	</reporting>
 
-	<description>The ICAT Job Portal supports the submission of jobs to run on a batch service, applied to datasets and/or datafiles selected via the ICAT Data Service.
-</description>
 </project>
