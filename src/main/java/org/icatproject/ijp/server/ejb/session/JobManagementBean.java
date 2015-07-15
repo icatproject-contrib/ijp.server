@@ -88,7 +88,7 @@ public class JobManagementBean {
 					.queryParam("family", family).request(MediaType.APPLICATION_JSON).get(Response.class);
 		}
 
-		/** returns null in case of error */
+		/* returns null in case of error */
 		public Integer getTime() {
 			String json = null;
 			try {
@@ -330,9 +330,9 @@ public class JobManagementBean {
 				.post(Entity.form(f), Response.class);
 
 		checkResponse(response);
-		
+
 		String s = response.readEntity(String.class);
-		logger.debug("submitInteractive: received response: " + s );
+		logger.debug("submitInteractive: received response: " + s);
 		return s;
 
 	}
@@ -404,16 +404,18 @@ public class JobManagementBean {
 				status = "Cancelled";
 			} else {
 				WebTarget batch = batchServers.get(job.getBatch());
-				if( batch == null ){
-					logger.warn("listStatus: unfinished job " + job.getJobId() + "(status " + job.getStatus() 
+				if (batch == null) {
+					logger.warn("listStatus: unfinished job " + job.getJobId() + "(status " + job.getStatus()
 							+ ") is from batch server not in current configuration: " + job.getBatch());
 					status = "Unknown";
 					job.setStatus(Status.OTHER);
 				} else {
-					// Don't let batch server response failures spoil listing of other jobs
+					// Don't let batch server response failures spoil listing of
+					// other jobs
 					try {
-						Response response = batch.path("status").path(job.getJobId()).queryParam("sessionId", sessionId)
-								.queryParam("icatUrl", icatUrl).request(MediaType.APPLICATION_JSON).get(Response.class);
+						Response response = batch.path("status").path(job.getJobId())
+								.queryParam("sessionId", sessionId).queryParam("icatUrl", icatUrl)
+								.request(MediaType.APPLICATION_JSON).get(Response.class);
 						checkResponse(response);
 						String json = response.readEntity(String.class);
 						JsonReader jsonReader = Json.createReader(new StringReader(json));
@@ -424,8 +426,9 @@ public class JobManagementBean {
 							job.setStatus(Status.CANCELLED);
 						}
 					} catch (Exception e) {
-						logger.warn("listStatus: exception processing batch server " + job.getBatch() + " response for job " + job.getJobId() + "(status " + job.getStatus() 
-								+ ") " + e.getClass() + " " + e.getMessage() );
+						logger.warn("listStatus: exception processing batch server " + job.getBatch()
+								+ " response for job " + job.getJobId() + "(status " + job.getStatus() + ") "
+								+ e.getClass() + " " + e.getMessage());
 						status = "Unknown";
 						job.setStatus(Status.OTHER);
 					}

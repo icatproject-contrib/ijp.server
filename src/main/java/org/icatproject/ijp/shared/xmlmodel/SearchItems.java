@@ -29,8 +29,7 @@ public class SearchItems implements IsSerializable {
 		String lineSep = "\n";
 		String returnString = "";
 		for (int i = 0; i < searchItemList.size(); i++) {
-			returnString += "searchItemList[" + i + "]:" + lineSep
-					+ searchItemList.get(i).toString() + lineSep;
+			returnString += "searchItemList[" + i + "]:" + lineSep + searchItemList.get(i).toString() + lineSep;
 		}
 		return returnString;
 	}
@@ -41,6 +40,8 @@ public class SearchItems implements IsSerializable {
 
 	/**
 	 * Return the search items in a Map keyed on the parameter name
+	 * 
+	 * @return the search items
 	 */
 	public Map<String, SearchItem> toMap() {
 		Map<String, SearchItem> map = new HashMap<String, SearchItem>();
