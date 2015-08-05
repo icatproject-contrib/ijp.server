@@ -460,7 +460,7 @@ public class JobManagementBean {
 			checkResponse(response);
 			String json = response.readEntity(String.class);
 			try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
-				status = jsonReader.readObject().getString("Status");
+				status = jsonReader.readObject().getString("status");
 				if (status.equals("Completed")) {
 					job.setStatus(Status.COMPLETED);
 				} else if (status.equals("Cancelled")) {
