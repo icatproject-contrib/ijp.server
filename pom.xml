@@ -101,7 +101,7 @@
 		<dependency>
 			<groupId>org.icatproject</groupId>
 			<artifactId>icat.client</artifactId>
-			<version>4.4.0</version>
+			<version>4.5.0</version>
 		</dependency>
 
 		<dependency>
@@ -127,7 +127,7 @@
 		<dependency>
 			<groupId>org.icatproject</groupId>
 			<artifactId>ids.client</artifactId>
-			<version>1.0.0</version>
+			<version>1.2.0</version>
 		</dependency>
 	</dependencies>
 
