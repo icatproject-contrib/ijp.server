@@ -29,7 +29,7 @@ public class Icat {
 
 				if (portalProps.has("javax.net.ssl.trustStore")) {
 					System.setProperty("javax.net.ssl.trustStore",
-							portalProps.getProperty("javax.net.ssl.trustStore"));
+							portalProps.getString("javax.net.ssl.trustStore"));
 				}
 				URL icatUrl = portalProps.getURL("icat.url");
 

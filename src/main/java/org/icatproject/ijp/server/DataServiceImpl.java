@@ -62,7 +62,7 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 			props.loadFromFile(Constants.PROPERTIES_FILEPATH);
 			if (props.has("javax.net.ssl.trustStore")) {
 				System.setProperty("javax.net.ssl.trustStore",
-						props.getProperty("javax.net.ssl.trustStore"));
+						props.getString("javax.net.ssl.trustStore"));
 			}
 		} catch (Exception e) {
 			logger.error("Fatal error " + e.getClass() + " reports " + e.getMessage());
