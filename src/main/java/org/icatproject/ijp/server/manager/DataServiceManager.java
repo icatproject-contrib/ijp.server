@@ -697,11 +697,11 @@ public class DataServiceManager {
 				// set the id (the most important value to identify a datafile)
 				datafileListContent.setId(datafileFromIcat.getId());
 				// populate the fields required in the datafiles table
-				datafileListContent.setName(datafileFromIcat.getName());
-				datafileListContent.setCreateTime(datafileFromIcat.getCreateTime().toString());
-				datafileListContent.setModTime(datafileFromIcat.getModTime().toString());
-				// TODO What are the units in the filesize?
-				datafileListContent.setSize(datafileFromIcat.getFileSize().toString());
+				datafileListContent.setName(nvlString(datafileFromIcat.getName()));
+				datafileListContent.setCreateTime(nvlString(datafileFromIcat.getDatafileCreateTime()));
+				datafileListContent.setModTime(nvlString(datafileFromIcat.getDatafileModTime()));
+				// What are the units in the filesize?
+				datafileListContent.setSize(nvlString(datafileFromIcat.getFileSize()));
 				datafileListContent.setDatasetId(datasetId);
 
 				datafileList.add(datafileListContent);
@@ -713,6 +713,15 @@ public class DataServiceManager {
 		return datafileList;
 	}
 	
+	/**
+	 * Convert a value to String, including replacing null with the empty string.
+	 * @param nullableValue
+	 * @return String conversion of nullableValue, or empty string if it is null.
+	 */
+	private <T> String nvlString(T nullableValue) {
+		return (nullableValue == null)?"":nullableValue.toString();
+	}
+
 	public Map<Long, Map<String, Object>> getJobDatasetParametersForDatasets(String sessionId,
 			String datasetType, List<Long> datasetIds) throws SessionException, InternalException {
 		Map<Long, Map<String, Object>> datasetToJobDatasetParametersMap = new HashMap<Long, Map<String, Object>>();
