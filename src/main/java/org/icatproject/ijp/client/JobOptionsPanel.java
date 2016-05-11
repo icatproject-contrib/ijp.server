@@ -1,9 +1,15 @@
 package org.icatproject.ijp.client;
 
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.json.Json;
+import javax.json.JsonException;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
 
 import org.icatproject.ijp.client.parser.ExpressionEvaluator;
 import org.icatproject.ijp.client.parser.ParserException;
@@ -242,23 +248,6 @@ public class JobOptionsPanel extends VerticalPanel {
 						datafileIdsList.add(datafileIdsString);
 					}
 
-					// just display the job name, options string and dataset ids
-					// in an alert for now
-					// TODO - send this off to the server to get a job executed
-					// String alertMessage = "";
-					// alertMessage += "sessionId = '" + portal.getSessionId() +
-					// "'\n";
-					// alertMessage += "jobName = '" + jobName + "'\n";
-					// alertMessage += "optionsString = '" +
-					// PortalUtils.createStringFromList(optionsList, " ") +
-					// "'\n";
-					// alertMessage += "datasetIdsString = '" +
-					// PortalUtils.createStringFromList(datasetIdsList, ",") +
-					// "'\n";
-					// alertMessage += "multiJobType = '" + multiJobType.name()
-					// + "'\n";
-					// Window.alert(alertMessage);
-
 					if (jobType.getType().equalsIgnoreCase("interactive")) {
 						List<String> parameters = new ArrayList<String>();
 						// add any dataset IDs as the first item in the
@@ -368,9 +357,15 @@ public class JobOptionsPanel extends VerticalPanel {
 										@Override
 										public void onSuccess(String message) {
 											// Window.alert(message);
-											submittedJobsList.set(jobIdCounter, message);
-											submittedJobsTable.setRowData(0, submittedJobsList);
-											jobIdCounter++;
+											// message should now be a JSON string - extract jobId from it
+											try (JsonReader jsonReader = Json.createReader(new StringReader(message))) {
+												String jobId = jsonReader.readObject().getString("jobId");
+												submittedJobsList.set(jobIdCounter, jobId);
+												submittedJobsTable.setRowData(0, submittedJobsList);
+												jobIdCounter++;
+											} catch (JsonException e) {
+												Window.alert("Bad response from batch service: " + message);
+											}
 										}
 									});
 						}

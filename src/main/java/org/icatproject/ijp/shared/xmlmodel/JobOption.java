@@ -1,8 +1,11 @@
 package org.icatproject.ijp.shared.xmlmodel;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.json.Json;
+import javax.json.stream.JsonGenerator;
 import javax.xml.bind.annotation.XmlElement;
 
 import com.google.gwt.user.client.rpc.IsSerializable;
@@ -25,27 +28,29 @@ public class JobOption implements IsSerializable {
 		
 	}
 
+	/**
+	 * Return a JSON string representing this JobOption.
+	 */
 	public String toString() {
-		String valuesAsString = "null";
-		if (values != null) {
-			valuesAsString = "";
-			for (int i=0; i<values.size(); i++) {
-				valuesAsString += "'" + values.get(i) + "'";
-				if ( i != values.size()-1 ) {
-					valuesAsString += ",";
-				}
-			}
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		JsonGenerator gen = Json.createGenerator(baos).writeStartObject();
+		gen.write("name",name);
+		gen.write("groupName", groupName);
+		gen.write("type",type);
+		gen.write("programParameter",programParameter);
+		gen.writeStartArray("values");
+		for( String value : values ){
+			gen.write(value);
 		}
-		return "name='" + name + "', " + 
-			   "groupName='" + groupName + "', " + 
-			   "type='" + type + "', " + 
-			   "programParameter='" + programParameter + "', " +
-			   "values='" + valuesAsString + "', " +
-			   "defaultValue='" + defaultValue + "', " +
-			   "minValue='" + minValue + "', " +
-			   "maxValue='" + maxValue + "', " +
-			   "condition='" + condition + "', " +
-			   "tip='" + tip + "'";
+		gen.writeEnd(); // of values array
+		gen.write("defaultValue",defaultValue);
+		gen.write("minValue",minValue);
+		gen.write("maxValue",maxValue);
+		gen.write("condition",condition);
+		gen.write("tip",tip);
+		gen.writeEnd().close();
+		
+		return baos.toString();
 	}
 
 	public String getName() {

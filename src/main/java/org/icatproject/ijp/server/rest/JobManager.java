@@ -68,14 +68,14 @@ public class JobManager {
 	@GET
 	@Path("jobtype")
 	public String getJobType() {
-		return jobManagementBean.getHelp();
+		return jobManagementBean.getJobTypeNames();
 	}
 
 	@GET
 	@Path("jobtype/{jobType}")
 	public String getJobType(@PathParam("jobType") String jobType) {
 		try {
-			return jobManagementBean.getHelp(jobType);
+			return jobManagementBean.getJobTypeJson(jobType);
 		} catch (ParameterException e) {
 			throw new WebApplicationException(Response.status(Status.BAD_REQUEST).entity(e.getMessage() + "\n").build());
 		}
@@ -134,23 +134,9 @@ public class JobManager {
 			throw new InternalException("XML describing job type does not include the type field");
 		}
 		if (type.equals("interactive")) {
-			String json = jobManagementBean.submitInteractive(sessionId, jobType, parameters);
-			try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
-				JsonObject rdp = jsonReader.readObject().getJsonObject("rdp");
-				if (rdp != null) {
-					String host = rdp.getString("host");
-					String account = rdp.getString("username");
-					String password = rdp.getString("password");
-					return "rdesktop -u " + account + " -p " + password + " " + host;
-				} else {
-					throw new InternalException("Bad response from batch service " + json);
-				}
-			} catch (JsonException e) {
-				throw new InternalException("Bad response from batch service " + json);
-			}
-
+			return jobManagementBean.submitInteractive(sessionId, jobType, parameters);
 		} else if (type.equals("batch")) {
-			return Long.toString(jobManagementBean.submitBatch(sessionId, jobType, parameters));
+			return jobManagementBean.submitBatch(sessionId, jobType, parameters);
 		} else {
 			throw new InternalException("XML describing job '" + jobName + "' has a type field with an invalid value '"
 					+ jobType.getType() + "'");

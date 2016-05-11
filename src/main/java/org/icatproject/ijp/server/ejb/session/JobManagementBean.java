@@ -48,6 +48,7 @@ import org.icatproject.ijp.shared.InternalException;
 import org.icatproject.ijp.shared.ParameterException;
 import org.icatproject.ijp.shared.PortalUtils.OutputType;
 import org.icatproject.ijp.shared.SessionException;
+import org.icatproject.ijp.shared.xmlmodel.JobOption;
 import org.icatproject.ijp.shared.xmlmodel.JobType;
 import org.icatproject.utils.CheckedProperties;
 import org.slf4j.Logger;
@@ -266,7 +267,7 @@ public class JobManagementBean {
 
 	}
 
-	public long submitBatch(String sessionId, JobType jobType, List<String> parameters) throws SessionException,
+	public String submitBatch(String sessionId, JobType jobType, List<String> parameters) throws SessionException,
 			InternalException, ForbiddenException, ParameterException {
 		logger.debug("submitBatch: " + jobType + " with parameters " + parameters + " under sessionId " + sessionId);
 
@@ -300,7 +301,11 @@ public class JobManagementBean {
 			job.setJobType(jobType.getName());
 			job.setStatus(Status.OTHER);
 			entityManager.persist(job);
-			return job.getId();
+			
+			// construct a JSON string for the jobId (to parallel submitInteractive)
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			Json.createGenerator(baos).writeStartObject().write("jobId", job.getId()).writeEnd().close();
+			return baos.toString();
 		} catch (JsonException e) {
 			throw new InternalException("Bad response from batch service " + json);
 		}
@@ -514,6 +519,12 @@ public class JobManagementBean {
 		job.setStatus(Status.CANCELLED);
 	}
 
+	/**
+	 * Returns a 'human-friendly' string listing the available job types.
+	 * This is used by the REST jobtype/ request (with no arguments).
+	 * 
+	 * @return
+	 */
 	public String getHelp() {
 		StringBuilder sb = new StringBuilder();
 		for (Entry<String, JobType> entry : jobTypes.entrySet()) {
@@ -528,6 +539,13 @@ public class JobManagementBean {
 		return sb.toString();
 	}
 
+	/**
+	 * Returns the String conversion for the named jobType (if it is found).
+	 * 
+	 * @param jobType
+	 * @return String
+	 * @throws ParameterException
+	 */
 	public String getHelp(String jobType) throws ParameterException {
 		JobType jt = jobTypes.get(jobType);
 		if (jt == null) {
@@ -536,6 +554,36 @@ public class JobManagementBean {
 		// TODO this is or the toString method need improvement - probably a
 		// special method such as
 		// getHelp()
+		return jt.toString();
+	}
+	
+	/**
+	 * Return the list of names of available JobTypes, as a JSON string representing an array of strings.
+	 * 
+	 * @return String
+	 */
+	public String getJobTypeNames() {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		JsonGenerator gen = Json.createGenerator(baos).writeStartArray();
+		for (Entry<String, JobType> entry : jobTypes.entrySet()) {
+			gen.write(entry.getValue().getName());
+		}
+		gen.writeEnd().close();
+		return baos.toString();
+	}
+	
+	/**
+	 * Generate a JSON representation of the named JobType and return it as a string.
+	 * 
+	 * @param jobType
+	 * @return JSON string
+	 * @throws ParameterException if no JobType of that name is found
+	 */
+	public String getJobTypeJson(String jobType) throws ParameterException {
+		JobType jt = jobTypes.get(jobType);
+		if (jt == null) {
+			throw new ParameterException("Job type " + jobType + " is not recognised.");
+		}
 		return jt.toString();
 	}
 }

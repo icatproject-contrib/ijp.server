@@ -1,8 +1,11 @@
 package org.icatproject.ijp.shared.xmlmodel;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.json.Json;
+import javax.json.stream.JsonGenerator;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -39,18 +42,29 @@ public class JobType implements IsSerializable {
 	}
 
 	public String toString() {
-		StringBuilder sb = new StringBuilder("name='" + name + "', executable='" + executable
-				+ "', multiple='" + multiple + "', type='" + type + "'" + " datasetTypes=");
-		for (int i = 0; i < datasetTypes.size(); i++) {
-			sb.append("'" + datasetTypes.get(i) + "'");
-			if (i != datasetTypes.size() - 1) {
-				sb.append(',');
-			}
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		JsonGenerator gen = Json.createGenerator(baos).writeStartObject();
+		gen.write("name",name);
+		gen.write("executable",executable);
+		gen.write("multiple",multiple);
+		gen.write("type",type);
+		gen.writeStartArray("datasetTypes");
+		for( String datasetType : datasetTypes ){
+			gen.write(datasetType);
 		}
-		for (JobOption jobOption : jobOptions) {
-			sb.append(" " + jobOption.toString());
+		gen.writeEnd(); // of datasetTypes array
+		gen.writeStartArray("jobOptions");
+		for( JobOption jobOption : jobOptions ){
+			// Add each JobOption as a map from its name to its content
+			gen
+				.writeStartObject()
+					.write(jobOption.getName(), jobOption.toString())
+				.writeEnd();
 		}
-		return sb.toString();
+		gen.writeEnd(); // of jobOptions array
+		gen.writeEnd().close();
+		
+		return baos.toString();
 	}
 
 	public String getName() {
