@@ -1,15 +1,16 @@
 package org.icatproject.ijp.shared.xmlmodel;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.json.Json;
-import javax.json.stream.JsonGenerator;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONBoolean;
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 @XmlRootElement
@@ -42,29 +43,30 @@ public class JobType implements IsSerializable {
 	}
 
 	public String toString() {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		JsonGenerator gen = Json.createGenerator(baos).writeStartObject();
-		gen.write("name",name);
-		gen.write("executable",executable);
-		gen.write("multiple",multiple);
-		gen.write("type",type);
-		gen.writeStartArray("datasetTypes");
+		return this.toJson().toString();
+	}
+	
+	public JSONObject toJson() {
+		JSONObject json = new JSONObject();
+		json.put("name",new JSONString(name));
+		json.put("executable",new JSONString(executable));
+		json.put("multiple",JSONBoolean.getInstance(multiple));
+		json.put("type",new JSONString(type));
+		JSONArray datasetTypesArray = new JSONArray();
+		int i = 0;
 		for( String datasetType : datasetTypes ){
-			gen.write(datasetType);
+			datasetTypesArray.set( i++, new JSONString(datasetType));
 		}
-		gen.writeEnd(); // of datasetTypes array
-		gen.writeStartArray("jobOptions");
+		json.put("datasetTypes", datasetTypesArray);
+		JSONArray jobOptionsArray = new JSONArray();
+		i = 0;
 		for( JobOption jobOption : jobOptions ){
 			// Add each JobOption as a map from its name to its content
-			gen
-				.writeStartObject()
-					.write(jobOption.getName(), jobOption.toString())
-				.writeEnd();
+			jobOptionsArray.set(i++,
+					new JSONObject().put(jobOption.getName(), jobOption.toJson())
+				);
 		}
-		gen.writeEnd(); // of jobOptions array
-		gen.writeEnd().close();
-		
-		return baos.toString();
+		return json;
 	}
 
 	public String getName() {

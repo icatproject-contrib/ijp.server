@@ -1,15 +1,9 @@
 package org.icatproject.ijp.client;
 
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.json.Json;
-import javax.json.JsonException;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
 
 import org.icatproject.ijp.client.parser.ExpressionEvaluator;
 import org.icatproject.ijp.client.parser.ParserException;
@@ -355,16 +349,17 @@ public class JobOptionsPanel extends VerticalPanel {
 										}
 
 										@Override
-										public void onSuccess(String message) {
+										public void onSuccess(String json) {
 											// Window.alert(message);
 											// message should now be a JSON string - extract jobId from it
-											try (JsonReader jsonReader = Json.createReader(new StringReader(message))) {
-												String jobId = jsonReader.readObject().getString("jobId");
+											try {
+												JSONObject js = new JSONObject(JsonUtils.safeEval(json));
+												String jobId = js.get("jobId").isString().stringValue();
 												submittedJobsList.set(jobIdCounter, jobId);
 												submittedJobsTable.setRowData(0, submittedJobsList);
 												jobIdCounter++;
-											} catch (JsonException e) {
-												Window.alert("Bad response from batch service: " + message);
+											} catch (IllegalArgumentException e) {
+												Window.alert("Bad response from batch service: " + json);
 											}
 										}
 									});

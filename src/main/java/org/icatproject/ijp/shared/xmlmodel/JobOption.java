@@ -8,6 +8,9 @@ import javax.json.Json;
 import javax.json.stream.JsonGenerator;
 import javax.xml.bind.annotation.XmlElement;
 
+import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 public class JobOption implements IsSerializable {
@@ -32,25 +35,32 @@ public class JobOption implements IsSerializable {
 	 * Return a JSON string representing this JobOption.
 	 */
 	public String toString() {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		JsonGenerator gen = Json.createGenerator(baos).writeStartObject();
-		gen.write("name",name);
-		gen.write("groupName", groupName);
-		gen.write("type",type);
-		gen.write("programParameter",programParameter);
-		gen.writeStartArray("values");
-		for( String value : values ){
-			gen.write(value);
-		}
-		gen.writeEnd(); // of values array
-		gen.write("defaultValue",defaultValue);
-		gen.write("minValue",minValue);
-		gen.write("maxValue",maxValue);
-		gen.write("condition",condition);
-		gen.write("tip",tip);
-		gen.writeEnd().close();
 		
-		return baos.toString();
+		return this.toJson().toString();
+	}
+	
+	/**
+	 * Return a JSONObject representing this JobOption
+	 * @return JSONObject
+	 */
+	public JSONObject toJson() {
+		JSONObject json = new JSONObject();
+		json.put("name",new JSONString(name));
+		json.put("groupName",new JSONString(groupName));
+		json.put("type",new JSONString(type));
+		json.put("programParameter",new JSONString(programParameter));
+		JSONArray valuesArray = new JSONArray();
+		int i = 0;
+		for( String value : values ){
+			valuesArray.set(i++, new JSONString(value));
+		}
+		json.put("values",  valuesArray);
+		json.put("defaultValue",new JSONString(defaultValue));
+		json.put("minValue",new JSONString(minValue));
+		json.put("maxValue",new JSONString(maxValue));
+		json.put("condition",new JSONString(condition));
+		json.put("tip",new JSONString(tip));
+		return json;
 	}
 
 	public String getName() {
