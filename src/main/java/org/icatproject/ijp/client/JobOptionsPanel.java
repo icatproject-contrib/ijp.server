@@ -353,11 +353,17 @@ public class JobOptionsPanel extends VerticalPanel {
 											// Window.alert(message);
 											// message should now be a JSON string - extract jobId from it
 											try {
-												JSONObject js = new JSONObject(JsonUtils.safeEval(json));
-												String jobId = js.get("jobId").isString().stringValue();
-												submittedJobsList.set(jobIdCounter, jobId);
-												submittedJobsTable.setRowData(0, submittedJobsList);
-												jobIdCounter++;
+												// NOTE: when submitting multiple jobs, sometimes the full JSON
+												// is displayed instead of just the jobId. The behaviour appears to
+												// be nondeterministic. Adding a synch statement seems sensible,
+												// but does not seem to fix this.
+												synchronized (submittedJobsList) {
+													JSONObject js = new JSONObject(JsonUtils.safeEval(json));
+													String jobId = js.get("jobId").toString();
+													submittedJobsList.set(jobIdCounter, jobId);
+													submittedJobsTable.setRowData(0, submittedJobsList);
+													jobIdCounter++;
+												}
 											} catch (IllegalArgumentException e) {
 												Window.alert("Bad response from batch service: " + json);
 											}

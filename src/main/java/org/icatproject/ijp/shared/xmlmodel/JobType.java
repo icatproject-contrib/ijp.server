@@ -7,10 +7,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.google.gwt.json.client.JSONArray;
-import com.google.gwt.json.client.JSONBoolean;
-import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 @XmlRootElement
@@ -43,32 +39,20 @@ public class JobType implements IsSerializable {
 	}
 
 	public String toString() {
-		return this.toJson().toString();
+		StringBuilder sb = new StringBuilder("name='" + name + "', executable='" + executable
+				+ "', multiple='" + multiple + "', type='" + type + "'" + " datasetTypes=");
+		for (int i = 0; i < datasetTypes.size(); i++) {
+			sb.append("'" + datasetTypes.get(i) + "'");
+			if (i != datasetTypes.size() - 1) {
+				sb.append(',');
+			}
+		}
+		for (JobOption jobOption : jobOptions) {
+			sb.append(" " + jobOption.toString());
+		}
+		return sb.toString();
 	}
 	
-	public JSONObject toJson() {
-		JSONObject json = new JSONObject();
-		json.put("name",new JSONString(name));
-		json.put("executable",new JSONString(executable));
-		json.put("multiple",JSONBoolean.getInstance(multiple));
-		json.put("type",new JSONString(type));
-		JSONArray datasetTypesArray = new JSONArray();
-		int i = 0;
-		for( String datasetType : datasetTypes ){
-			datasetTypesArray.set( i++, new JSONString(datasetType));
-		}
-		json.put("datasetTypes", datasetTypesArray);
-		JSONArray jobOptionsArray = new JSONArray();
-		i = 0;
-		for( JobOption jobOption : jobOptions ){
-			// Add each JobOption as a map from its name to its content
-			jobOptionsArray.set(i++,
-					new JSONObject().put(jobOption.getName(), jobOption.toJson())
-				);
-		}
-		return json;
-	}
-
 	public String getName() {
 		return name;
 	}

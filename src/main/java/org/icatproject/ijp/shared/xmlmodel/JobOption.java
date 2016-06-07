@@ -1,16 +1,10 @@
 package org.icatproject.ijp.shared.xmlmodel;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.json.Json;
-import javax.json.stream.JsonGenerator;
 import javax.xml.bind.annotation.XmlElement;
 
-import com.google.gwt.json.client.JSONArray;
-import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 public class JobOption implements IsSerializable {
@@ -35,34 +29,28 @@ public class JobOption implements IsSerializable {
 	 * Return a JSON string representing this JobOption.
 	 */
 	public String toString() {
-		
-		return this.toJson().toString();
+		String valuesAsString = "null";
+		if (values != null) {
+			valuesAsString = "";
+			for (int i=0; i<values.size(); i++) {
+				valuesAsString += "'" + values.get(i) + "'";
+				if ( i != values.size()-1 ) {
+					valuesAsString += ",";
+				}
+			}
+		}
+		return "name='" + name + "', " + 
+			   "groupName='" + groupName + "', " + 
+			   "type='" + type + "', " + 
+			   "programParameter='" + programParameter + "', " +
+			   "values='" + valuesAsString + "', " +
+			   "defaultValue='" + defaultValue + "', " +
+			   "minValue='" + minValue + "', " +
+			   "maxValue='" + maxValue + "', " +
+			   "condition='" + condition + "', " +
+			   "tip='" + tip + "'";
 	}
 	
-	/**
-	 * Return a JSONObject representing this JobOption
-	 * @return JSONObject
-	 */
-	public JSONObject toJson() {
-		JSONObject json = new JSONObject();
-		json.put("name",new JSONString(name));
-		json.put("groupName",new JSONString(groupName));
-		json.put("type",new JSONString(type));
-		json.put("programParameter",new JSONString(programParameter));
-		JSONArray valuesArray = new JSONArray();
-		int i = 0;
-		for( String value : values ){
-			valuesArray.set(i++, new JSONString(value));
-		}
-		json.put("values",  valuesArray);
-		json.put("defaultValue",new JSONString(defaultValue));
-		json.put("minValue",new JSONString(minValue));
-		json.put("maxValue",new JSONString(maxValue));
-		json.put("condition",new JSONString(condition));
-		json.put("tip",new JSONString(tip));
-		return json;
-	}
-
 	public String getName() {
 		return name;
 	}

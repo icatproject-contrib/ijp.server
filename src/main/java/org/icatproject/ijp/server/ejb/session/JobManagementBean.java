@@ -305,6 +305,7 @@ public class JobManagementBean {
 			// construct a JSON string for the jobId (to parallel submitInteractive)
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			Json.createGenerator(baos).writeStartObject().write("jobId", job.getId()).writeEnd().close();
+			logger.debug("submitBatch: returning JSON: " + baos.toString());
 			return baos.toString();
 		} catch (JsonException e) {
 			throw new InternalException("Bad response from batch service " + json);
@@ -551,10 +552,8 @@ public class JobManagementBean {
 		if (jt == null) {
 			throw new ParameterException("Job type " + jobType + " is not recognised.");
 		}
-		// TODO this is or the toString method need improvement - probably a
-		// special method such as
-		// getHelp()
-		return jt.toString();
+		// TODO Should add a help/description field to JobTypes.
+		return getJobTypeJson(jobType);
 	}
 	
 	/**
@@ -584,6 +583,64 @@ public class JobManagementBean {
 		if (jt == null) {
 			throw new ParameterException("Job type " + jobType + " is not recognised.");
 		}
-		return jt.toString();
+		
+		// NOTE: it may seem more logical to define the JSON for JobType (and JobOption) in
+		// the JobType / JobOptions classes themselves; but these are shared between the server and the (GWT) client,
+		// which have mutually incompatible JSON libraries. In preference to introducing a third
+		// JSON generator, we use the server-side javax.json here.
+		
+		// We assume that many of the fields of a JobType (and JobOption) are not null,
+		// but not that this does not appear to be required of the (implied) XML schemas.
+		
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		JsonGenerator gen = Json.createGenerator(baos).writeStartObject();
+			gen.write("name",jt.getName());
+			gen.write("executable",jt.getExecutable());
+			gen.write("multiple",jt.getMultiple());
+			gen.write("type",jt.getType());
+			gen.writeStartArray("datasetTypes");
+			for( String datasetType : jt.getDatasetTypes() ){
+				gen.write(datasetType);
+			}
+			gen.writeEnd(); // of datasetTypes array
+			gen.writeStartArray("jobOptions");
+			for( JobOption jobOption : jt.getJobOptions() ){
+				// Add each JobOption as a map from its name to its content?
+				// gen.writeStartObject(jobOption.getName());
+				gen.writeStartObject();
+					gen.write("name",jobOption.getName());
+					writeIfNotNull(gen,"groupName", jobOption.getGroupName());
+					gen.write("type",jobOption.getType());
+					gen.write("programParameter",jobOption.getProgramParameter());
+					gen.writeStartArray("values");
+					for( String value : jobOption.getValues() ){
+						gen.write(value);
+					}
+					gen.writeEnd(); // of values array
+					writeIfNotNull(gen,"defaultValue",jobOption.getDefaultValue());
+					writeIfNotNull(gen,"minValue",jobOption.getMinValue());
+					writeIfNotNull(gen,"maxValue",jobOption.getMaxValue());
+					writeIfNotNull(gen,"condition",jobOption.getCondition());
+					writeIfNotNull(gen,"tip",jobOption.getTip());
+				gen.writeEnd();
+			}
+			gen.writeEnd(); // of jobOptions array
+		gen.writeEnd().close();
+		
+		return baos.toString();
+	}
+	
+	/**
+	 * Add an object with the given name and value to a JsonGenerator
+	 * only if the value is not null.
+	 * 
+	 * @param gen JsonGenerator
+	 * @param name
+	 * @param value
+	 */
+	private void writeIfNotNull(JsonGenerator gen, String name, String value){
+		if( value != null ){
+			gen.write(name,value);
+		}
 	}
 }
