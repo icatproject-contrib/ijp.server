@@ -1,6 +1,6 @@
 package org.icatproject.ijp.server.rest;
 
-import java.io.StringReader;
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -8,9 +8,6 @@ import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.json.Json;
-import javax.json.JsonException;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -58,11 +55,25 @@ public class JobManager {
 		jobManagementBean.delete(sessionId, id);
 	}
 
+	/**
+	 * Return a JSON object with an 'output' field that contains the error output for the specified job.
+	 * 
+	 * @param id
+	 * @param sessionId
+	 * @return
+	 * @throws SessionException
+	 * @throws ForbiddenException
+	 * @throws InternalException
+	 * @throws ParameterException
+	 */
 	@GET
 	@Path("error/{jobId}")
 	public String getError(@PathParam("jobId") long id, @QueryParam("sessionId") String sessionId)
 			throws SessionException, ForbiddenException, InternalException, ParameterException {
-		return jobManagementBean.getJobOutput(sessionId, id, OutputType.ERROR_OUTPUT);
+		String output = jobManagementBean.getJobOutput(sessionId, id, OutputType.ERROR_OUTPUT);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		Json.createGenerator(baos).writeStartObject().write("output", output).writeEnd().close();
+		return baos.toString();
 	}
 
 	@GET
@@ -81,11 +92,25 @@ public class JobManager {
 		}
 	}
 
+	/**
+	 * Return a JSON object with an 'output' field that contains the (standard) output for the specified job.
+	 * 
+	 * @param id
+	 * @param sessionId
+	 * @return
+	 * @throws SessionException
+	 * @throws ForbiddenException
+	 * @throws InternalException
+	 * @throws ParameterException
+	 */
 	@GET
 	@Path("output/{jobId}")
 	public String getOutput(@PathParam("jobId") long id, @QueryParam("sessionId") String sessionId)
 			throws SessionException, ForbiddenException, InternalException, ParameterException {
-		return jobManagementBean.getJobOutput(sessionId, id, OutputType.STANDARD_OUTPUT);
+		String output = jobManagementBean.getJobOutput(sessionId, id, OutputType.STANDARD_OUTPUT);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		Json.createGenerator(baos).writeStartObject().write("output", output).writeEnd().close();
+		return baos.toString();
 	}
 
 	@GET

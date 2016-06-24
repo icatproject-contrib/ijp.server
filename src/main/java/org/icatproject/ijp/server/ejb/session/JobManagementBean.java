@@ -598,6 +598,12 @@ public class JobManagementBean {
 			gen.write("executable",jt.getExecutable());
 			gen.write("multiple",jt.getMultiple());
 			gen.write("type",jt.getType());
+			writeIfNotNull(gen,"family",jt.getFamily());
+			writeIfNotNull(gen,"acceptsDatasets",jt.isAcceptsDatasets());
+			writeIfNotNull(gen,"acceptsDatafiles",jt.isAcceptsDatafiles());
+			writeIfNotNull(gen,"sessionIdRequired",jt.isSessionId());
+			writeIfNotNull(gen,"icatUrlRequired",jt.isIcatUrlRequired());
+			writeIfNotNull(gen,"idsUrlRequired",jt.isIdsUrlRequired());
 			gen.writeStartArray("datasetTypes");
 			for( String datasetType : jt.getDatasetTypes() ){
 				gen.write(datasetType);
@@ -632,11 +638,25 @@ public class JobManagementBean {
 	
 	/**
 	 * Add an object with the given name and value to a JsonGenerator
-	 * only if the value is not null.
+	 * only if the Boolean value is not null.
 	 * 
 	 * @param gen JsonGenerator
 	 * @param name
-	 * @param value
+	 * @param value Boolean
+	 */
+	private void writeIfNotNull(JsonGenerator gen, String name, Boolean value) {
+		if( value != null ){
+			gen.write(name,value);
+		}
+	}
+
+	/**
+	 * Add an object with the given name and value to a JsonGenerator
+	 * only if the String value is not null.
+	 * 
+	 * @param gen JsonGenerator
+	 * @param name
+	 * @param value String
 	 */
 	private void writeIfNotNull(JsonGenerator gen, String name, String value){
 		if( value != null ){
