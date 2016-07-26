@@ -179,7 +179,7 @@ public class DataServiceImpl extends RemoteServiceServlet implements DataService
 	@Override
 	public String submitBatch(String sessionId, JobType jobType, List<String> parameters)
 			throws ParameterException, SessionException, InternalException, ForbiddenException {
-		return Long.toString(jobManagementBean.submitBatch(sessionId, jobType, parameters));
+		return jobManagementBean.submitBatch(sessionId, jobType, parameters);
 	}
 
 	@Override

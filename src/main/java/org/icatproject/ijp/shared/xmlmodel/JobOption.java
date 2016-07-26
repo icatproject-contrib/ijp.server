@@ -25,6 +25,9 @@ public class JobOption implements IsSerializable {
 		
 	}
 
+	/**
+	 * Return a JSON string representing this JobOption.
+	 */
 	public String toString() {
 		String valuesAsString = "null";
 		if (values != null) {
@@ -47,7 +50,7 @@ public class JobOption implements IsSerializable {
 			   "condition='" + condition + "', " +
 			   "tip='" + tip + "'";
 	}
-
+	
 	public String getName() {
 		return name;
 	}

@@ -1,6 +1,6 @@
 package org.icatproject.ijp.server.rest;
 
-import java.io.StringReader;
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -8,9 +8,6 @@ import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.json.Json;
-import javax.json.JsonException;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -58,34 +55,62 @@ public class JobManager {
 		jobManagementBean.delete(sessionId, id);
 	}
 
+	/**
+	 * Return a JSON object with an 'output' field that contains the error output for the specified job.
+	 * 
+	 * @param id
+	 * @param sessionId
+	 * @return
+	 * @throws SessionException
+	 * @throws ForbiddenException
+	 * @throws InternalException
+	 * @throws ParameterException
+	 */
 	@GET
 	@Path("error/{jobId}")
 	public String getError(@PathParam("jobId") long id, @QueryParam("sessionId") String sessionId)
 			throws SessionException, ForbiddenException, InternalException, ParameterException {
-		return jobManagementBean.getJobOutput(sessionId, id, OutputType.ERROR_OUTPUT);
+		String output = jobManagementBean.getJobOutput(sessionId, id, OutputType.ERROR_OUTPUT);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		Json.createGenerator(baos).writeStartObject().write("output", output).writeEnd().close();
+		return baos.toString();
 	}
 
 	@GET
 	@Path("jobtype")
 	public String getJobType() {
-		return jobManagementBean.getHelp();
+		return jobManagementBean.getJobTypeNames();
 	}
 
 	@GET
 	@Path("jobtype/{jobType}")
 	public String getJobType(@PathParam("jobType") String jobType) {
 		try {
-			return jobManagementBean.getHelp(jobType);
+			return jobManagementBean.getJobTypeJson(jobType);
 		} catch (ParameterException e) {
 			throw new WebApplicationException(Response.status(Status.BAD_REQUEST).entity(e.getMessage() + "\n").build());
 		}
 	}
 
+	/**
+	 * Return a JSON object with an 'output' field that contains the (standard) output for the specified job.
+	 * 
+	 * @param id
+	 * @param sessionId
+	 * @return
+	 * @throws SessionException
+	 * @throws ForbiddenException
+	 * @throws InternalException
+	 * @throws ParameterException
+	 */
 	@GET
 	@Path("output/{jobId}")
 	public String getOutput(@PathParam("jobId") long id, @QueryParam("sessionId") String sessionId)
 			throws SessionException, ForbiddenException, InternalException, ParameterException {
-		return jobManagementBean.getJobOutput(sessionId, id, OutputType.STANDARD_OUTPUT);
+		String output = jobManagementBean.getJobOutput(sessionId, id, OutputType.STANDARD_OUTPUT);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		Json.createGenerator(baos).writeStartObject().write("output", output).writeEnd().close();
+		return baos.toString();
 	}
 
 	@GET
@@ -134,23 +159,9 @@ public class JobManager {
 			throw new InternalException("XML describing job type does not include the type field");
 		}
 		if (type.equals("interactive")) {
-			String json = jobManagementBean.submitInteractive(sessionId, jobType, parameters);
-			try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
-				JsonObject rdp = jsonReader.readObject().getJsonObject("rdp");
-				if (rdp != null) {
-					String host = rdp.getString("host");
-					String account = rdp.getString("username");
-					String password = rdp.getString("password");
-					return "rdesktop -u " + account + " -p " + password + " " + host;
-				} else {
-					throw new InternalException("Bad response from batch service " + json);
-				}
-			} catch (JsonException e) {
-				throw new InternalException("Bad response from batch service " + json);
-			}
-
+			return jobManagementBean.submitInteractive(sessionId, jobType, parameters);
 		} else if (type.equals("batch")) {
-			return Long.toString(jobManagementBean.submitBatch(sessionId, jobType, parameters));
+			return jobManagementBean.submitBatch(sessionId, jobType, parameters);
 		} else {
 			throw new InternalException("XML describing job '" + jobName + "' has a type field with an invalid value '"
 					+ jobType.getType() + "'");

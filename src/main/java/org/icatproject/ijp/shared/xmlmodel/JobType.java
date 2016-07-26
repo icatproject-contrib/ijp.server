@@ -52,7 +52,7 @@ public class JobType implements IsSerializable {
 		}
 		return sb.toString();
 	}
-
+	
 	public String getName() {
 		return name;
 	}

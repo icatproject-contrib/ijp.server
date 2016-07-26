@@ -242,23 +242,6 @@ public class JobOptionsPanel extends VerticalPanel {
 						datafileIdsList.add(datafileIdsString);
 					}
 
-					// just display the job name, options string and dataset ids
-					// in an alert for now
-					// TODO - send this off to the server to get a job executed
-					// String alertMessage = "";
-					// alertMessage += "sessionId = '" + portal.getSessionId() +
-					// "'\n";
-					// alertMessage += "jobName = '" + jobName + "'\n";
-					// alertMessage += "optionsString = '" +
-					// PortalUtils.createStringFromList(optionsList, " ") +
-					// "'\n";
-					// alertMessage += "datasetIdsString = '" +
-					// PortalUtils.createStringFromList(datasetIdsList, ",") +
-					// "'\n";
-					// alertMessage += "multiJobType = '" + multiJobType.name()
-					// + "'\n";
-					// Window.alert(alertMessage);
-
 					if (jobType.getType().equalsIgnoreCase("interactive")) {
 						List<String> parameters = new ArrayList<String>();
 						// add any dataset IDs as the first item in the
@@ -366,11 +349,18 @@ public class JobOptionsPanel extends VerticalPanel {
 										}
 
 										@Override
-										public void onSuccess(String message) {
+										public void onSuccess(String json) {
 											// Window.alert(message);
-											submittedJobsList.set(jobIdCounter, message);
-											submittedJobsTable.setRowData(0, submittedJobsList);
-											jobIdCounter++;
+											// message should now be a JSON string - extract jobId from it
+											try {
+												JSONObject js = new JSONObject(JsonUtils.safeEval(json));
+												String jobId = js.get("jobId").toString();
+												submittedJobsList.set(jobIdCounter, jobId);
+												submittedJobsTable.setRowData(0, submittedJobsList);
+												jobIdCounter++;
+											} catch (IllegalArgumentException e) {
+												Window.alert("Bad response from batch service: " + json);
+											}
 										}
 									});
 						}
@@ -393,11 +383,18 @@ public class JobOptionsPanel extends VerticalPanel {
 											}
 
 											@Override
-											public void onSuccess(String message) {
+											public void onSuccess(String json) {
 												// Window.alert(message);
-												submittedJobsList.set(jobIdCounter, message);
-												submittedJobsTable.setRowData(0, submittedJobsList);
-												jobIdCounter++;
+												// message should now be a JSON string - extract jobId from it
+												try {
+													JSONObject js = new JSONObject(JsonUtils.safeEval(json));
+													String jobId = js.get("jobId").toString();
+													submittedJobsList.set(jobIdCounter, jobId);
+													submittedJobsTable.setRowData(0, submittedJobsList);
+													jobIdCounter++;
+												} catch (IllegalArgumentException e) {
+													Window.alert("Bad response from batch service: " + json);
+												}
 											}
 										});
 							}

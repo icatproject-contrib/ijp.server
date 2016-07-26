@@ -48,6 +48,7 @@ import org.icatproject.ijp.shared.InternalException;
 import org.icatproject.ijp.shared.ParameterException;
 import org.icatproject.ijp.shared.PortalUtils.OutputType;
 import org.icatproject.ijp.shared.SessionException;
+import org.icatproject.ijp.shared.xmlmodel.JobOption;
 import org.icatproject.ijp.shared.xmlmodel.JobType;
 import org.icatproject.utils.CheckedProperties;
 import org.slf4j.Logger;
@@ -266,7 +267,7 @@ public class JobManagementBean {
 
 	}
 
-	public long submitBatch(String sessionId, JobType jobType, List<String> parameters) throws SessionException,
+	public String submitBatch(String sessionId, JobType jobType, List<String> parameters) throws SessionException,
 			InternalException, ForbiddenException, ParameterException {
 		logger.debug("submitBatch: " + jobType + " with parameters " + parameters + " under sessionId " + sessionId);
 
@@ -300,7 +301,12 @@ public class JobManagementBean {
 			job.setJobType(jobType.getName());
 			job.setStatus(Status.OTHER);
 			entityManager.persist(job);
-			return job.getId();
+			
+			// construct a JSON string for the jobId (to parallel submitInteractive)
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			Json.createGenerator(baos).writeStartObject().write("jobId", job.getId()).writeEnd().close();
+			logger.debug("submitBatch: returning JSON: " + baos.toString());
+			return baos.toString();
 		} catch (JsonException e) {
 			throw new InternalException("Bad response from batch service " + json);
 		}
@@ -514,6 +520,12 @@ public class JobManagementBean {
 		job.setStatus(Status.CANCELLED);
 	}
 
+	/**
+	 * Returns a 'human-friendly' string listing the available job types.
+	 * This is used by the REST jobtype/ request (with no arguments).
+	 * 
+	 * @return
+	 */
 	public String getHelp() {
 		StringBuilder sb = new StringBuilder();
 		for (Entry<String, JobType> entry : jobTypes.entrySet()) {
@@ -528,14 +540,127 @@ public class JobManagementBean {
 		return sb.toString();
 	}
 
+	/**
+	 * Returns the String conversion for the named jobType (if it is found).
+	 * 
+	 * @param jobType
+	 * @return String
+	 * @throws ParameterException
+	 */
 	public String getHelp(String jobType) throws ParameterException {
 		JobType jt = jobTypes.get(jobType);
 		if (jt == null) {
 			throw new ParameterException("Job type " + jobType + " is not recognised.");
 		}
-		// TODO this is or the toString method need improvement - probably a
-		// special method such as
-		// getHelp()
-		return jt.toString();
+		// TODO Should add a help/description field to JobTypes.
+		return getJobTypeJson(jobType);
+	}
+	
+	/**
+	 * Return the list of names of available JobTypes, as a JSON string representing an array of strings.
+	 * 
+	 * @return String
+	 */
+	public String getJobTypeNames() {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		JsonGenerator gen = Json.createGenerator(baos).writeStartArray();
+		for (Entry<String, JobType> entry : jobTypes.entrySet()) {
+			gen.write(entry.getValue().getName());
+		}
+		gen.writeEnd().close();
+		return baos.toString();
+	}
+	
+	/**
+	 * Generate a JSON representation of the named JobType and return it as a string.
+	 * 
+	 * @param jobType
+	 * @return JSON string
+	 * @throws ParameterException if no JobType of that name is found
+	 */
+	public String getJobTypeJson(String jobType) throws ParameterException {
+		JobType jt = jobTypes.get(jobType);
+		if (jt == null) {
+			throw new ParameterException("Job type " + jobType + " is not recognised.");
+		}
+		
+		// NOTE: it may seem more logical to define the JSON for JobType (and JobOption) in
+		// the JobType / JobOptions classes themselves; but these are shared between the server and the (GWT) client,
+		// which have mutually incompatible JSON libraries. In preference to introducing a third
+		// JSON generator, we use the server-side javax.json here.
+		
+		// We assume that many of the fields of a JobType (and JobOption) are not null,
+		// but not that this does not appear to be required of the (implied) XML schemas.
+		
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		JsonGenerator gen = Json.createGenerator(baos).writeStartObject();
+			gen.write("name",jt.getName());
+			gen.write("executable",jt.getExecutable());
+			gen.write("multiple",jt.getMultiple());
+			gen.write("type",jt.getType());
+			writeIfNotNull(gen,"family",jt.getFamily());
+			writeIfNotNull(gen,"acceptsDatasets",jt.isAcceptsDatasets());
+			writeIfNotNull(gen,"acceptsDatafiles",jt.isAcceptsDatafiles());
+			writeIfNotNull(gen,"sessionIdRequired",jt.isSessionId());
+			writeIfNotNull(gen,"icatUrlRequired",jt.isIcatUrlRequired());
+			writeIfNotNull(gen,"idsUrlRequired",jt.isIdsUrlRequired());
+			gen.writeStartArray("datasetTypes");
+			for( String datasetType : jt.getDatasetTypes() ){
+				gen.write(datasetType);
+			}
+			gen.writeEnd(); // of datasetTypes array
+			gen.writeStartArray("jobOptions");
+			for( JobOption jobOption : jt.getJobOptions() ){
+				// Add each JobOption as a map from its name to its content?
+				// gen.writeStartObject(jobOption.getName());
+				gen.writeStartObject();
+					gen.write("name",jobOption.getName());
+					writeIfNotNull(gen,"groupName", jobOption.getGroupName());
+					gen.write("type",jobOption.getType());
+					gen.write("programParameter",jobOption.getProgramParameter());
+					gen.writeStartArray("values");
+					for( String value : jobOption.getValues() ){
+						gen.write(value);
+					}
+					gen.writeEnd(); // of values array
+					writeIfNotNull(gen,"defaultValue",jobOption.getDefaultValue());
+					writeIfNotNull(gen,"minValue",jobOption.getMinValue());
+					writeIfNotNull(gen,"maxValue",jobOption.getMaxValue());
+					writeIfNotNull(gen,"condition",jobOption.getCondition());
+					writeIfNotNull(gen,"tip",jobOption.getTip());
+				gen.writeEnd();
+			}
+			gen.writeEnd(); // of jobOptions array
+		gen.writeEnd().close();
+		
+		return baos.toString();
+	}
+	
+	/**
+	 * Add an object with the given name and value to a JsonGenerator
+	 * only if the Boolean value is not null.
+	 * 
+	 * @param gen JsonGenerator
+	 * @param name
+	 * @param value Boolean
+	 */
+	private void writeIfNotNull(JsonGenerator gen, String name, Boolean value) {
+		if( value != null ){
+			gen.write(name,value);
+		}
+	}
+
+	/**
+	 * Add an object with the given name and value to a JsonGenerator
+	 * only if the String value is not null.
+	 * 
+	 * @param gen JsonGenerator
+	 * @param name
+	 * @param value String
+	 */
+	private void writeIfNotNull(JsonGenerator gen, String name, String value){
+		if( value != null ){
+			gen.write(name,value);
+		}
 	}
 }
