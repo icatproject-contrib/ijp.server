@@ -46,6 +46,11 @@ public class RDPServlet extends HttpServlet {
 		// http://biostall.com/how-to-fix-ie8-error-unable-to-download-x-php-from-yoursite-com
 		resp.setHeader("Cache-Control", "private");
 
+		// BR, 2016-07-26: CORS headers added for topcat GUI
+		resp.setHeader("Access-Control-Allow-Origin", "*");
+		resp.setHeader("Access-Control-Allow-Headers", "origin, content-type, accept, authorization");
+		resp.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS, HEAD");
+		
 		resp.setHeader("Content-disposition", "attachment;filename=LSF_remote_session.rdp");
 		// I couldn't find a definitive answer to whether the mime type should be rdp or x-rdp
 		// both seem to work but x-rdp seems to be mentioned more in the searches I did
