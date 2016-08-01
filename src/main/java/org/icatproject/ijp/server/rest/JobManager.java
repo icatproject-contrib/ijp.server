@@ -41,26 +41,54 @@ public class JobManager {
 
 	private Map<String, JobType> jobTypes;
 
+	/**
+	 * Cancels a job.
+	 * 
+	 * @summary cancel
+	 * 
+	 * @param jobId the id of the job to be cancelled
+	 * @param sessionId a valid session id which takes the form <code>0d9a3706-80d4-4d29-9ff3-4d65d4308a24</code>
+	 * 
+	 * @throws SessionException
+	 * @throws ForbiddenException
+	 * @throws InternalException
+	 * @throws ParameterException
+	 */
 	@POST
 	@Path("cancel/{jobId}")
-	public void cancel(@PathParam("jobId") long id, @FormParam("sessionId") String sessionId) throws SessionException,
+	public void cancel(@PathParam("jobId") long jobId, @FormParam("sessionId") String sessionId) throws SessionException,
 			ForbiddenException, InternalException, ParameterException {
-		jobManagementBean.cancel(sessionId, id);
-	}
-
-	@DELETE
-	@Path("delete/{jobId}")
-	public void delete(@PathParam("jobId") long id, @QueryParam("sessionId") String sessionId) throws SessionException,
-			ForbiddenException, InternalException, ParameterException {
-		jobManagementBean.delete(sessionId, id);
+		jobManagementBean.cancel(sessionId, jobId);
 	}
 
 	/**
-	 * Return a JSON object with an 'output' field that contains the error output for the specified job.
+	 * Deletes a job, removing it from the IJP's job status list.
 	 * 
-	 * @param id
-	 * @param sessionId
-	 * @return
+	 * @summary delete
+	 * 
+	 * @param jobId id of the job to be deleted
+	 * @param sessionId a valid session id which takes the form <code>0d9a3706-80d4-4d29-9ff3-4d65d4308a24</code>
+	 *
+	 * @throws SessionException
+	 * @throws ForbiddenException
+	 * @throws InternalException
+	 * @throws ParameterException
+	 */
+	@DELETE
+	@Path("delete/{jobId}")
+	public void delete(@PathParam("jobId") long jobId, @QueryParam("sessionId") String sessionId) throws SessionException,
+			ForbiddenException, InternalException, ParameterException {
+		jobManagementBean.delete(sessionId, jobId);
+	}
+
+	/**
+	 * Returns the error output for the specified job.
+	 * 
+	 * @summary error
+	 * 
+	 * @param jobId id of the job whose error output is requested
+	 * @param sessionId a valid session id which takes the form <code>0d9a3706-80d4-4d29-9ff3-4d65d4308a24</code>
+	 * @return a JSON object with an 'output' field that contains the error output for the specified job.
 	 * @throws SessionException
 	 * @throws ForbiddenException
 	 * @throws InternalException
@@ -68,20 +96,35 @@ public class JobManager {
 	 */
 	@GET
 	@Path("error/{jobId}")
-	public String getError(@PathParam("jobId") long id, @QueryParam("sessionId") String sessionId)
+	public String getError(@PathParam("jobId") long jobId, @QueryParam("sessionId") String sessionId)
 			throws SessionException, ForbiddenException, InternalException, ParameterException {
-		String output = jobManagementBean.getJobOutput(sessionId, id, OutputType.ERROR_OUTPUT);
+		String output = jobManagementBean.getJobOutput(sessionId, jobId, OutputType.ERROR_OUTPUT);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		Json.createGenerator(baos).writeStartObject().write("output", output).writeEnd().close();
 		return baos.toString();
 	}
 
+	/**
+	 * Gets a description of all available job types.
+	 * 
+	 * @summary jobtype (all)
+	 * 
+	 * @return JSON array of jobtype descriptions.
+	 */
 	@GET
 	@Path("jobtype")
 	public String getJobType() {
 		return jobManagementBean.getJobTypeNames();
 	}
 
+	/**
+	 * Gets a description of the named job type.
+	 * 
+	 * @summary jobtype (single)
+	 * 
+	 * @param jobType the name of the job type.
+	 * @return JSON object describing the named job type.
+	 */
 	@GET
 	@Path("jobtype/{jobType}")
 	public String getJobType(@PathParam("jobType") String jobType) {
@@ -93,11 +136,14 @@ public class JobManager {
 	}
 
 	/**
-	 * Return a JSON object with an 'output' field that contains the (standard) output for the specified job.
+	 * Returns the (standard) output for the specified job.
 	 * 
-	 * @param id
-	 * @param sessionId
-	 * @return
+	 * @summary output
+	 * 
+	 * @param jobId id of the job whose output is requested
+	 * @param sessionId a valid session id which takes the form <code>0d9a3706-80d4-4d29-9ff3-4d65d4308a24</code>
+	 * @return a JSON object with an 'output' field that contains the (standard) output for the specified job.
+	 * 
 	 * @throws SessionException
 	 * @throws ForbiddenException
 	 * @throws InternalException
@@ -105,14 +151,27 @@ public class JobManager {
 	 */
 	@GET
 	@Path("output/{jobId}")
-	public String getOutput(@PathParam("jobId") long id, @QueryParam("sessionId") String sessionId)
+	public String getOutput(@PathParam("jobId") long jobId, @QueryParam("sessionId") String sessionId)
 			throws SessionException, ForbiddenException, InternalException, ParameterException {
-		String output = jobManagementBean.getJobOutput(sessionId, id, OutputType.STANDARD_OUTPUT);
+		String output = jobManagementBean.getJobOutput(sessionId, jobId, OutputType.STANDARD_OUTPUT);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		Json.createGenerator(baos).writeStartObject().write("output", output).writeEnd().close();
 		return baos.toString();
 	}
 
+	/**
+	 * Gets a status report for all known jobs.
+	 * 
+	 * @summary status (all jobs)
+	 * 
+	 * @param sessionId a valid session id which takes the form <code>0d9a3706-80d4-4d29-9ff3-4d65d4308a24</code>
+	 * @return a JSON array of job-status objects.
+	 * 
+	 * @throws SessionException
+	 * @throws InternalException
+	 * @throws ForbiddenException
+	 * @throws ParameterException
+	 */
 	@GET
 	@Path("status")
 	public String getStatus(@QueryParam("sessionId") String sessionId) throws SessionException, InternalException,
@@ -120,6 +179,20 @@ public class JobManager {
 		return jobManagementBean.listStatus(sessionId);
 	}
 
+	/**
+	 * Gets the status of the identified job.
+	 * 
+	 * @summary status (single job)
+	 * 
+	 * @param jobId id of the job
+	 * @param sessionId a valid session id which takes the form <code>0d9a3706-80d4-4d29-9ff3-4d65d4308a24</code>
+	 * @return JSON describing the status of the identified job.
+	 * 
+	 * @throws SessionException
+	 * @throws ForbiddenException
+	 * @throws InternalException
+	 * @throws ParameterException
+	 */
 	@GET
 	@Path("status/{jobId}")
 	public String getStatus(@PathParam("jobId") long jobId, @QueryParam("sessionId") String sessionId)
@@ -140,6 +213,21 @@ public class JobManager {
 		}
 	}
 
+	/**
+	 * Submits a job of the given job-type name with the given parameters.
+	 * 
+	 * @summary submit
+	 * 
+	 * @param jobName the name of the job type to be submitted
+	 * @param parameters list of (command-line) parameter strings to be passed to the job.
+	 * @param sessionId a valid session id which takes the form <code>0d9a3706-80d4-4d29-9ff3-4d65d4308a24</code>
+	 * @return JSON object containing the jobId, e.g. <code>{"jobId":1234}</code>
+	 * 
+	 * @throws ForbiddenException
+	 * @throws ParameterException
+	 * @throws InternalException
+	 * @throws SessionException
+	 */
 	@POST
 	@Path("submit")
 	public String submit(@FormParam("jobName") String jobName, @FormParam("parameter") List<String> parameters,
