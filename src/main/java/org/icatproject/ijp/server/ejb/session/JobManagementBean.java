@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.ejb.Schedule;
 import javax.ejb.Stateless;
 import javax.json.Json;
 import javax.json.JsonException;
@@ -165,6 +166,22 @@ public class JobManagementBean {
 	private void exit() {
 		client.close();
 		logger.debug("Closing down JobManagementBean");
+	}
+	
+	/**
+	 * Reload the JobTypes to pick up any changes.
+	 */
+	@Schedule(minute = "*/1", hour = "*")
+	private void refreshJobTypes(){
+		try {
+			logger.info("Refreshing JobTypes...");
+			XmlFileManager xmlFileManager = new XmlFileManager();
+			jobTypes = xmlFileManager.getJobTypeMappings().getJobTypesMap();
+		} catch (Exception e) {
+			String msg = e.getClass().getName() + " reports " + e.getMessage();
+			logger.error(msg);
+			throw new RuntimeException(msg);
+		}
 	}
 
 	private final static Logger logger = LoggerFactory.getLogger(JobManagementBean.class);
@@ -343,6 +360,39 @@ public class JobManagementBean {
 
 	}
 
+	/**
+	 * Submit a named job with the given parameters.
+	 * 
+	 * @param sessionId an ICAT sessionId
+	 * @param jobName name of the jobtype to run
+	 * @param parameters parameter values (string list)
+	 * @return JSON: jobId for batch jobs, RDP connection details for interactive jobs.
+	 * 
+	 * @throws InternalException
+	 * @throws ForbiddenException
+	 * @throws ParameterException
+	 * @throws SessionException
+	 */
+	public String submit(String sessionId, String jobName, List<String> parameters)
+			throws InternalException, ForbiddenException, ParameterException, SessionException {
+		JobType jobType = jobTypes.get(jobName);
+		if (jobType == null) {
+			throw new ParameterException("jobName " + jobName + " not recognised");
+		}
+		String type = jobType.getType();
+		if (type == null) {
+			throw new InternalException("XML describing job type does not include the type field");
+		}
+		if (type.equals("interactive")) {
+			return submitInteractive(sessionId, jobType, parameters);
+		} else if (type.equals("batch")) {
+			return submitBatch(sessionId, jobType, parameters);
+		} else {
+			throw new InternalException("XML describing job '" + jobName + "' has a type field with an invalid value '"
+					+ jobType.getType() + "'");
+		}
+	}
+	
 	private void checkResponse(Response response) throws InternalException, ForbiddenException, ParameterException,
 			SessionException {
 		if (response.getStatus() / 100 != 2) {
@@ -550,7 +600,8 @@ public class JobManagementBean {
 	public String getHelp(String jobType) throws ParameterException {
 		JobType jt = jobTypes.get(jobType);
 		if (jt == null) {
-			throw new ParameterException("Job type " + jobType + " is not recognised.");
+			logger.debug("JMB.getHelp: " + jobType + " not found. Current names: " + getJobTypeNames());
+			throw new ParameterException("JMB.getHelp: Job type " + jobType + " is not recognised.");
 		}
 		// TODO Should add a help/description field to JobTypes.
 		return getJobTypeJson(jobType);
@@ -581,7 +632,8 @@ public class JobManagementBean {
 	public String getJobTypeJson(String jobType) throws ParameterException {
 		JobType jt = jobTypes.get(jobType);
 		if (jt == null) {
-			throw new ParameterException("Job type " + jobType + " is not recognised.");
+			logger.debug("JMB.getJobType: " + jobType + " not found. Current names: " + getJobTypeNames());
+			throw new ParameterException("JMB.getJobType: Job type " + jobType + " is not recognised.");
 		}
 		
 		// NOTE: it may seem more logical to define the JSON for JobType (and JobOption) in

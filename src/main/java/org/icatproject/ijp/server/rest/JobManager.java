@@ -39,8 +39,6 @@ public class JobManager {
 	@EJB
 	private JobManagementBean jobManagementBean;
 
-	private Map<String, JobType> jobTypes;
-
 	/**
 	 * Cancels a job.
 	 * 
@@ -200,19 +198,6 @@ public class JobManager {
 		return jobManagementBean.getStatus(jobId, sessionId);
 	}
 
-	@PostConstruct
-	void init() {
-		try {
-			XmlFileManager xmlFileManager = new XmlFileManager();
-			jobTypes = xmlFileManager.getJobTypeMappings().getJobTypesMap();
-			logger.info("Initialised JobManager");
-		} catch (Exception e) {
-			String msg = e.getClass().getName() + " reports " + e.getMessage();
-			logger.error(msg);
-			throw new RuntimeException(msg);
-		}
-	}
-
 	/**
 	 * Submits a job of the given job-type name with the given parameters.
 	 * 
@@ -238,22 +223,7 @@ public class JobManager {
 			throw new ParameterException("No jobName was specified");
 		}
 
-		JobType jobType = jobTypes.get(jobName);
-		if (jobType == null) {
-			throw new ParameterException("jobName " + jobName + " not recognised");
-		}
-		String type = jobType.getType();
-		if (type == null) {
-			throw new InternalException("XML describing job type does not include the type field");
-		}
-		if (type.equals("interactive")) {
-			return jobManagementBean.submitInteractive(sessionId, jobType, parameters);
-		} else if (type.equals("batch")) {
-			return jobManagementBean.submitBatch(sessionId, jobType, parameters);
-		} else {
-			throw new InternalException("XML describing job '" + jobName + "' has a type field with an invalid value '"
-					+ jobType.getType() + "'");
-		}
+		return jobManagementBean.submit(sessionId, jobName, parameters);
 	}
 
 }

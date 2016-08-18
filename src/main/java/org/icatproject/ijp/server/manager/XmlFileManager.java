@@ -74,7 +74,7 @@ public class XmlFileManager {
 			Unmarshaller u = context.createUnmarshaller();
 			JAXBElement<JobType> root = u.unmarshal(new StreamSource(xmlFile), JobType.class);
 			jobType = root.getValue();
-			logger.debug("JobType " + jobType.getName() + " read: " + jobType);
+			logger.debug("JobType " + jobType.getName() + " read.");
 		} catch (JAXBException e) {
 			throw new InternalException("Error reading XML definition for JobType from file "
 					+ xmlFile.getAbsolutePath() + ": " + e.getMessage());
