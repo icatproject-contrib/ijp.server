@@ -19,6 +19,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.icatproject.ids.client.NotFoundException;
 import org.icatproject.ijp.server.ejb.session.JobManagementBean;
 import org.icatproject.ijp.server.manager.XmlFileManager;
 import org.icatproject.ijp.shared.ForbiddenException;
@@ -224,6 +225,24 @@ public class JobManager {
 		}
 
 		return jobManagementBean.submit(sessionId, jobName, parameters);
+	}
+
+	/**
+	 * Provides the provenance information for the given job.
+	 * @param jobId The given job.
+	 * @param provenanceId The provenance record ID in ICAT.
+	 * @param sessionId a valid session id which takes the form <code>0d9a3706-80d4-4d29-9ff3-4d65d4308a24</code>
+	 * @return JSON object containing the jobId and the provenance record, e.g. <code>{"jobId": 1234,
+	 * "provenanceId": }</code>
+	 */
+	@POST
+	@Path("job/{jobId}")
+	public String setProvenance(@PathParam("jobId") long jobId,
+				@FormParam("provenanceId") long provenanceId,
+				@FormParam("sessionId") String sessionId)
+			throws NotFoundException, ForbiddenException, SessionException {
+
+		return jobManagementBean.saveProvenanceId(sessionId, jobId, provenanceId);
 	}
 
 }

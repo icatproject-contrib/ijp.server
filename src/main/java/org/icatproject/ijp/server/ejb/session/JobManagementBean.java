@@ -1,18 +1,20 @@
 package org.icatproject.ijp.server.ejb.session;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileReader;
-import java.io.StringReader;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.regex.Pattern;
+import org.icatproject.ICAT;
+import org.icatproject.IcatException_Exception;
+import org.icatproject.ids.client.NotFoundException;
+import org.icatproject.ijp.server.Families;
+import org.icatproject.ijp.server.Icat;
+import org.icatproject.ijp.server.ejb.entity.Job;
+import org.icatproject.ijp.server.ejb.entity.Job.Status;
+import org.icatproject.ijp.server.manager.XmlFileManager;
+import org.icatproject.ijp.shared.*;
+import org.icatproject.ijp.shared.PortalUtils.OutputType;
+import org.icatproject.ijp.shared.xmlmodel.JobOption;
+import org.icatproject.ijp.shared.xmlmodel.JobType;
+import org.icatproject.utils.CheckedProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -25,6 +27,7 @@ import javax.json.stream.JsonGenerator;
 import javax.json.stream.JsonParser;
 import javax.json.stream.JsonParser.Event;
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -35,31 +38,21 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
-
-import org.icatproject.ICAT;
-import org.icatproject.IcatException_Exception;
-import org.icatproject.ijp.server.Families;
-import org.icatproject.ijp.server.Icat;
-import org.icatproject.ijp.server.ejb.entity.Job;
-import org.icatproject.ijp.server.ejb.entity.Job.Status;
-import org.icatproject.ijp.server.manager.XmlFileManager;
-import org.icatproject.ijp.shared.Constants;
-import org.icatproject.ijp.shared.ForbiddenException;
-import org.icatproject.ijp.shared.InternalException;
-import org.icatproject.ijp.shared.ParameterException;
-import org.icatproject.ijp.shared.PortalUtils.OutputType;
-import org.icatproject.ijp.shared.SessionException;
-import org.icatproject.ijp.shared.xmlmodel.JobOption;
-import org.icatproject.ijp.shared.xmlmodel.JobType;
-import org.icatproject.utils.CheckedProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileReader;
+import java.io.StringReader;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 /**
  * Session Bean implementation to manage job status
  */
 @Stateless
 public class JobManagementBean {
+
 
 	public class Estimator implements Runnable {
 
@@ -392,7 +385,17 @@ public class JobManagementBean {
 					+ jobType.getType() + "'");
 		}
 	}
-	
+
+	public String saveProvenanceId(String sessionId, long jobId, long provenanceId)
+			throws NotFoundException, ForbiddenException, SessionException {
+		Job job = getJob(sessionId, jobId);
+		job.setProvenanceId(provenanceId);
+		entityManager.persist(job);
+		return "{ \"jobId\": " + job.getId()
+				+ ", \"provenanceId\": " + job.getProvenanceId()
+				+ "}";
+	}
+
 	private void checkResponse(Response response) throws InternalException, ForbiddenException, ParameterException,
 			SessionException {
 		if (response.getStatus() / 100 != 2) {
