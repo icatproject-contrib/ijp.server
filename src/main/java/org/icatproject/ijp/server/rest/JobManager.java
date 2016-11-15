@@ -2,9 +2,7 @@ package org.icatproject.ijp.server.rest;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;
-import java.util.Map;
 
-import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.json.Json;
@@ -21,13 +19,11 @@ import javax.ws.rs.core.Response.Status;
 
 import org.icatproject.ids.client.NotFoundException;
 import org.icatproject.ijp.server.ejb.session.JobManagementBean;
-import org.icatproject.ijp.server.manager.XmlFileManager;
 import org.icatproject.ijp.shared.ForbiddenException;
 import org.icatproject.ijp.shared.InternalException;
 import org.icatproject.ijp.shared.ParameterException;
 import org.icatproject.ijp.shared.PortalUtils.OutputType;
 import org.icatproject.ijp.shared.SessionException;
-import org.icatproject.ijp.shared.xmlmodel.JobType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -236,7 +232,7 @@ public class JobManager {
 	 * "provenanceId": }</code>
 	 */
 	@POST
-	@Path("job/{jobId}")
+	@Path("job/provenance/{jobId}")
 	public String setProvenance(@PathParam("jobId") long jobId,
 				@FormParam("provenanceId") long provenanceId,
 				@FormParam("sessionId") String sessionId)

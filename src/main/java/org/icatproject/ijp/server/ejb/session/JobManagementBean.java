@@ -53,7 +53,6 @@ import java.util.regex.Pattern;
 @Stateless
 public class JobManagementBean {
 
-
 	public class Estimator implements Runnable {
 
 		private String sessionId;
@@ -494,8 +493,12 @@ public class JobManagementBean {
 				}
 			}
 			synchronized (dateTimeFormat) {
-				gen.writeStartObject().write("jobId", job.getId()).write("name", job.getJobType())
-						.write("date", dateTimeFormat.format(job.getSubmitDate())).write("status", status).writeEnd();
+				gen.writeStartObject()
+						.write("jobId", job.getId())
+						.write("name", job.getJobType())
+						.write("date", dateTimeFormat.format(job.getSubmitDate()))
+						.write("status", status)
+						.write("job", job.getProvenanceId()).writeEnd();
 			}
 		}
 		gen.writeEnd().close();
