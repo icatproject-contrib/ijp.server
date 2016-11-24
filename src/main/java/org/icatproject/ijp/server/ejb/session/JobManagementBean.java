@@ -27,7 +27,6 @@ import javax.json.stream.JsonGenerator;
 import javax.json.stream.JsonParser;
 import javax.json.stream.JsonParser.Event;
 import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -114,6 +113,7 @@ public class JobManagementBean {
 
 	private String icatUrl;
 	private String idsUrl;
+	private String ijpUrl;
 
 	@PostConstruct
 	private void init() {
@@ -145,6 +145,7 @@ public class JobManagementBean {
 
 			icatUrl = props.getString("icat.url");
 			idsUrl = props.getString("ids.url");
+			ijpUrl = props.getString("ijp.url");
 
 			logger.info("Initialised JobManagementBean");
 		} catch (Exception e) {
@@ -210,18 +211,6 @@ public class JobManagementBean {
 			throw new ForbiddenException(username + " is not allowed to use family " + family);
 		}
 
-		if (jobType.isSessionId()) {
-			parameters.add("--sessionId=" + sessionId);
-		}
-
-		if (jobType.isIcatUrlRequired()) {
-			parameters.add("--icatUrl=" + icatUrl);
-		}
-
-		if (jobType.isIdsUrlRequired()) {
-			parameters.add("--idsUrl=" + idsUrl);
-		}
-
 		Entry<String, WebTarget> bestEntry;
 		if (batchServers.size() == 1) {
 			bestEntry = batchServers.entrySet().iterator().next();
@@ -273,17 +262,49 @@ public class JobManagementBean {
 		}
 
 		return bestEntry;
+	}
 
+	private void addRequiredParameters(List<String> parameters, String sessionId, JobType jobType) {
+		if (jobType.isSessionId()) {
+			parameters.add("--sessionId=" + sessionId);
+		}
+
+		if (jobType.isIcatUrlRequired()) {
+			parameters.add("--icatUrl=" + icatUrl);
+		}
+
+		if (jobType.isIdsUrlRequired()) {
+			parameters.add("--idsUrl=" + idsUrl);
+		}
+	}
+
+	private void addRequiredParameters(List<String> parameters, String sessionId, JobType jobType, long ijpJobId) {
+		addRequiredParameters(parameters, sessionId, jobType);
+		parameters.add("--ijpJobId=" + ijpJobId);
+		parameters.add("--ijpUrl=" + ijpUrl);
 	}
 
 	public String submitBatch(String sessionId, JobType jobType, List<String> parameters) throws SessionException,
 			InternalException, ForbiddenException, ParameterException {
-		logger.debug("submitBatch: " + jobType + " with parameters " + parameters + " under sessionId " + sessionId);
+		logger.debug("submitBatch: " + jobType + " with parameters " + parameters.toString() + " under sessionId " +
+				sessionId);
+
+		Job job = new Job();
+		job.setStatus(Status.OTHER);
+		job.setUsername(getUserName(sessionId));
+		job.setSubmitDate(new Date());
+		job.setJobType(jobType.getName());
+		entityManager.persist(job);
+
+		addRequiredParameters(parameters, sessionId, jobType, job.getId());
 
 		Entry<String, WebTarget> bestEntry = chooseBatch(sessionId, jobType, parameters);
 
-		Form f = new Form().param("sessionId", sessionId).param("icatUrl", icatUrl)
-				.param("executable", jobType.getExecutable()).param("interactive", "false");
+		Form f = new Form()
+				.param("sessionId", sessionId)
+				.param("icatUrl", icatUrl)
+				.param("executable", jobType.getExecutable())
+				.param("interactive", "false");
 
 		String reqFamily = jobType.getFamily();
 		String family = reqFamily == null ? defaultFamily : reqFamily;
@@ -294,7 +315,8 @@ public class JobManagementBean {
 			f.param("parameter", s);
 		}
 
-		Response response = bestEntry.getValue().path("submit").request(MediaType.APPLICATION_JSON)
+		Response response = bestEntry.getValue().path("submit")
+				.request(MediaType.APPLICATION_JSON)
 				.post(Entity.form(f), Response.class);
 
 		checkResponse(response);
@@ -302,13 +324,8 @@ public class JobManagementBean {
 
 		try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
 			String jobId = jsonReader.readObject().getString("jobId");
-			Job job = new Job();
 			job.setJobId(jobId);
 			job.setBatch(bestEntry.getKey());
-			job.setUsername(getUserName(sessionId));
-			job.setSubmitDate(new Date());
-			job.setJobType(jobType.getName());
-			job.setStatus(Status.OTHER);
 			entityManager.persist(job);
 			
 			// construct a JSON string for the jobId (to parallel submitInteractive)
@@ -327,10 +344,15 @@ public class JobManagementBean {
 		logger.debug("submitInteractive: " + jobType + " with parameters " + parameters + " under sessionId "
 				+ sessionId);
 
+		addRequiredParameters(parameters, sessionId, jobType);
+
 		Entry<String, WebTarget> bestEntry = chooseBatch(sessionId, jobType, parameters);
 
-		Form f = new Form().param("sessionId", sessionId).param("icatUrl", icatUrl)
-				.param("executable", jobType.getExecutable()).param("interactive", "true");
+		Form f = new Form()
+				.param("sessionId", sessionId)
+				.param("icatUrl", icatUrl)
+				.param("executable", jobType.getExecutable())
+				.param("interactive", "true");
 
 		String reqFamily = jobType.getFamily();
 		String family = reqFamily == null ? defaultFamily : reqFamily;
@@ -498,7 +520,8 @@ public class JobManagementBean {
 						.write("name", job.getJobType())
 						.write("date", dateTimeFormat.format(job.getSubmitDate()))
 						.write("status", status)
-						.write("job", job.getProvenanceId()).writeEnd();
+						.write("provenanceId", job.getProvenanceId())
+						.writeEnd();
 			}
 		}
 		gen.writeEnd().close();
