@@ -67,7 +67,7 @@ public class XmlFileManager {
 		return jobTypeMappings;
 	}
 
-	private JobType getJobType(File xmlFile) throws InternalException {
+	public JobType getJobType(File xmlFile) throws InternalException {
 		JobType jobType = null;
 		try {
 			JAXBContext context = JAXBContext.newInstance(JobType.class);
