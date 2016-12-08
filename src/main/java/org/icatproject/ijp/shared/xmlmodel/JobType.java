@@ -14,7 +14,6 @@ public class JobType implements IsSerializable {
 
 	private String name;
 	private String executable;
-	private boolean multiple;
 	private String type;
 
 	@XmlAttribute
@@ -33,6 +32,8 @@ public class JobType implements IsSerializable {
 	private List<String> datasetTypes = new ArrayList<String>();
 	@XmlElement
 	private List<JobOption> jobOptions = new ArrayList<JobOption>();
+
+	private MultipleOptions multiple = new MultipleOptions();
 
 	public JobType() {
 
@@ -69,12 +70,14 @@ public class JobType implements IsSerializable {
 		this.executable = executable;
 	}
 
-	public boolean getMultiple() {
+	public MultipleOptions getMultiple() {
+		if(multiple == null)
+			return new MultipleOptions();
 		return multiple;
 	}
 
-	public void setMultiple(boolean multiple) {
-		this.multiple = multiple;
+	public void setMultiple(MultipleOptions multipleOptions) {
+		this.multiple = multipleOptions;
 	}
 
 	public String getType() {

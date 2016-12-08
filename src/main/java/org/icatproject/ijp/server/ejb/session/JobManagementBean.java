@@ -677,7 +677,8 @@ public class JobManagementBean {
 		JsonGenerator gen = Json.createGenerator(baos).writeStartObject();
 			gen.write("name",jt.getName());
 			gen.write("executable",jt.getExecutable());
-			gen.write("multiple",jt.getMultiple());
+			gen.write("multiple",jt.getMultiple().isMultiple());
+			gen.write("forceSingleJob", jt.getMultiple().isForceSingleJob());
 			gen.write("type",jt.getType());
 			writeIfNotNull(gen,"family",jt.getFamily());
 			writeIfNotNull(gen,"acceptsDatasets",jt.isAcceptsDatasets());

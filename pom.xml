@@ -149,27 +149,6 @@
 			</plugin>
 
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>gwt-maven-plugin</artifactId>
-				<version>${gwt.version}</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>compile</goal>
-							<!-- goal>test</goal -->
-							<!-- goal>generateAsync</goal -->
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<runTarget>portal/index.html</runTarget>
-					<hostedWebapp>${webappDirectory}</hostedWebapp>
-					<style>PRETTY</style> <!-- set to OBFUSTICATED for production -->
-					<strict>true</strict>
-				</configuration>
-			</plugin>
-
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-war-plugin</artifactId>
 				<version>2.3</version>

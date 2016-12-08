@@ -468,7 +468,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				selectedDatasets.addAll(selectionModel.getSelectedSet());
 				// Don't forget to clear the selectedDatafiles!
 				selectedDatafiles.clear();
-				if (selectedDatasets.size() > 1 && !jobType.getMultiple()
+				if (selectedDatasets.size() > 1 && !jobType.getMultiple().isMultiple()
 						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
 					Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
 				} else {
@@ -523,7 +523,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				for( SelectionListContent item : datasetsCartPanel.getEverything() ){
 					selectedDatasets.add( ((DatasetListContent)item).getDatasetOverview() );
 				}
-				if (selectedDatasets.size() > 1 && !jobType.getMultiple()
+				if (selectedDatasets.size() > 1 && !jobType.getMultiple().isMultiple()
 						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
 					Window.alert("'" + jobName + "' does not allow multiple datasets to be selected");
 				} else {
@@ -558,7 +558,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				for( SelectionListContent item : datafilesCartPanel.getEverything() ){
 					selectedDatafiles.add( (DatafileOverview)item );
 				}
-				if (selectedDatafiles.size() > 1 && !jobType.getMultiple()
+				if (selectedDatafiles.size() > 1 && !jobType.getMultiple().isMultiple()
 						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
 					Window.alert("'" + jobName + "' does not allow multiple datafiles to be selected");
 				} else {
@@ -593,7 +593,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 				for( SelectionListContent item : datafilesCartPanel.getEverything() ){
 					selectedDatafiles.add( (DatafileOverview)item );
 				}
-				if (selectedDatafiles.size() + selectedDatasets.size() > 1 && !jobType.getMultiple()
+				if (selectedDatafiles.size() + selectedDatasets.size() > 1 && !jobType.getMultiple().isMultiple()
 						&& jobType.getType().equalsIgnoreCase("INTERACTIVE")) {
 					Window.alert("'" + jobName + "' does not allow multiple datasets/datafiles to be selected");
 				} else {
@@ -785,7 +785,7 @@ public class DatasetsPanel extends Composite implements RequiresResize {
 		} else {
 			String joiner;
 			String plurality;
-			if( jobType.getMultiple() ){
+			if( jobType.getMultiple().isMultiple() ){
 				details = "runs for multiple ";
 				joiner = " and ";
 				plurality = "s";

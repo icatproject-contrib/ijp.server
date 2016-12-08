@@ -107,7 +107,7 @@ public class JobOptionsPanel extends VerticalPanel {
 					if (jobType.getType().equalsIgnoreCase("interactive")) {
 						multiJobType = MultiJobTypes.MULTIPLE_DATASETS_ONE_JOB;
 					} else if (jobType.getType().equalsIgnoreCase("batch")) {
-						if (jobType.getMultiple() == false) {
+						if (jobType.getMultiple().isMultiple() == false) {
 							if (confirmMultipleCheckBox.getValue() == false) {
 								formErrors
 										.add("Please tick the box at the top of the form to confirm your intention to run multiple jobs");
@@ -571,7 +571,7 @@ public class JobOptionsPanel extends VerticalPanel {
 						int numSelectedSetsOrFiles = numSelectedDatasets + numSelectedDatafiles;
 						if (jobType.getType().equalsIgnoreCase("batch") && numSelectedSetsOrFiles > 1) {
 							HorizontalPanel warningPanel = new HorizontalPanel();
-							if (jobType.getMultiple() == false) {
+							if (jobType.getMultiple().isMultiple() == false) {
 								// warn user that they are submitting multiple
 								// jobs
 								// get them to tick a checkbox to confirm
