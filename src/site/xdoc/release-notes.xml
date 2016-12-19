@@ -6,6 +6,12 @@
     </properties>
 
     <body>
+        <section name="2.0.2">
+            <ul>
+                <li>Link job provenance to job that created it, and display provenance details in the GUI</li>
+                <li>Check that each job type has a corresponding ICAT Application in each Facility, creating it if necessary</li>
+            </ul>
+        </section>
         <section name="2.0.0">
             <p>Initial release - this is the first properly tagged release</p>
         </section>

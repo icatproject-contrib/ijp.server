@@ -59,7 +59,7 @@
                         Please follow
                         <a href="http://icatproject.org/installation/component/"> the generic installation instructions</a>
                     </li>
-                    <li> Update the ijp.properties file with the ICAT and IDS urls, and URLs of the IJP batch servers.</li>
+                    <li> Update the ijp.properties file with the ICAT, IDS and IJP urls, and URLs of the IJP batch servers.</li>
                     <li>The glassfish certificate for the central IJP server may need to be added to the Java trust store
                       and to the glassfish keystore on each batch server.  See the 
                       <a href="http://icatproject.org/installation/glassfish/">Glassfish installation instructions</a>
@@ -123,6 +123,11 @@
                         e.g. https://sig-23.esc.rl.ac.uk:8181.
                     </dd>
                     
+                    <dt>ijp.url</dt>
+                    <dd>The (prefix of the) URL for the IJP instance itself (to be passed to jobs that create provenance),
+                        e.g. https://sig-23.esc.rl.ac.uk:8181.
+                    </dd>
+                    
                     <dt>batchserverUrls</dt>
                     <dd>List of (prefixes of) URLs for IJP batch servers to which the IJP can submit jobs,
                         e.g. https://sig-23.esc.rl.ac.uk:8181,https://ijp.scarf.rl.ac.uk:8181
@@ -131,6 +136,18 @@
                     <dt>reader</dt>
                     <dd>Authentication details for an ICAT account used by the IJP to login to ICAT,
                         e.g. "simple username br54 password secret"
+                    </dd>
+                    
+                    <dt>writer</dt>
+                    <dd>Authentication details for an ICAT account used by the IJP to login to ICAT and which
+                        may be used to change ICAT (specifically, to add Applications for job types if required);
+                        e.g. "simple username br54 password secret"
+                    </dd>
+                    
+                    <dt>facilities</dt>
+                    <dd>A comma-separated list of names of Facilities that may be used by jobs
+                        e.g. "LSF, Test Facility". Facility names may include spaces, but leading/trailing
+                        spaces will be removed.
                     </dd>
                     
                     <dt>authn.list</dt>
