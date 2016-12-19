@@ -1,7 +1,10 @@
 package org.icatproject.ijp.server.ejb.session;
 
+import org.icatproject.Application;
+import org.icatproject.Facility;
 import org.icatproject.ICAT;
 import org.icatproject.IcatException_Exception;
+import org.icatproject.Login.Credentials;
 import org.icatproject.ids.client.NotFoundException;
 import org.icatproject.ijp.server.Families;
 import org.icatproject.ijp.server.Icat;
@@ -114,6 +117,11 @@ public class JobManagementBean {
 	private String icatUrl;
 	private String idsUrl;
 	private String ijpUrl;
+	
+	private Credentials writerCredentials;
+	private String authPlugin;
+	
+	private List<String> facilityNames;
 
 	@PostConstruct
 	private void init() {
@@ -130,11 +138,38 @@ public class JobManagementBean {
 				logger.info("Family " + fam.getName() + " accessible to " + fam.getRE());
 			}
 
-			XmlFileManager xmlFileManager = new XmlFileManager();
-			jobTypes = xmlFileManager.getJobTypeMappings().getJobTypesMap();
-
 			CheckedProperties props = new CheckedProperties();
 			props.loadFromFile(Constants.PROPERTIES_FILEPATH);
+
+			List<String> creds = Arrays.asList(props.getString("writer").trim().split("\\s+"));
+			if (creds.size() % 2 != 1) {
+				throw new IllegalStateException("writer must have an odd number of words");
+			}
+
+			writerCredentials = new Credentials();
+			List<Credentials.Entry> entries = writerCredentials.getEntry();
+			for (int i = 1; i < creds.size(); i += 2) {
+				Credentials.Entry entry = new Credentials.Entry();
+				entry.setKey(creds.get(i));
+				entry.setValue(creds.get(i + 1));
+				entries.add(entry);
+			}
+			
+			authPlugin = creds.get(0);
+			
+			String facilities = props.getString("facilities");
+			if( facilities != null ){
+				facilityNames = Arrays.asList(facilities.trim().split("\\s*,\\s*"));
+				logger.info("JMB: " + facilityNames.size() + " facilities read from: '" + facilities + "'");
+			} else {
+				logger.info("JMB: no facilities defined");
+				facilityNames = new ArrayList<String>();
+			}
+
+			XmlFileManager xmlFileManager = new XmlFileManager();
+			jobTypes = xmlFileManager.getJobTypeMappings().getJobTypesMap();
+			checkAndAddAppsToIcat();
+
 			List<String> batchserverUrlstrings = new ArrayList<>(Arrays.asList(props.getString("batchserverUrls")
 					.split("\\s+")));
 			client = ClientBuilder.newClient();
@@ -170,6 +205,7 @@ public class JobManagementBean {
 			logger.info("Refreshing JobTypes...");
 			XmlFileManager xmlFileManager = new XmlFileManager();
 			jobTypes = xmlFileManager.getJobTypeMappings().getJobTypesMap();
+			checkAndAddAppsToIcat();
 		} catch (Exception e) {
 			String msg = e.getClass().getName() + " reports " + e.getMessage();
 			logger.error(msg);
@@ -716,6 +752,81 @@ public class JobManagementBean {
 		gen.writeEnd().close();
 		
 		return baos.toString();
+	}
+	
+	/**
+	 * For each JobType, check if there is an Application in ICAT with the same
+	 * name (and version 1.0), and add one if it is not found.
+	 */
+	private void checkAndAddAppsToIcat() {
+		
+		String sessionId;
+		List<Object> appsFromIcat;
+		
+		try {
+			sessionId = icat.login(authPlugin, writerCredentials);
+		} catch (IcatException_Exception e) {
+			// If we can't log in there is not much we can do here
+			logger.error("JMB: ICAT error logging into ICAT: " + e.getMessage());
+			return;
+		}
+
+		// Find facilities - or try to
+		
+		List<Facility> facilities = new ArrayList<Facility>();
+		for (String facilityName : facilityNames){
+			Facility facility;
+			try {
+				List<Object> facilityResult = icat.search(sessionId, "Facility [name='" + facilityName + "']");
+				if (facilityResult == null || facilityResult.size() != 1) {
+					logger.error("JMB: failed to find facility '" + facilityName + "'");
+				} else {
+					facility = (Facility) (facilityResult.get(0));
+					facilities.add(facility);
+				}
+			} catch (IcatException_Exception e) {
+				logger.error("JMB: ICAT error reading Facility '" + facilityName + "' from ICAT: " + e.getMessage());				
+			}
+		}
+		
+		logger.info("JMB: " + facilities.size() + " Facilities found");
+		
+		for( Facility facility : facilities) {
+			try {
+				appsFromIcat = icat.search(sessionId, "Application [facility.id=" + facility.getId().toString() + "]");
+			} catch (IcatException_Exception e) {
+				// If we can't find the Applications there is not much we can do here
+				logger.error("JMB: ICAT error reading Applications from ICAT: " + e.getMessage());
+				return;
+			}
+			// May have to change that query-string?
+			for (String jtName : jobTypes.keySet()) {
+				// Future?: if (jt.createsProvenance()) { ...
+				String version = "1.0"; // Future?: version = jt.getVersion()
+				boolean found = false;
+				for (Object o : appsFromIcat) {
+					Application app = (Application) o;
+					if (jtName.equals(app.getName()) && version.equals(app.getVersion())) {
+						found = true;
+					}
+				}
+				if (!found) {
+					// Add a new Application to ICAT
+					logger.info("JMB: about to create new Application for '" + jtName + "' (version " + version + " in Facility '" + facility.getName() + "'");
+					Application jtApp = new Application();
+					jtApp.setFacility(facility);
+					jtApp.setName(jtName);
+					jtApp.setVersion(version);
+					try {
+						icat.create(sessionId, jtApp);
+					} catch (IcatException_Exception e) {
+						// Log this, but don't stop trying to process other JobTypes
+						logger.error("JMB: ICAT exception when creating Application for JobType '" + jtName + "': " + e.getMessage());
+					}
+				}
+			}
+		}
+		// Should we log out of the session again here? Or does it not matter?
 	}
 	
 	/**
