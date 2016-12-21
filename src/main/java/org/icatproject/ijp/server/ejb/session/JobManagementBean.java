@@ -806,7 +806,8 @@ public class JobManagementBean {
 				boolean found = false;
 				for (Object o : appsFromIcat) {
 					Application app = (Application) o;
-					if (jtName.equals(app.getName()) && version.equals(app.getVersion())) {
+					// Application names are case-insensitive in ICAT
+					if (jtName.toLowerCase().equals(app.getName().toLowerCase()) && version.equals(app.getVersion())) {
 						found = true;
 					}
 				}
