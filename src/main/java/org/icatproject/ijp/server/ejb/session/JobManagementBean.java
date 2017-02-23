@@ -224,14 +224,25 @@ public class JobManagementBean {
 			ForbiddenException, InternalException, ParameterException {
 		logger.debug("getJobOutput for id " + id + " outputType " + outputType + " under sessionId " + sessionId);
 
+		String outputString;
 		Job job = getJob(sessionId, id);
 		WebTarget batch = batchServers.get(job.getBatch());
-		Response response = batch.path(outputType == OutputType.STANDARD_OUTPUT ? "output" : "error")
-				.path(job.getJobId()).queryParam("sessionId", sessionId).queryParam("icatUrl", icatUrl)
-				.request(MediaType.APPLICATION_OCTET_STREAM).get(Response.class);
-		checkResponse(response);
-		return response.readEntity(String.class);
-
+		if (batch == null) {
+			String batchName = job.getBatch();
+			if (batchName == null) {
+				batchName = "(NONE)";
+			}
+			logger.warn("getOutput: job " + job.getJobId() + "(status " + job.getStatus()
+				+ ") is from batch server not in current configuration: " + batchName);
+			outputString = "This job did not run on the current batch server(s), so no output could be found.";
+		} else {
+			Response response = batch.path(outputType == OutputType.STANDARD_OUTPUT ? "output" : "error")
+					.path(job.getJobId()).queryParam("sessionId", sessionId).queryParam("icatUrl", icatUrl)
+					.request(MediaType.APPLICATION_OCTET_STREAM).get(Response.class);
+			checkResponse(response);
+			outputString = response.readEntity(String.class);
+		}
+		return outputString;
 	}
 
 	private Entry<String, WebTarget> chooseBatch(String sessionId, JobType jobType, List<String> parameters)
@@ -521,8 +532,12 @@ public class JobManagementBean {
 			} else {
 				WebTarget batch = batchServers.get(job.getBatch());
 				if (batch == null) {
+					String batchName = job.getBatch();
+					if (batchName == null) {
+						batchName = "(NONE)";
+					}
 					logger.warn("listStatus: unfinished job " + job.getJobId() + "(status " + job.getStatus()
-							+ ") is from batch server not in current configuration: " + job.getBatch());
+							+ ") is from batch server not in current configuration: " + batchName);
 					status = "Unknown";
 					job.setStatus(Status.OTHER);
 				} else {
@@ -579,19 +594,28 @@ public class JobManagementBean {
 			status = "Cancelled";
 		} else {
 			WebTarget batch = batchServers.get(job.getBatch());
-			Response response = batch.path("status").path(job.getJobId()).queryParam("sessionId", sessionId)
-					.queryParam("icatUrl", icatUrl).request(MediaType.APPLICATION_JSON).get(Response.class);
-			checkResponse(response);
-			String json = response.readEntity(String.class);
-			try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
-				status = jsonReader.readObject().getString("status");
-				if (status.equals("Completed")) {
-					job.setStatus(Status.COMPLETED);
-				} else if (status.equals("Cancelled")) {
-					job.setStatus(Status.CANCELLED);
+			if (batch == null) {
+				String batchName = job.getBatch();
+				if (batchName == null) batchName = "(NONE)";
+				logger.warn("getStatus: unfinished job " + job.getJobId() + "(status " + job.getStatus()
+						+ ") is from batch server not in current configuration: " + batchName);
+				status = "Unknown";
+				job.setStatus(Status.OTHER);
+			} else {
+				Response response = batch.path("status").path(job.getJobId()).queryParam("sessionId", sessionId)
+						.queryParam("icatUrl", icatUrl).request(MediaType.APPLICATION_JSON).get(Response.class);
+				checkResponse(response);
+				String json = response.readEntity(String.class);
+				try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
+					status = jsonReader.readObject().getString("status");
+					if (status.equals("Completed")) {
+						job.setStatus(Status.COMPLETED);
+					} else if (status.equals("Cancelled")) {
+						job.setStatus(Status.CANCELLED);
+					}
+				} catch (JsonException e) {
+					throw new InternalException(e.getClass() + " " + e.getMessage() + " for:" + json);
 				}
-			} catch (JsonException e) {
-				throw new InternalException(e.getClass() + " " + e.getMessage() + " for:" + json);
 			}
 		}
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -617,9 +641,17 @@ public class JobManagementBean {
 		logger.debug("d	elete for id " + id + " under sessionId " + sessionId);
 		Job job = getJob(sessionId, id);
 		WebTarget batch = batchServers.get(job.getBatch());
-		Response response = batch.path("delete").path(job.getJobId()).queryParam("sessionId", sessionId)
-				.queryParam("icatUrl", icatUrl).request(MediaType.APPLICATION_JSON).delete(Response.class);
-		checkResponse(response);
+		if (batch == null) {
+			String batchName = job.getBatch();
+			if (batchName == null) batchName = "(NONE)";
+			logger.warn("delete: job " + job.getJobId() + "(status " + job.getStatus()
+					+ ") is from batch server not in current configuration: " + batchName
+					+ "; will remove it from the database");
+		} else {
+			Response response = batch.path("delete").path(job.getJobId()).queryParam("sessionId", sessionId)
+					.queryParam("icatUrl", icatUrl).request(MediaType.APPLICATION_JSON).delete(Response.class);
+			checkResponse(response);
+		}
 		entityManager.remove(job);
 	}
 
@@ -628,10 +660,18 @@ public class JobManagementBean {
 		logger.debug("cancel for id " + id + " under sessionId " + sessionId);
 		Job job = getJob(sessionId, id);
 		WebTarget batch = batchServers.get(job.getBatch());
-		Form f = new Form().param("sessionId", sessionId).param("icatUrl", icatUrl);
-		Response response = batch.path("cancel").path(job.getJobId()).request(MediaType.APPLICATION_JSON)
-				.post(Entity.form(f), Response.class);
-		checkResponse(response);
+		if (batch == null) {
+			String batchName = job.getBatch();
+			if (batchName == null) batchName = "(NONE)";
+			logger.warn("cancel: job " + job.getJobId() + "(status " + job.getStatus()
+					+ ") is from batch server not in current configuration: " + batchName
+					+ "; will set status to Cancelled.");
+		} else {
+			Form f = new Form().param("sessionId", sessionId).param("icatUrl", icatUrl);
+			Response response = batch.path("cancel").path(job.getJobId()).request(MediaType.APPLICATION_JSON)
+					.post(Entity.form(f), Response.class);
+			checkResponse(response);
+		}
 		job.setStatus(Status.CANCELLED);
 	}
 
