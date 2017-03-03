@@ -343,32 +343,41 @@ public class JobManagementBean {
 		job.setJobType(jobType.getName());
 		entityManager.persist(job);
 
-		addRequiredParameters(parameters, sessionId, jobType, job.getId());
-
-		Entry<String, WebTarget> bestEntry = chooseBatch(sessionId, jobType, parameters);
-
-		Form f = new Form()
-				.param("sessionId", sessionId)
-				.param("icatUrl", icatUrl)
-				.param("executable", jobType.getExecutable())
-				.param("interactive", "false");
-
-		String reqFamily = jobType.getFamily();
-		String family = reqFamily == null ? defaultFamily : reqFamily;
-		if (family != null) {
-			f.param("family", family);
+		String json;
+		Entry<String, WebTarget> bestEntry;
+		
+		try {
+			addRequiredParameters(parameters, sessionId, jobType, job.getId());
+	
+			bestEntry = chooseBatch(sessionId, jobType, parameters);
+	
+			Form f = new Form()
+					.param("sessionId", sessionId)
+					.param("icatUrl", icatUrl)
+					.param("executable", jobType.getExecutable())
+					.param("interactive", "false");
+	
+			String reqFamily = jobType.getFamily();
+			String family = reqFamily == null ? defaultFamily : reqFamily;
+			if (family != null) {
+				f.param("family", family);
+			}
+			for (String s : parameters) {
+				f.param("parameter", s);
+			}
+	
+			Response response = bestEntry.getValue().path("submit")
+					.request(MediaType.APPLICATION_JSON)
+					.post(Entity.form(f), Response.class);
+	
+			checkResponse(response);
+			json = response.readEntity(String.class);
+		} catch (Exception e){
+			logger.debug("submitBatch: Exception thrown before job details known, so removing persistent job record");
+			entityManager.remove(job);
+			throw e;
 		}
-		for (String s : parameters) {
-			f.param("parameter", s);
-		}
-
-		Response response = bestEntry.getValue().path("submit")
-				.request(MediaType.APPLICATION_JSON)
-				.post(Entity.form(f), Response.class);
-
-		checkResponse(response);
-		String json = response.readEntity(String.class);
-
+		
 		try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
 			String jobId = jsonReader.readObject().getString("jobId");
 			job.setJobId(jobId);
@@ -381,6 +390,10 @@ public class JobManagementBean {
 			logger.debug("submitBatch: returning JSON: " + baos.toString());
 			return baos.toString();
 		} catch (JsonException e) {
+			if (job.getJobId() == null || job.getBatch() == null) {
+				logger.debug("submitBatch: unable to determine job id or batch url, so removing persistent job");
+				entityManager.remove(job);
+			}
 			throw new InternalException("Bad response from batch service " + json);
 		}
 
