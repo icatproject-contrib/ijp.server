@@ -327,8 +327,10 @@ public class JobManagementBean {
 
 	private void addRequiredParameters(List<String> parameters, String sessionId, JobType jobType, long ijpJobId) {
 		addRequiredParameters(parameters, sessionId, jobType);
-		parameters.add("--ijpJobId=" + ijpJobId);
-		parameters.add("--ijpUrl=" + ijpUrl);
+		if (jobType.createsProvenance()){
+			parameters.add("--ijpJobId=" + ijpJobId);
+			parameters.add("--ijpUrl=" + ijpUrl);
+		}
 	}
 
 	public String submitBatch(String sessionId, JobType jobType, List<String> parameters) throws SessionException,
@@ -808,7 +810,7 @@ public class JobManagementBean {
 	}
 	
 	/**
-	 * For each JobType, check if there is an Application in ICAT with the same
+	 * For each JobType that specifies that it creates provenance, check if there is an Application in ICAT with the same
 	 * name (and version 1.0), and add one if it is not found.
 	 */
 	private void checkAndAddAppsToIcat() {
@@ -854,28 +856,29 @@ public class JobManagementBean {
 			}
 			// May have to change that query-string?
 			for (String jtName : jobTypes.keySet()) {
-				// Future?: if (jt.createsProvenance()) { ...
-				String version = "1.0"; // Future?: version = jt.getVersion()
-				boolean found = false;
-				for (Object o : appsFromIcat) {
-					Application app = (Application) o;
-					// Application names are case-insensitive in ICAT
-					if (jtName.toLowerCase().equals(app.getName().toLowerCase()) && version.equals(app.getVersion())) {
-						found = true;
+				if (jobTypes.get(jtName).createsProvenance()){
+					String version = "1.0"; // Future?: version = jt.getVersion()
+					boolean found = false;
+					for (Object o : appsFromIcat) {
+						Application app = (Application) o;
+						// Application names are case-insensitive in ICAT
+						if (jtName.toLowerCase().equals(app.getName().toLowerCase()) && version.equals(app.getVersion())) {
+							found = true;
+						}
 					}
-				}
-				if (!found) {
-					// Add a new Application to ICAT
-					logger.info("JMB: about to create new Application for '" + jtName + "' (version " + version + " in Facility '" + facility.getName() + "'");
-					Application jtApp = new Application();
-					jtApp.setFacility(facility);
-					jtApp.setName(jtName);
-					jtApp.setVersion(version);
-					try {
-						icat.create(sessionId, jtApp);
-					} catch (IcatException_Exception e) {
-						// Log this, but don't stop trying to process other JobTypes
-						logger.error("JMB: ICAT exception when creating Application for JobType '" + jtName + "': " + e.getMessage());
+					if (!found) {
+						// Add a new Application to ICAT
+						logger.info("JMB: about to create new Application for '" + jtName + "' (version " + version + " in Facility '" + facility.getName() + "'");
+						Application jtApp = new Application();
+						jtApp.setFacility(facility);
+						jtApp.setName(jtName);
+						jtApp.setVersion(version);
+						try {
+							icat.create(sessionId, jtApp);
+						} catch (IcatException_Exception e) {
+							// Log this, but don't stop trying to process other JobTypes
+							logger.error("JMB: ICAT exception when creating Application for JobType '" + jtName + "': " + e.getMessage());
+						}
 					}
 				}
 			}
