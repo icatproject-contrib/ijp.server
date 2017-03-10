@@ -28,6 +28,8 @@ public class JobType implements IsSerializable {
 	private boolean acceptsDatasets;
 	@XmlAttribute
 	private boolean acceptsDatafiles;
+	@XmlAttribute
+	private boolean createsProvenance;
 	@XmlElement
 	private List<String> datasetTypes = new ArrayList<String>();
 	@XmlElement
@@ -118,6 +120,10 @@ public class JobType implements IsSerializable {
 
 	public boolean isAcceptsDatafiles(){
 		return acceptsDatafiles;
+	}
+
+	public boolean createsProvenance(){
+		return createsProvenance;
 	}
 
 }
