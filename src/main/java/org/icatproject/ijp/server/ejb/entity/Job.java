@@ -11,7 +11,9 @@ import javax.persistence.*;
 		@NamedQuery(name = "Job.FIND_BY_USERNAME",
 					query = "SELECT j FROM Job j WHERE j.username = :username ORDER BY j.submitDate DESC"),
 		@NamedQuery(name = "Job.FIND_BY_ID",
-					query = "SELECT j FROM Job j WHERE j.id = :id")
+					query = "SELECT j FROM Job j WHERE j.id = :id"),
+		@NamedQuery(name = "Job.FIND_BY_STATUS",
+					query = "SELECT j FROM Job j WHERE j.status = :status")
 })
 
 public class Job implements Serializable {
@@ -23,6 +25,7 @@ public class Job implements Serializable {
 	}
 
 	public final static String FIND_BY_USERNAME = "Job.FIND_BY_USERNAME";
+	public final static String FIND_BY_STATUS = "Job.FIND_BY_STATUS";
 
 	private String batch;
 
@@ -34,6 +37,8 @@ public class Job implements Serializable {
 	private long id;
 
 	private String username;
+	
+	private String sessionId;
 
 	private String jobId;
 
@@ -61,6 +66,14 @@ public class Job implements Serializable {
 
 	public void setUsername(String username) {
 		this.username = username;
+	}
+
+	public String getSessionId() {
+		return sessionId;
+	}
+
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
 	}
 
 	public Status getStatus() {

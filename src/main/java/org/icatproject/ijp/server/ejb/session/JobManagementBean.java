@@ -212,6 +212,46 @@ public class JobManagementBean {
 			throw new RuntimeException(msg);
 		}
 	}
+	
+	/**
+	 * Check unfinished jobs to see if their sessions need to be refreshed.
+	 * Set to run every 15 minutes, and to refresh any sessions with less than 20 minutes remaining;
+	 * so we assume that the ICAT session lifetime is longer than 15 minutes.
+	 */
+	@Schedule(minute = "*/15", hour = "*")
+	private void refreshSessions(){
+		try {
+			// Consider all jobs that are not known to be Completed or Cancelled.
+			List<Job> jobs = entityManager.createNamedQuery(Job.FIND_BY_STATUS, Job.class)
+					.setParameter("status", Status.OTHER).getResultList();
+			int activeJobs = 0;
+			int sessionsRefreshed = 0;
+			for (Job job : jobs){
+				String sessionId = job.getSessionId();
+				if( sessionId != null ){
+					activeJobs++;
+					String jobInfo = job.getJobId() + "(type: " + job.getJobType() + ", sessionId: " + sessionId +")";
+					try {
+						if (icat.getRemainingMinutes(sessionId) < 20) {
+							logger.info("JMB.refreshSessions: unfinished (?) job " + jobInfo 
+								+ "'s session is close to expiry, so will refresh.");
+							icat.refresh(sessionId);
+							sessionsRefreshed++;
+						}
+					} catch (IcatException_Exception ie){
+						logger.error("JMB.refreshSessions: IcatException when looking at " + jobInfo, ie);
+					}
+				} else {
+					logger.warn("JMB.refreshSessions: Job found with status Other but no sessionId: " + job.getJobId() + "(type: " + job.getJobType() +")");
+				}
+			}
+			logger.info("JMB.refreshSessions: " + activeJobs + " active jobs found; " + sessionsRefreshed + " sessions refreshed.");
+		} catch (Exception e) {
+			String msg = e.getClass().getName() + " reports " + e.getMessage();
+			logger.error("JMB.refreshSessions: " + msg);
+			throw new RuntimeException(msg);
+		}
+	}
 
 	private final static Logger logger = LoggerFactory.getLogger(JobManagementBean.class);
 
@@ -341,6 +381,7 @@ public class JobManagementBean {
 		Job job = new Job();
 		job.setStatus(Status.OTHER);
 		job.setUsername(getUserName(sessionId));
+		job.setSessionId(sessionId);
 		job.setSubmitDate(new Date());
 		job.setJobType(jobType.getName());
 		entityManager.persist(job);
