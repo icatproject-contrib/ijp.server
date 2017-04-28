@@ -20,6 +20,11 @@
             are likely to be different.
             </p>
             <p>
+            The installation described here was carried out in January 2014,
+            so the detailed steps are almost certainly out of date; but the
+            overall process should be the same.
+            </p>
+            <p>
             By a "standalone" instance we mean a single system that acts as
             both a central IJP server and as a batch server.  (Indeed, in our
             case, we also installed ICAT and IDS instances, though this is not

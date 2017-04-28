@@ -19,8 +19,7 @@
                         <a href="${repoUrl}/org/icatproject/ijp.server/${project.version}/ijp.server-${project.version}-distro.zip">ijp.server-${project.version}-distro.zip</a>
                     </li>
                      <li>
-                        A suitable deployed container (here assumed to be glassfish though tomcat should be sufficient) to support a web
-                        application.
+                        A suitable deployed container. The installation scripts support Glassfish.
                         Testing has been carried out with Glassfish 4.0.
                         <a href="http://icatproject.org/installation/glassfish/">Glassfish installation instructions</a>
                         are available.
@@ -49,6 +48,9 @@
                     </li>
                     <li>
                       One or more IJP batch servers.  The sample unxibatch server may be useful for local development and testing.
+                    </li>
+                    <li>
+                      The IJP server can be used from the IJP plugin for Topcat, or from the IJP command-line client.
                     </li>
                 </ul>
             </subsection>
@@ -157,18 +159,26 @@
             </subsection>
 
             <subsection name="Check that the IJP works">
-              <p>Launch the IJP by visiting https://localhost:8181/ijp, and login with the credentials defined in ijp.properties. Then:
+              <p>Using Topcat: install Topcat and add the IJP Topcat plugin; this is normally done on the ICAT server host; configure
+                topcat.json, adding the URL for the IJP server. Topcat should now show a My Jobs tab. Go to this tab, then:
                 <ul>
-                  <li>Choose "date" from the list of Job Types</li>
-                  <li>Click "Submit Job"; this should bring up a dialog "date Options" with buttons labelled Submit and Close.</li>
-                  <li>Click "Submit".  The resulting dialog should display a single Submitted Job ID. Note the ID, and click Close.</li>
-                  <li>Click on "Show job status panel"; this should launch a separate dialog listing known jobs and their statuses.</li>
-                  <li>At or near the top of the list should be an entry for the noted ID, with name "date".  If the Status is Queued,
-                      wait until it changes to Completed.  Once Completed, click Display Job Output.</li>
-                  <li>The output display should show that the job has run; at or near the end should be a line that ends with
-                      "date ending with code 0".</li>
+                  <li>Click on Configure New Job. If Choose Job Inputs appears, select Run Job With No Inputs</li>
+                  <li>From the Job Type list, choose Date, and click Submit Job</li>
+                  <li>The Job Submission dialog should appear, and report success and a job ID. Click Close</li>
+                  <li>A new job should appear at the top of the My Jobs list</li>
+                  <li>Clicking on the job row (but not on the Delete button) should show details of the job</li>
                 </ul>
-              </p> 
+              </p>
+              <p>Using the command-line IJP client: install the client, then run the following commands:
+                <ul>
+                  <li>./ijp login simple username dmf password dmfpass (or similar, depending on your authenticator configuration).
+                      This should report a session ID and lifetime.</li>
+                  <li>./ijp submit Date; this should report a JobID</li>
+                  <li>./ijp status <jobId> should report the job status</li>
+                  <li>./ijp output <jobId> should report the standard output of the job</li>
+                  <li>./ijp output -e <jobId> should report the error output of the job</li>
+                </ul>
+              </p>
               <p>Install the demojobs distribution (on both the IJP server and the batch server if they are different).
                  Repeat for these job types, to test other aspects of the IJP, e.gs:
                 <dl>

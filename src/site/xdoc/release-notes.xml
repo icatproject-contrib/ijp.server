@@ -2,14 +2,18 @@
 <document xmlns="http://maven.apache.org/XDOC/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
 
     <properties>
-        <title>IJP Release Notes</title>
+        <title>IJP Server Release Notes</title>
     </properties>
 
     <body>
         <section name="2.0.2">
             <ul>
+                <li>The original GWT GUI has been replaced with a Topcat plugin</li>
+                <li>Job Types are now reloaded dynamically</li>
+                <li>Allow Job Types to specify that multiple inputs should always be passed to a single job</li>
                 <li>Link job provenance to job that created it, and display provenance details in the GUI</li>
                 <li>Check that each job type has a corresponding ICAT Application in each Facility, creating it if necessary</li>
+                <li>Keep the ICAT session alive so long as there are queued or executing jobs</li>
             </ul>
         </section>
         <section name="2.0.0">
