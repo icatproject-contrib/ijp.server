@@ -6,20 +6,21 @@ import os
 
 def uninstall():
     app = actions.getAppName("ijp.server")
-    if app: actions.asadmin("undeploy " + app)
-    actions.asadmin("delete-jdbc-resource jdbc/ijp", tolerant=True)
-    actions.asadmin("delete-jdbc-connection-pool ijp", tolerant=True)
+    if app: actions.undeploy( app )
+    # props["db.name"] was originally hard-wired as "ijp"
+    actions.unregisterDB( props["db.name"] )
 
+actions, arg, props = getActions("setup.properties", ["container","home","secure","port","db.driver","db.username","db.password","db.name"], binDir=False)
 
-actions, options, arg = getActions()
-props = actions.getGlassfish("ijp-setup.properties", ["dbProperties", "glassfish", "driver", "port"])
-
-prop_name = "ijp.properties"
-prop_list = ["icat.url", "ids.url", "reader"]
+prop_name = "run.properties"
+prop_list = ["icat.url", "ids.url", "ijp.url", "authn.list","reader", "writer","batchserverUrls","facilities"]
 
 if arg in ["CONFIGURE", "INSTALL"]:
     actions.configure(prop_name, prop_list, dir="ijp")
-    ijpProperties = actions.getProperties(os.path.join("ijp", prop_name), prop_list)
+
+ijpProperties = getProperties(os.path.join("ijp", prop_name), prop_list)
+
+if arg in ["CONFIGURE", "INSTALL"]:
     actions.checkNoErrors()
     
 if arg == "INSTALL":   
@@ -28,13 +29,12 @@ if arg == "INSTALL":
     try:
         uninstall()
               
-        actions.asadmin('create-jdbc-connection-pool --datasourceclassname ' + props["driver"] + 
-                ' --restype javax.sql.DataSource --failconnection=true --steadypoolsize 2' + 
-                ' --maxpoolsize 8 --ping --property ' + props["dbProperties"] + ' ijp', printOutput=True)
-        
-        actions.asadmin("create-jdbc-resource --connectionpoolid ijp jdbc/ijp")
-      
-        actions.deploy("ijp.server-*.war", deploymentorder=140)
+        # props["db.name"] originally hard-wired as "ijp"
+        actions.registerDB( props["db.name"], props["db.driver"], props["db.url"], props["db.username"], props["db.password"])
+
+        ovfiles = [[os.path.join("ijp", prop_name), "WEB-INF/classes"]]
+        if os.path.exists("logback.xml"): ovfiles.append(["logback.xml", "WEB-INF/classes"])
+        actions.deploy(deploymentorder=140, files=ovfiles, jmsTopicConnectionFactory=ijpProperties.get("jms.topicConnectionFactory"), target=props.get("db.target"), logging=props.get("db.logging"))
                     
     except Exception, e:
         abort(str(e))
