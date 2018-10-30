@@ -416,7 +416,7 @@ public class JobManagementBean {
 			checkResponse(response);
 			json = response.readEntity(String.class);
 		} catch (Exception e){
-			logger.debug("submitBatch: Exception thrown before job details known, so removing persistent job record");
+			logger.debug("submitBatch: " + e.toString() + " thrown before job details known, so removing persistent job record");
 			entityManager.remove(job);
 			throw e;
 		}
