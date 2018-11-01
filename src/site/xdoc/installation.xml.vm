@@ -72,17 +72,23 @@
                 </ol>
             </subsection>
 
-            <subsection name="The ijp-setup.properties file">
+            <subsection name="The setup.properties file">
 
                 <dl>
-                    <dt>driver</dt>
+                    <dt>db.driver</dt>
                     <dd>is the name of the jdbc driver and must match the jar file for your database.</dd>
-                    <dt>dbProperties</dt>
-                    <dd>identifies the IJP jobs database and how to connect to it.</dd>
-                    <dt>glassfish</dt>
-                    <dd>is the top level of the glassfish installation. It must contain "glassfish/domains", and will be referred to here as
-                        GLASSFISH_HOME as if an environment variable had been set.
-                    </dd>
+                    <dt>db.url</dt>
+                    <dd>is the connection URL for the DB, e.g. jdbc:mysql://localhost:3306/ijp</dd>
+                    <dt>db.username, db.password</dt>
+                    <dd>the username and password for connection to the DB</dd>
+                    <dt>db.name</dt>
+                    <dd>name of the IJP DB</dd>
+                    <dt>container</dt>
+                    <dd>the application container hosting ijp.server, e.g. Glassfish (note: case is significant)</dd>
+                    <tt>home</tt>
+                    <dd>location of the container, e.g. /home/glassfishuser/glassfish4
+                    <tt>secure</tt>
+                    <dd>true (https) or false (http)</dd>
                     <dt>port</dt>
                     <dd>is the administration port of the chosen glassfish domain which is typically 4848.</dd>
                 </dl>
@@ -104,15 +110,16 @@
                 </p>
                 <p>For MySQL:</p>
                 <code>
-                    driver=com.mysql.jdbc.jdbc2.optional.MysqlDataSource
-                    <br />
-                    dbProperties=user=icat:password=secret:databaseName=ijp
-                    <br />
+                    db.driver      = com.mysql.jdbc.jdbc2.optional.MysqlDataSource
+                    db.url         = jdbc:mysql://localhost:3306/ijp
+                    db.username    = icat
+                    db.password    = secret
+                    db.name        = ijp
                 </code>
             </subsection>
 
 
-            <subsection name="The ijp.properties file">
+            <subsection name="The run.properties file">
 
                 <dl>
                     <dt>icat.url</dt>
@@ -132,7 +139,8 @@
                     
                     <dt>batchserverUrls</dt>
                     <dd>List of (prefixes of) URLs for IJP batch servers to which the IJP can submit jobs,
-                        e.g. https://sig-23.esc.rl.ac.uk:8181,https://ijp.scarf.rl.ac.uk:8181
+                        e.g. https://sig-23.esc.rl.ac.uk:8181 https://ijp.scarf.rl.ac.uk:8181
+                        (note: use whitespace for separation, not commas)
                     </dd>
                     
                     <dt>reader</dt>
