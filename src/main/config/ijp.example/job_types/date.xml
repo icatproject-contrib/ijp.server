@@ -4,7 +4,11 @@
       It requires no datasets, and has no options.
     -->
     <name>date</name>
-    <executable>date</executable>
+    <!--
+      Some batch systems (e.g. Condor) interpret the executable relative to the job's
+      working directory; so for a system command the absolute path is required.
+    -->
+    <executable>/bin/date</executable>
     <type>batch</type>
     <!-- Job-only jobs can explicitly use "none (job only)" as their datasetType,
          but it is OK to omit the element completely 
